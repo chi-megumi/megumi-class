@@ -1,0 +1,95 @@
+.sidebar-wrapper {
+  .mobile-menu-toggle {
+    display: none; /* hidden on desktop */
+    position: fixed;
+    top: 5%;
+    left: 0;
+    z-index: 60;
+    transform: translateY(-50%);
+
+    /* flush against left edge, rounded on the right side */
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    border: none;
+    border-radius: 0 14px 14px 0;
+    background: linear-gradient(135deg, #6366f1 0%, #818cf8 100%);
+    box-shadow: 2px 2px 12px rgba(99, 102, 241, 0.35);
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+    /* layout for the hamburger lines */
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+
+    &:hover {
+      width: 42px;
+      box-shadow: 3px 3px 18px rgba(99, 102, 241, 0.5);
+    }
+
+    &:active {
+      transform: translateY(-50%) scale(0.95);
+    }
+
+    /* hamburger lines */
+    .hamburger-line {
+      display: block;
+      width: 18px;
+      height: 2px;
+      border-radius: 2px;
+      background: #fff;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      transform-origin: center;
+    }
+
+    /* animate to X when active */
+    &.is-active {
+      left: -100%;
+      opacity: 0;
+      visibility: hidden;
+    }
+
+    @media screen and (max-width: 1024px) {
+      display: flex;
+    }
+  }
+
+  .sidebar-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 45;
+    background: rgba(0, 0, 0, 0);
+    backdrop-filter: blur(0);
+    pointer-events: none;
+    transition: all 0.3s ease;
+
+    @media screen and (max-width: 1024px) {
+      display: block;
+    }
+
+    &.is-visible {
+      background: rgba(0, 0, 0, 0.2);
+      backdrop-filter: blur(2px);
+      pointer-events: auto;
+    }
+  }
+
+  .sidebar-container {
+    transition:
+      left 0.35s cubic-bezier(0.4, 0, 0.2, 1),
+      opacity 0.35s ease;
+
+    @media screen and (max-width: 1024px) {
+      left: -100%;
+      opacity: 0;
+
+      &.is-open {
+        left: 16px; /* left-4 = 1rem = 16px */
+        opacity: 1;
+      }
+    }
+  }
+}

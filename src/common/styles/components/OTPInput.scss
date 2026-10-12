@@ -1,0 +1,68 @@
+/* ============================================================
+   OTP Input Component
+   ============================================================ */
+
+.otp-input {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+
+  &__cell {
+    width: 48px;
+    height: 56px;
+    border-radius: 14px;
+    border: 2px solid #e2e8f0;
+    background: #f8fafc;
+    font-size: 1.5rem;
+    font-weight: 700;
+    text-align: center;
+    color: #1e293b;
+    outline: none;
+    transition:
+      border-color 0.2s,
+      box-shadow 0.2s,
+      transform 0.15s,
+      background 0.2s;
+    caret-color: transparent;
+
+    &:hover:not(:disabled) {
+      border-color: #94a3b8;
+    }
+
+    &--focused {
+      border-color: var(--color-primary, #6366f1);
+      background: #fff;
+      box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.15);
+      transform: scale(1.06);
+    }
+
+    &--filled {
+      background: #fff;
+      border-color: #94a3b8;
+    }
+
+    &--error {
+      border-color: #ef4444 !important;
+      box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.15) !important;
+    }
+
+    &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+  }
+}
+
+/* Mobile: slightly smaller cells */
+@media (max-width: 400px) {
+  .otp-input {
+    gap: 7px;
+
+    &__cell {
+      width: 40px;
+      height: 48px;
+      font-size: 1.2rem;
+      border-radius: 10px;
+    }
+  }
+}
