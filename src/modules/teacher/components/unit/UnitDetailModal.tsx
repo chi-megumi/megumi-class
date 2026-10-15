@@ -1,3 +1,5 @@
+'use client'
+
 import { useState, useTransition } from 'react'
 import { Loader2, BookA, Gamepad2, BarChart3 } from 'lucide-react'
 import { UnitData, VocabItemData } from '../../types'
@@ -8,7 +10,8 @@ import TestResultsModal from './TestResultsModal'
 import UnitGamesTab from './UnitGamesTab'
 import ExamGeneratorModal from './ExamGeneratorModal'
 import { GeneratedExamResult } from '../../utils/examGenerator'
-import { TestContent } from '../../types'
+import { TestContent, ExamData } from '../../types'
+import Portal from '@/components/common/Portal'
 
 interface UnitDetailModalProps {
   editingUnit: UnitData
@@ -31,7 +34,7 @@ const UnitDetailModalInner = ({
   const [editingTestId, setEditingTestId] = useState<string | null>(null)
   const [generatedExam, setGeneratedExam] = useState<GeneratedExamResult | null>(null)
   const [isGeneratorOpen, setIsGeneratorOpen] = useState(false)
-  const [viewingResultsTest, setViewingResultsTest] = useState<TestContent | null>(null)
+  const [viewingResultsTest, setViewingResultsTest] = useState<ExamData | TestContent | null>(null)
   const [isPending, startTransition] = useTransition()
 
   // Local state for optimistic updates
@@ -63,8 +66,9 @@ const UnitDetailModalInner = ({
   ] as const
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in slide-in-from-bottom-4 duration-300">
-      <div className="bg-white w-full max-w-6xl h-full rounded-[2rem] shadow-2xl flex flex-col overflow-hidden border border-gray-200/50">
+    <Portal>
+      <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in slide-in-from-bottom-4 duration-300">
+        <div className="bg-white w-full max-w-6xl h-full rounded-[2rem] shadow-2xl flex flex-col overflow-hidden border border-gray-200/50">
         
         {/* Modal Header */}
         <div className="px-8 py-5 border-b border-gray-100 flex items-center justify-between bg-white z-10 shadow-sm shrink-0">
@@ -204,7 +208,8 @@ const UnitDetailModalInner = ({
           onClose={() => setViewingResultsTest(null)}
         />
       )}
-    </div>
+      </div>
+    </Portal>
   )
 }
 

@@ -1,4 +1,5 @@
 import { UserUnitProgress } from '@prisma/client'
+import type { TestResultPayload } from '@/actions/analytics/types'
 
 export type VocabItemData = {
   id: string
@@ -62,15 +63,21 @@ export type TestContent = {
   duration: number
   isEnabled?: boolean
   isPublished?: boolean
+  isRetakable?: boolean
   blocks: TestBlock[]
 }
+
+export type ExamResultAnswers =
+  | TestResultPayload
+  | Record<string, string | number>
+  | Record<string, unknown>
 
 export type ExamResultData = {
   id: string
   examId: string
   studentId: string
   score?: number | null
-  answers?: any
+  answers?: ExamResultAnswers | null
   startedAt: Date | string
   completedAt?: Date | string | null
 }
@@ -81,6 +88,7 @@ export type ExamData = {
   duration: number
   isEnabled: boolean
   isPublished: boolean
+  isRetakable?: boolean
   content: TestBlock[]
   classId?: string | null
   unitId?: string | null

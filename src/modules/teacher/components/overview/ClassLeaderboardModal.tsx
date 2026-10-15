@@ -1,20 +1,17 @@
+'use client'
+
 import React, { useState, useEffect } from 'react'
 import Image from 'next/image'
 import {
   X,
-  Award,
   Trophy,
-  Medal,
   Search,
-  BookOpen,
-  TrendingUp,
   Sparkles,
   Users,
-  CheckCircle2,
   ChevronRight,
-  ExternalLink,
 } from 'lucide-react'
-import { getClassLeaderboard } from '@/actions/analytics'
+import { getClassLeaderboard } from '@/actions/analytics/class-analytics'
+import Portal from '@/components/common/Portal'
 
 type LeaderboardStudent = {
   rank: number
@@ -91,8 +88,9 @@ export default function ClassLeaderboardModal({
   const top3 = data?.leaderboard[2]
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 sm:p-6 animate-in fade-in duration-200">
-      <div className="bg-white rounded-3xl shadow-2xl w-full max-w-5xl max-h-[92vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
+    <Portal>
+      <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in slide-in-from-bottom-4 duration-300">
+        <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-6xl h-full flex flex-col overflow-hidden border border-gray-200/50">
         {/* Header */}
         <div className="p-6 border-b border-gray-100 bg-gradient-to-r from-amber-500/10 via-yellow-500/10 to-indigo-500/10 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -373,6 +371,7 @@ export default function ClassLeaderboardModal({
           )}
         </div>
       </div>
-    </div>
+      </div>
+    </Portal>
   )
 }

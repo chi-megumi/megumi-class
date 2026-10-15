@@ -1,6 +1,7 @@
 import VocabManager from '@/modules/teacher/components/vocabulary/VocabManager'
 import { Loader2 } from 'lucide-react'
 import { UnitData, VocabItemData } from '../../types'
+import Portal from '@/components/common/Portal'
 
 interface ModalManagerVocabularyProps {
   editingUnit: UnitData
@@ -20,7 +21,8 @@ const ModalManagerVocabulary = ({
   handleSaveVocab,
 }: ModalManagerVocabularyProps) => {
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in slide-in-from-bottom-4 duration-300">
+    <Portal>
+      <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in slide-in-from-bottom-4 duration-300">
       <div className="bg-white w-full max-w-6xl h-full rounded-[2rem] shadow-2xl flex flex-col overflow-hidden border border-gray-200/50">
         {/* Modal Header */}
         <div className="px-8 py-5 border-b border-gray-100 flex items-center justify-between bg-white z-10 shadow-sm">
@@ -55,6 +57,7 @@ const ModalManagerVocabulary = ({
         </div>
       </div>
     </div>
+    </Portal>
   )
 }
 

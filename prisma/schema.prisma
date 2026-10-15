@@ -117,6 +117,7 @@ model Exam {
   duration    Int      // in minutes
   isEnabled   Boolean  @default(false) @map("is_enabled")
   isPublished Boolean  @default(false) @map("is_published")
+  isRetakable Boolean  @default(false) @map("is_retakable")
   content     Json     @map("content")
   
   classId     String?  @map("class_id") @db.Uuid

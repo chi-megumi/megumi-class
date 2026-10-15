@@ -1,20 +1,19 @@
+'use client'
+
 import React, { useState, useEffect } from 'react'
 import Image from 'next/image'
 import {
   X,
-  User,
   CheckCircle2,
   Clock,
-  Award,
-  AlertCircle,
   ChevronDown,
   ChevronUp,
   FileText,
   Calendar,
-  Layers,
 } from 'lucide-react'
-import { getStudentExamHistory } from '@/actions/analytics'
-import { TestBlock, TestQuestion } from '../../types'
+import { getStudentExamHistory } from '@/actions/analytics/class-analytics'
+import { MatchingPair, TestBlock, TestQuestion } from '../../types'
+import Portal from '@/components/common/Portal'
 
 type StudentExamHistoryItem = {
   examId: string
@@ -28,9 +27,9 @@ type StudentExamHistoryItem = {
   totalQuestions: number | null
   startedAt: string | Date | null
   completedAt: string | Date | null
-  answers: Record<string, any>
-  correctAnswersDetail: Record<string, any>
-  content: any
+  answers: Record<string, string | number>
+  correctAnswersDetail: Record<string, string | number>
+  content: unknown
 }
 
 type StudentExamHistoryResponse = {
@@ -89,8 +88,9 @@ export default function StudentExamProgressModal({
   }, [classId, studentId])
 
   return (
-    <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 sm:p-6 animate-in fade-in duration-200">
-      <div className="bg-white rounded-3xl shadow-2xl w-full max-w-4xl max-h-[92vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
+    <Portal>
+      <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in slide-in-from-bottom-4 duration-300">
+        <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-6xl h-full flex flex-col overflow-hidden border border-gray-200/50">
         {/* Header */}
         <div className="p-6 border-b border-gray-100 bg-gradient-to-r from-indigo-50/80 via-blue-50/50 to-purple-50/40 flex items-center justify-between">
           <div className="flex items-center gap-3.5">
@@ -260,7 +260,11 @@ export default function StudentExamProgressModal({
                               Chi tiết câu trả lời của học sinh:
                             </h5>
 
-                            {(((item.content as any)?.content || item.content?.blocks || item.content) as TestBlock[] || []).map((block: TestBlock, bIdx: number) => (
+                            {((Array.isArray(item.content)
+                              ? (item.content as TestBlock[])
+                              : (item.content as { content?: TestBlock[]; blocks?: TestBlock[] })?.content ||
+                                (item.content as { content?: TestBlock[]; blocks?: TestBlock[] })?.blocks ||
+                                []) as TestBlock[]).map((block: TestBlock, bIdx: number) => (
                               <div key={block.id || bIdx} className="p-4 rounded-xl bg-white border border-gray-200/80 shadow-xs space-y-3">
                                 <div className="font-bold text-indigo-700 text-xs pb-2 border-b border-gray-100">
                                   Phần {bIdx + 1}: {block.title}
@@ -271,7 +275,6 @@ export default function StudentExamProgressModal({
                                     {block.content?.questions?.map((q: TestQuestion, qIdx: number) => {
                                       const studentAns = item.answers[q.id]
                                       const correctAns = item.correctAnswersDetail?.[q.id] ?? q.correctIndex
-                                      const isCorrect = studentAns === correctAns
 
                                       return (
                                         <div key={q.id} className="space-y-1.5 text-xs">
@@ -310,7 +313,10 @@ export default function StudentExamProgressModal({
 
                                 {block.type === 'fill_blank' && (
                                   <div className="space-y-3 text-xs">
-                                    {((block.content as any)?.questions || [{ id: block.id, text: (block.content as any)?.text, answer: (block.content as any)?.answer }]).map((q: any, qIdx: number) => {
+                                    {(block.content?.questions && block.content.questions.length > 0
+                                      ? block.content.questions
+                                      : [{ id: block.id, text: block.content?.text, answer: block.content?.answer }]
+                                    ).map((q: TestQuestion, qIdx: number) => {
                                       const studentAns = String(item.answers[q.id] || '').trim()
                                       const correctAns = String(item.correctAnswersDetail?.[q.id] || q.answer || '').trim()
                                       const isCorrect = studentAns.toLowerCase() === correctAns.toLowerCase()
@@ -338,11 +344,11 @@ export default function StudentExamProgressModal({
 
                                 {block.type === 'matching' && (
                                   <div className="space-y-2 text-xs">
-                                    {((block.content as any)?.pairs || []).map((p: any, pIdx: number) => {
+                                    {(block.content?.pairs || []).map((p: MatchingPair, pIdx: number) => {
                                       const key = `${block.id}_${p.id}`
                                       const studentChoice = item.answers[key]
-                                      const matchedPair = ((block.content as any)?.pairs || []).find((o: any) => o.id === studentChoice)
-                                      const studentText = matchedPair ? matchedPair.right : (studentChoice || '(Chưa ghép)')
+                                      const matchedPair = (block.content?.pairs || []).find((o) => o.id === studentChoice)
+                                      const studentText = matchedPair ? matchedPair.right : (studentChoice !== undefined ? String(studentChoice) : '(Chưa ghép)')
                                       const isCorrect = studentChoice === p.id || (p.right && String(studentChoice).trim().toLowerCase() === String(p.right).trim().toLowerCase())
 
                                       return (
@@ -367,7 +373,7 @@ export default function StudentExamProgressModal({
 
                                 {block.type === 'reorder' && (
                                   <div className="space-y-3 text-xs">
-                                    {((block.content as any)?.questions || []).map((q: any, qIdx: number) => {
+                                    {(block.content?.questions || []).map((q: TestQuestion, qIdx: number) => {
                                       const studentSentence = String(item.answers[q.id] || '').trim()
                                       const correctSentence = String(item.correctAnswersDetail?.[q.id] || q.sentence || '').trim()
                                       const normalize = (s: string) => s.toLowerCase().replace(/[.,!?;:]/g, '').replace(/\s+/g, ' ').trim()
@@ -405,6 +411,7 @@ export default function StudentExamProgressModal({
           )}
         </div>
       </div>
-    </div>
+      </div>
+    </Portal>
   )
 }

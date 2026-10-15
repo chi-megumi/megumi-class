@@ -1,3 +1,5 @@
+'use client'
+
 import {
   Plus,
   Edit2,
@@ -20,7 +22,7 @@ interface UnitGamesTabProps {
   isPending: boolean
   toggleSetting: (key: 'isFlashcardEnabled' | 'isQuizEnabled' | 'isMatchEnabled') => void
   setEditingTestId: (id: string | null) => void
-  setViewingResultsTest: (test: TestContent | null) => void
+  setViewingResultsTest: (test: ExamData | TestContent | null) => void
   setEditingUnit: (unit: UnitData) => void
   onOpenGenerator?: () => void
 }
@@ -67,7 +69,7 @@ export default function UnitGamesTab({
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
         {Array.isArray(editingUnit.exams) && editingUnit.exams.length > 0 ? (
-          editingUnit.exams.map((test: any) => (
+          editingUnit.exams.map((test: ExamData) => (
             <div
               key={test.id}
               className="bg-white border border-red-100 rounded-2xl p-6 shadow-sm hover:shadow-md transition-all relative overflow-hidden group flex flex-col"
@@ -80,7 +82,7 @@ export default function UnitGamesTab({
                 <div className="flex items-center gap-2">
                   <button
                     onClick={async () => {
-                      const newExams = (editingUnit.exams || []).map((t: any) =>
+                      const newExams = (editingUnit.exams || []).map((t: ExamData) =>
                         t.id === test.id ? { ...t, isEnabled: !t.isEnabled } : t,
                       )
                       setEditingUnit({ ...editingUnit, exams: newExams })
@@ -135,10 +137,18 @@ export default function UnitGamesTab({
                   </button>
                 </div>
               </div>
-              <p className="text-sm text-gray-600 mb-4 flex-1">
-                Thời gian: {test.duration || 45} phút |{' '}
-                {test.content?.length || test.blocks?.length || 0} phần thi
-              </p>
+              <div className="flex items-center gap-2 mb-3">
+                <span className={`text-[11px] font-bold px-2 py-0.5 rounded-md border flex items-center gap-1 ${
+                  test.isRetakable
+                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                    : 'bg-purple-50 text-purple-700 border-purple-200'
+                }`}>
+                  {test.isRetakable ? '🔄 Luyện tập' : '🔒 Làm 1 lần'}
+                </span>
+                <span className="text-xs text-gray-500">
+                  {test.duration || 45} phút • {test.content?.length || 0} phần thi
+                </span>
+              </div>
               <div className="flex flex-col gap-2 mt-auto">
                 <div className="flex items-center gap-3">
                   <button
@@ -167,7 +177,7 @@ export default function UnitGamesTab({
                           'Sau khi public bạn sẽ không thể sửa đề nữa. Bạn có chắc chắn?',
                         )
                       ) {
-                        const newExams = (editingUnit.exams || []).map((t: any) =>
+                        const newExams = (editingUnit.exams || []).map((t: ExamData) =>
                           t.id === test.id ? { ...t, isPublished: true } : t,
                         )
                         setEditingUnit({ ...editingUnit, exams: newExams })

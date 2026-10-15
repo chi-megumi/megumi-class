@@ -1,5 +1,8 @@
+'use client'
+
 import { UserPlus, Search, X, CheckCircle2, Loader2 } from 'lucide-react'
 import { StudentData } from '../../types'
+import Portal from '@/components/common/Portal'
 
 type AddStudentModalProps = {
   setShowAddModal: (show: boolean) => void
@@ -27,7 +30,8 @@ const AddStudentModal = ({
   adding,
 }: AddStudentModalProps) => {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+    <Portal>
+      <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 animate-in fade-in duration-200">
       <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-300">
         <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
           <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
@@ -143,7 +147,8 @@ const AddStudentModal = ({
           </button>
         </div>
       </div>
-    </div>
+      </div>
+    </Portal>
   )
 }
 

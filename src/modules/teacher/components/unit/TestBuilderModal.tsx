@@ -1,8 +1,28 @@
+'use client'
+
 import React, { useState } from 'react'
-import { X, GripVertical, Plus, Type, CheckSquare, AlignLeft, ListOrdered, Headphones, Trash2, Sparkles, ArrowRightLeft } from 'lucide-react'
-import { ExamData, TestBlock, TestQuestion, VocabItemData } from '../../types'
+import {
+  X,
+  GripVertical,
+  Plus,
+  Type,
+  CheckSquare,
+  AlignLeft,
+  ListOrdered,
+  Headphones,
+  Trash2,
+  Sparkles,
+  ArrowRightLeft,
+  FileCode2,
+  RotateCcw,
+  Lock,
+} from 'lucide-react'
+import { ExamData, TestBlock, TestQuestion, MatchingPair, VocabItemData } from '../../types'
 import ExamGeneratorModal from './ExamGeneratorModal'
+import ImportBlockJsonModal from './ImportBlockJsonModal'
+import ImportFullExamModal from './ImportFullExamModal'
 import { GeneratedExamResult } from '../../utils/examGenerator'
+import Portal from '@/components/common/Portal'
 
 type TemplateType = 'multiple_choice' | 'fill_blank' | 'reading' | 'matching' | 'reorder' | 'listening'
 
@@ -47,6 +67,9 @@ export default function TestBuilderModal({
   const existingTest = existingTests.find((t) => t.id === editingTestId)
   const [testTitle, setTestTitle] = useState(initialExam?.title || existingTest?.title || 'Bài kiểm tra mới')
   const [testDuration, setTestDuration] = useState(initialExam?.duration || existingTest?.duration || 45)
+  const [isRetakable, setIsRetakable] = useState<boolean>(initialExam?.isRetakable ?? existingTest?.isRetakable ?? false)
+  const [importingBlockId, setImportingBlockId] = useState<string | null>(null)
+  const [isFullExamImportOpen, setIsFullExamImportOpen] = useState(false)
   
   const [blocks, setBlocks] = useState<TestBlock[]>(
     initialExam?.blocks || existingTest?.content || [
@@ -63,6 +86,47 @@ export default function TestBuilderModal({
     ]
   )
 
+  const handleImportBlockData = (
+    parsedData: { questions?: TestQuestion[]; pairs?: MatchingPair[] },
+    mode: 'replace' | 'append'
+  ) => {
+    if (!importingBlockId) return
+
+    setBlocks((prevBlocks) =>
+      prevBlocks.map((b) => {
+        if (b.id !== importingBlockId) return b
+
+        if (b.type === 'matching' && parsedData.pairs) {
+          const newPairs = mode === 'replace'
+            ? parsedData.pairs
+            : [...(b.content?.pairs || []), ...parsedData.pairs]
+          return {
+            ...b,
+            content: {
+              ...b.content,
+              pairs: newPairs,
+            },
+          }
+        }
+
+        if (parsedData.questions) {
+          const newQuestions = mode === 'replace'
+            ? parsedData.questions
+            : [...(b.content?.questions || []), ...parsedData.questions]
+          return {
+            ...b,
+            content: {
+              ...b.content,
+              questions: newQuestions,
+            },
+          }
+        }
+
+        return b
+      })
+    )
+  }
+
   const handleSave = async () => {
     try {
       setIsSaving(true)
@@ -74,6 +138,7 @@ export default function TestBuilderModal({
         duration: Number(testDuration),
         isEnabled: existingTest?.isEnabled ?? false,
         isPublished: existingTest?.isPublished ?? false,
+        isRetakable: isRetakable,
         content: blocks,
         classId: classId || null,
         unitId: isClassExam ? null : (unitId || null)
@@ -85,7 +150,7 @@ export default function TestBuilderModal({
         newTests = newTests.map(t => t.id === editingTestId ? currentTest : t)
       }
       
-      let res: { success: boolean; exams?: any[] }
+      let res: { success: boolean; exams?: unknown[] }
       if (isClassExam && classId) {
         const { updateClassExams } = await import('~/actions/class')
         res = await updateClassExams(classId, newTests)
@@ -242,8 +307,9 @@ export default function TestBuilderModal({
   }
 
   return (
-    <div className="fixed inset-0 z-[70] flex bg-gray-900/50 backdrop-blur-sm animate-in fade-in duration-300">
-      <div className="w-full h-full bg-[#f8f9fa] flex flex-col md:flex-row">
+    <Portal>
+      <div className="fixed inset-0 z-[100] flex bg-gray-900/50 backdrop-blur-sm animate-in fade-in duration-300">
+        <div className="w-full h-full bg-[#f8f9fa] flex flex-col md:flex-row">
         
         {/* SIDEBAR: TEMPLATES (Hidden in Preview) */}
         {!isPreview && (
@@ -304,8 +370,49 @@ export default function TestBuilderModal({
                 />
                 <span className="text-sm font-medium">phút</span>
               </div>
+
+              {/* Mode Button: Làm 1 lần vs Luyện tập */}
+              <div className="hidden sm:flex items-center bg-gray-100 p-1 rounded-xl border border-gray-200 text-xs font-bold">
+                <button
+                  type="button"
+                  onClick={() => setIsRetakable(false)}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all ${
+                    !isRetakable
+                      ? 'bg-white text-indigo-700 shadow-xs'
+                      : 'text-gray-500 hover:text-gray-800'
+                  }`}
+                  title="Học sinh chỉ được nộp bài 1 lần duy nhất, kết quả chốt điểm ngay."
+                >
+                  <Lock size={13} />
+                  <span>Làm 1 lần</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsRetakable(true)}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all ${
+                    isRetakable
+                      ? 'bg-gradient-to-r from-emerald-500 to-teal-600 text-white shadow-xs'
+                      : 'text-gray-500 hover:text-gray-800'
+                  }`}
+                  title="Học sinh có thể làm đi làm lại nhiều lần. Mỗi lần làm lại hệ thống sẽ tự động xáo trộn câu hỏi."
+                >
+                  <RotateCcw size={13} />
+                  <span>Luyện tập (Làm lại)</span>
+                </button>
+              </div>
             </div>
             <div className="flex items-center gap-3">
+              {!isPreview && (
+                <button
+                  type="button"
+                  onClick={() => setIsFullExamImportOpen(true)}
+                  className="px-3.5 py-2 bg-purple-50 hover:bg-purple-100 text-purple-700 font-bold rounded-xl border border-purple-200 shadow-2xs transition-all flex items-center gap-1.5 text-sm"
+                  title="Import nhanh toàn bộ đề thi từ file JSON"
+                >
+                  <FileCode2 size={16} />
+                  <span>Import JSON Đề</span>
+                </button>
+              )}
               {vocabItems && vocabItems.length > 0 && !isPreview && (
                 <button
                   type="button"
@@ -525,14 +632,31 @@ export default function TestBuilderModal({
                           onPointerDown={(e) => e.stopPropagation()} // Prevent drag when clicking input
                         />
                       </div>
-                      <button 
-                        onClick={() => removeBlock(block.id)}
-                        className={`p-1.5 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors opacity-0 group-hover:opacity-100 shrink-0 ml-4 ${
-                          isMiniChallenge ? 'text-orange-300' : 'text-gray-400'
-                        }`}
-                      >
-                        <Trash2 size={16} />
-                      </button>
+                      <div className="flex items-center gap-2 shrink-0 ml-3">
+                        <button
+                          type="button"
+                          onClick={() => setImportingBlockId(block.id)}
+                          onPointerDown={(e) => e.stopPropagation()}
+                          className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold border transition-all ${
+                            isMiniChallenge
+                              ? 'bg-orange-100/80 hover:bg-orange-200/80 text-orange-800 border-orange-200'
+                              : 'bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border-indigo-200'
+                          }`}
+                          title="Import danh sách câu hỏi từ JSON cho phần này"
+                        >
+                          <FileCode2 size={13} />
+                          <span>Import JSON</span>
+                        </button>
+                        <button 
+                          onClick={() => removeBlock(block.id)}
+                          className={`p-1.5 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors opacity-0 group-hover:opacity-100 ${
+                            isMiniChallenge ? 'text-orange-300' : 'text-gray-400'
+                          }`}
+                          title="Xóa phần này"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
                     </div>
                     
                     {/* Block Content Editor */}
@@ -1032,6 +1156,41 @@ export default function TestBuilderModal({
           }}
         />
       )}
-    </div>
+
+      {/* Modal Import Full Exam */}
+      {isFullExamImportOpen && (
+        <ImportFullExamModal
+          isOpen={isFullExamImportOpen}
+          onClose={() => setIsFullExamImportOpen(false)}
+          onImport={(data) => {
+            if (data.title) setTestTitle(data.title)
+            if (data.duration) setTestDuration(data.duration)
+            if (typeof data.isRetakable === 'boolean') setIsRetakable(data.isRetakable)
+            setBlocks(data.blocks)
+          }}
+        />
+      )}
+
+      {/* Modal Import JSON for Block */}
+      {(() => {
+        const importingBlock = blocks.find((b) => b.id === importingBlockId)
+        if (!importingBlock) return null
+        return (
+          <ImportBlockJsonModal
+            isOpen={!!importingBlock}
+            onClose={() => setImportingBlockId(null)}
+            blockTitle={importingBlock.title || 'Phần thi'}
+            blockType={importingBlock.type}
+            currentCount={
+              importingBlock.type === 'matching'
+                ? (importingBlock.content?.pairs?.length || 0)
+                : (importingBlock.content?.questions?.length || 0)
+            }
+            onImport={handleImportBlockData}
+          />
+        )
+      })()}
+      </div>
+    </Portal>
   )
 }

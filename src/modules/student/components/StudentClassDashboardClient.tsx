@@ -10,11 +10,13 @@ import {
   ChevronRight,
   Sparkles,
   Trophy,
-  AlertCircle,
+  RotateCcw,
 } from 'lucide-react'
 import { ClassData, ExamData } from '@/modules/teacher/types'
 import GamePlayerModal from '@/modules/student/components/unit/GamePlayerModal'
-import { startTest } from '@/actions/analytics'
+import { startTest } from '@/actions/analytics/exam-session'
+import type { TestResultPayload } from '@/actions/analytics/types'
+import Portal from '@/components/common/Portal'
 
 type StudentClassDashboardClientProps = {
   classData: ClassData
@@ -28,22 +30,70 @@ export default function StudentClassDashboardClient({
   const [activeTest, setActiveTest] = useState<ExamData | null>(null)
   const [confirmTest, setConfirmTest] = useState<ExamData | null>(null)
   const [isStartingTest, setIsStartingTest] = useState(false)
-  const [testSessionData, setTestSessionData] = useState<Record<string, any>>({})
+  const [testSessionData, setTestSessionData] = useState<Record<string, TestResultPayload>>({})
+  const [isRetakeActive, setIsRetakeActive] = useState(false)
+  const [retakeSessionKey, setRetakeSessionKey] = useState(0)
+
+  const handleStartDirectTest = async (test: ExamData, forceRetake = false) => {
+    if (isStartingTest) return
+    setIsStartingTest(true)
+    try {
+      const res = await startTest({
+        classId,
+        testId: test.id,
+        forceRetake,
+      })
+      if (res.success && res.startedAt) {
+        if (forceRetake) {
+          setTestSessionData((prev) => ({
+            ...prev,
+            [test.id]: {
+              startedAt: res.startedAt,
+              completedAt: undefined,
+              score: undefined,
+              answers: {},
+              correctAnswersDetail: undefined,
+              correctAnswers: undefined,
+              totalQuestions: undefined,
+            },
+          }))
+          setIsRetakeActive(true)
+          setRetakeSessionKey((prev) => prev + 1)
+        } else {
+          setTestSessionData((prev) => ({
+            ...prev,
+            [test.id]: {
+              ...(getExamResult(test) || {}),
+              startedAt: res.startedAt,
+              completedAt: getExamResult(test)?.completedAt,
+            },
+          }))
+          setIsRetakeActive(false)
+        }
+      }
+      setActiveTest(test)
+    } catch (e) {
+      console.error(e)
+      alert('Lỗi khởi tạo bài thi. Vui lòng thử lại.')
+    } finally {
+      setIsStartingTest(false)
+    }
+  }
 
   // Published and enabled class-level exams
   const publishedClassExams = (classData.exams || []).filter((t) => t.isEnabled && t.isPublished)
 
-  const getExamResult = (test: ExamData) => {
+  const getExamResult = (test: ExamData): TestResultPayload | undefined => {
     if (!test) return undefined
     if (testSessionData[test.id]) return testSessionData[test.id]
     if (test.results && test.results[0]) {
       const r = test.results[0]
-      const payload = r.answers || {}
+      const payload = (r.answers as TestResultPayload | null) || {}
       return {
         score: r.score ?? payload.score,
         startedAt: r.startedAt ? new Date(r.startedAt).toISOString() : undefined,
         completedAt: r.completedAt ? new Date(r.completedAt).toISOString() : undefined,
-        answers: payload.answers || payload,
+        answers: payload.answers,
         correctAnswersDetail: payload.correctAnswersDetail,
         correctAnswers: payload.correctAnswers,
         totalQuestions: payload.totalQuestions,
@@ -57,11 +107,17 @@ export default function StudentClassDashboardClient({
       {/* Test Runner Modal */}
       {activeTest && (
         <GamePlayerModal
+          key={`${activeTest.id}-${retakeSessionKey}-${isRetakeActive ? 'retake' : 'review'}`}
           mode="test"
           testData={activeTest}
-          initialResult={getExamResult(activeTest)}
-          onClose={() => setActiveTest(null)}
+          initialResult={isRetakeActive ? undefined : getExamResult(activeTest)}
+          isRetake={isRetakeActive}
+          onClose={() => {
+            setActiveTest(null)
+            setIsRetakeActive(false)
+          }}
           onTestComplete={(testId, result) => {
+            setIsRetakeActive(false)
             setTestSessionData((prev) => ({
               ...prev,
               [testId]: {
@@ -78,67 +134,69 @@ export default function StudentClassDashboardClient({
         />
       )}
 
-      {/* Test Confirmation Modal */}
-      {confirmTest && (
-        <div className="fixed inset-0 z-[150] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl animate-in zoom-in-95 duration-200">
-            <div className="w-12 h-12 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center text-2xl mb-4">
-              📝
-            </div>
-            <h3 className="text-2xl font-bold text-gray-900 mb-3">Sẵn sàng làm bài?</h3>
-            <p className="text-gray-600 mb-6 leading-relaxed text-sm">
-              Bạn sắp bắt đầu làm bài kiểm tra tổng hợp{' '}
-              <strong className="text-gray-900">{confirmTest.title}</strong>.<br />
-              Thời gian giới hạn:{' '}
-              <strong className="text-indigo-600">{confirmTest.duration} phút</strong>.
-              <br />
-              <br />
-              <span className="text-rose-600 font-semibold block bg-rose-50 p-3 rounded-xl border border-rose-100">
-                ⚠️ Lưu ý quan trọng: Một khi đã bấm bắt đầu, đồng hồ sẽ đếm ngược liên tục. Bạn
-                không thể làm lại sau khi nộp bài.
-              </span>
-            </p>
-            <div className="flex gap-3">
-              <button
-                onClick={() => setConfirmTest(null)}
-                className="flex-1 px-5 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold rounded-xl transition-colors text-sm"
-              >
-                Chưa sẵn sàng
-              </button>
-              <button
-                onClick={async () => {
-                  if (isStartingTest) return
-                  setIsStartingTest(true)
-                  try {
-                    const res = await startTest({
-                      classId,
-                      testId: confirmTest.id,
-                    })
-                    if (res.success && res.startedAt) {
-                      setTestSessionData((prev) => ({
-                        ...prev,
-                        [confirmTest.id]: {
-                          ...(getExamResult(confirmTest) || {}),
-                          startedAt: res.startedAt,
-                        },
-                      }))
+      {/* Test Confirmation Modal (Only for non-retakable 1-time tests) */}
+      {confirmTest && !confirmTest.isRetakable && (
+        <Portal>
+          <div className="fixed inset-0 z-[150] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+            <div className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl animate-in zoom-in-95 duration-200">
+              <div className="w-12 h-12 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center text-2xl mb-4">
+                📝
+              </div>
+              <h3 className="text-2xl font-bold text-gray-900 mb-3">Sẵn sàng làm bài?</h3>
+              <p className="text-gray-600 mb-6 leading-relaxed text-sm">
+                Bạn sắp bắt đầu làm bài kiểm tra tổng hợp{' '}
+                <strong className="text-gray-900">{confirmTest.title}</strong>.<br />
+                Thời gian giới hạn:{' '}
+                <strong className="text-indigo-600">{confirmTest.duration} phút</strong>.
+                <br />
+                <br />
+                <span className="text-rose-600 font-semibold block bg-rose-50 p-3 rounded-xl border border-rose-100">
+                  ⚠️ Lưu ý quan trọng: Một khi đã bấm bắt đầu, đồng hồ sẽ đếm ngược liên tục. Bạn
+                  không thể làm lại sau khi nộp bài.
+                </span>
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setConfirmTest(null)}
+                  className="flex-1 px-5 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold rounded-xl transition-colors text-sm"
+                >
+                  Chưa sẵn sàng
+                </button>
+                <button
+                  onClick={async () => {
+                    if (isStartingTest) return
+                    setIsStartingTest(true)
+                    try {
+                      const res = await startTest({
+                        classId,
+                        testId: confirmTest.id,
+                      })
+                      if (res.success && res.startedAt) {
+                        setTestSessionData((prev) => ({
+                          ...prev,
+                          [confirmTest.id]: {
+                            ...(getExamResult(confirmTest) || {}),
+                            startedAt: res.startedAt,
+                          },
+                        }))
+                      }
+                      setActiveTest(confirmTest)
+                      setConfirmTest(null)
+                    } catch {
+                      alert('Lỗi khởi tạo bài thi. Vui lòng thử lại.')
+                    } finally {
+                      setIsStartingTest(false)
                     }
-                    setActiveTest(confirmTest)
-                    setConfirmTest(null)
-                  } catch (e) {
-                    alert('Lỗi khởi tạo bài thi. Vui lòng thử lại.')
-                  } finally {
-                    setIsStartingTest(false)
-                  }
-                }}
-                disabled={isStartingTest}
-                className="flex-1 px-5 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 disabled:opacity-50 text-white font-bold rounded-xl transition-all shadow-md flex items-center justify-center gap-2 text-sm"
-              >
-                {isStartingTest ? 'Đang chuẩn bị...' : 'Bắt đầu ngay'}
-              </button>
+                  }}
+                  disabled={isStartingTest}
+                  className="flex-1 px-5 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 disabled:opacity-50 text-white font-bold rounded-xl transition-all shadow-md flex items-center justify-center gap-2 text-sm"
+                >
+                  {isStartingTest ? 'Đang chuẩn bị...' : 'Bắt đầu ngay'}
+                </button>
+              </div>
             </div>
           </div>
-        </div>
+        </Portal>
       )}
 
       {/* Class Banner / Header */}
@@ -201,10 +259,19 @@ export default function StudentClassDashboardClient({
                 <div
                   key={test.id}
                   onClick={() => {
-                    if (isCompleted) {
-                      setActiveTest(test)
+                    if (test.isRetakable) {
+                      if (isCompleted) {
+                        setIsRetakeActive(false)
+                        setActiveTest(test)
+                      } else {
+                        handleStartDirectTest(test, false)
+                      }
                     } else {
-                      setConfirmTest(test)
+                      if (isCompleted) {
+                        setActiveTest(test)
+                      } else {
+                        setConfirmTest(test)
+                      }
                     }
                   }}
                   className={`group relative bg-gradient-to-b from-white to-gray-50/50 border rounded-3xl p-6 transition-all duration-300 flex flex-col justify-between ${
@@ -219,22 +286,26 @@ export default function StudentClassDashboardClient({
                   <div className="flex items-center justify-between gap-2 mb-4">
                     <span
                       className={`text-xs font-extrabold px-3 py-1 rounded-full uppercase tracking-wider ${
-                        isCompleted
+                        test.isRetakable
                           ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
-                          : isInProgress
-                            ? 'bg-amber-100 text-amber-800 border border-amber-200 animate-pulse'
-                            : test.duration <= 15
-                              ? 'bg-orange-100 text-orange-800 border border-orange-200'
-                              : 'bg-indigo-100 text-indigo-800 border border-indigo-200'
+                          : isCompleted
+                            ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                            : isInProgress
+                              ? 'bg-amber-100 text-amber-800 border border-amber-200 animate-pulse'
+                              : test.duration <= 15
+                                ? 'bg-orange-100 text-orange-800 border border-orange-200'
+                                : 'bg-indigo-100 text-indigo-800 border border-indigo-200'
                       }`}
                     >
-                      {isCompleted
-                        ? 'Đã hoàn thành'
-                        : isInProgress
-                          ? 'Đang làm dở ⏱️'
-                          : test.duration <= 15
-                            ? 'Mini Thử Thách ⚡'
-                            : 'Đề Tổng Hợp ⭐'}
+                      {test.isRetakable
+                        ? '🔄 Luyện tập (Làm lại)'
+                        : isCompleted
+                          ? 'Đã hoàn thành'
+                          : isInProgress
+                            ? 'Đang làm dở ⏱️'
+                            : test.duration <= 15
+                              ? 'Mini Thử Thách ⚡'
+                              : 'Đề Tổng Hợp ⭐'}
                     </span>
                     <span className="text-xs text-gray-500 font-semibold flex items-center gap-1 bg-white px-2.5 py-1 rounded-lg border border-gray-100 shadow-2xs">
                       <Clock size={12} className="text-gray-400" />
@@ -264,9 +335,26 @@ export default function StudentClassDashboardClient({
                           <CheckCircle2 size={16} />
                           {Math.round(testResult.score || 0)}/100 điểm
                         </span>
-                        <span className="text-indigo-600 font-bold text-xs flex items-center gap-1 group-hover:translate-x-1 transition-transform">
-                          Xem đáp án <ChevronRight size={14} />
-                        </span>
+                        <div className="flex items-center gap-2">
+                          {test.isRetakable && (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                handleStartDirectTest(test, true)
+                              }}
+                              disabled={isStartingTest}
+                              className="px-2.5 py-1.5 bg-emerald-100 hover:bg-emerald-200 text-emerald-800 font-bold text-xs rounded-xl border border-emerald-300 transition-colors flex items-center gap-1 shadow-2xs"
+                              title="Làm lại bài ngay (đề sẽ được xáo trộn)"
+                            >
+                              <RotateCcw size={12} />
+                              <span>Làm lại</span>
+                            </button>
+                          )}
+                          <span className="text-indigo-600 font-bold text-xs flex items-center gap-1 group-hover:translate-x-1 transition-transform">
+                            Xem đáp án <ChevronRight size={14} />
+                          </span>
+                        </div>
                       </>
                     ) : isInProgress ? (
                       <>

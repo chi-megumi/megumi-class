@@ -1,3 +1,5 @@
+'use client'
+
 import { BookOpen, PlusCircle, ChevronDown, ChevronRight, Edit3, Trash2, Eye, EyeOff, Pencil } from 'lucide-react'
 import { UnitData } from '../../types'
 

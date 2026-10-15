@@ -8,7 +8,8 @@ import { MatchGame } from '@/components/flashcards/components/match/MatchGame'
 import { ProgressBar } from '@/components/flashcards/components/ProgressBar'
 import { ControlsBar } from '@/components/flashcards/components/ControlsBar'
 import { useFlashcardShortcuts } from '@/components/flashcards/hooks/useFlashcardShortcuts'
-import { VocabItemData, TestContent } from '~/modules/teacher/types'
+import { ExamData, VocabItemData, TestContent } from '~/modules/teacher/types'
+import type { TestResultPayload } from '@/actions/analytics/types'
 import TestView from '@/modules/student/components/unit/TestView'
 
 const FlashcardGame = () => {
@@ -26,14 +27,15 @@ const FlashcardGame = () => {
 type GamePlayerInnerProps = {
   mode: 'flashcard' | 'quiz' | 'match' | 'test'
   vocabItems?: VocabItemData[]
-  testData?: any
-  initialResult?: any
+  testData?: ExamData | TestContent
+  initialResult?: TestResultPayload
   unitId?: string
   onClose?: () => void
-  onTestComplete?: (testId: string, result: any) => void
+  onTestComplete?: (testId: string, result: TestResultPayload) => void
+  isRetake?: boolean
 }
 
-const GamePlayerInner = ({ mode, vocabItems = [], testData, initialResult, unitId, onClose, onTestComplete }: GamePlayerInnerProps) => {
+const GamePlayerInner = ({ mode, vocabItems = [], testData, initialResult, unitId, onClose, onTestComplete, isRetake }: GamePlayerInnerProps) => {
   const setVocabItems = useFlashcardStore((s) => s.setVocabItems)
   const setMode = useFlashcardStore((s) => s.setMode)
 
@@ -58,7 +60,7 @@ const GamePlayerInner = ({ mode, vocabItems = [], testData, initialResult, unitI
       )}
       {mode === 'test' && testData && (
         <div className="w-full h-full pb-4">
-          <TestView testData={testData} initialResult={initialResult} unitId={unitId} onClose={onClose!} onTestComplete={onTestComplete} />
+          <TestView testData={testData} initialResult={initialResult} unitId={unitId} onClose={onClose!} onTestComplete={onTestComplete} isRetake={isRetake} />
         </div>
       )}
     </div>

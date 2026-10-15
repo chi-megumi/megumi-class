@@ -1,7 +1,10 @@
+'use client'
+
 import React, { useState, useMemo } from 'react'
 import { Sparkles, X, Clock, Check, AlertCircle, Layers, BookOpen, CheckSquare, Square, RefreshCw, Plus, Minus } from 'lucide-react'
 import { VocabItemData } from '../../types'
 import { generateExamFromVocab, QuestionTypeOption, GeneratedExamResult, distributeQuestionCounts } from '../../utils/examGenerator'
+import Portal from '@/components/common/Portal'
 
 export interface UnitVocabSummary {
   id: string
@@ -179,8 +182,8 @@ export default function ExamGeneratorModal({
 
       onGenerated(result)
       onClose()
-    } catch (err: any) {
-      setErrorMsg(err.message || 'Có lỗi xảy ra khi tạo đề.')
+    } catch (err) {
+      setErrorMsg(err instanceof Error ? err.message : 'Có lỗi xảy ra khi tạo đề.')
     }
   }
 
@@ -191,10 +194,11 @@ export default function ExamGeneratorModal({
   const quickDurations = [10, 15, 30, 45, 60]
 
   return (
-    <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-      <div className="bg-white w-full max-w-2xl rounded-3xl shadow-2xl border border-gray-100 overflow-hidden flex flex-col max-h-[90vh]">
+    <Portal>
+      <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in slide-in-from-bottom-4 duration-300">
+        <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-6xl h-full flex flex-col overflow-hidden border border-gray-200/50">
         {/* Header */}
-        <div className="bg-gradient-to-r from-indigo-600 via-indigo-700 to-purple-600 p-6 text-white relative">
+        <div className="bg-gradient-to-r from-indigo-600 via-indigo-700 to-purple-600 p-6 text-white relative shrink-0">
           <button
             onClick={onClose}
             className="absolute top-5 right-5 p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors"
@@ -523,6 +527,7 @@ export default function ExamGeneratorModal({
           </button>
         </div>
       </div>
-    </div>
+      </div>
+    </Portal>
   )
 }

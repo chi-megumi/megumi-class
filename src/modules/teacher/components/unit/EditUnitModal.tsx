@@ -1,6 +1,9 @@
+'use client'
+
 import { Loader2 } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { UnitData } from '../../types'
+import Portal from '@/components/common/Portal'
 
 type EditUnitModalProps = {
   unit: UnitData | null
@@ -35,7 +38,8 @@ const EditUnitModal = ({
   if (!unit) return null
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+    <Portal>
+      <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 animate-in fade-in duration-200">
       <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-300">
         <div className="p-6 border-b border-gray-100">
           <h2 className="text-xl font-bold text-gray-800">Sửa thông tin bài học</h2>
@@ -80,7 +84,8 @@ const EditUnitModal = ({
           </button>
         </div>
       </div>
-    </div>
+      </div>
+    </Portal>
   )
 }
 

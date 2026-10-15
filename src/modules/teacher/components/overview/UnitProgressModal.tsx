@@ -1,7 +1,10 @@
+'use client'
+
 import { UnitData, EnrollmentData } from '../../types'
 import { useState } from 'react'
 import UnitProgressToolbar from './UnitProgressToolbar'
 import UnitProgressStudentRow from './UnitProgressStudentRow'
+import Portal from '@/components/common/Portal'
 
 type UnitProgressModalProps = {
   unit: UnitData
@@ -100,45 +103,46 @@ const UnitProgressModal = ({ unit, activeStudents, onClose }: UnitProgressModalP
   )
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
-      <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={onClose}></div>
-      <div className="bg-white rounded-3xl shadow-2xl w-full max-w-5xl max-h-[90vh] flex flex-col relative z-10 animate-in zoom-in-95 duration-300">
-        {/* Toolbar & Header */}
-        <UnitProgressToolbar
-          unitTitle={unit.title}
-          searchTerm={searchTerm}
-          setSearchTerm={setSearchTerm}
-          onClose={onClose}
-        />
+    <Portal>
+      <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in slide-in-from-bottom-4 duration-300">
+        <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-6xl h-full flex flex-col overflow-hidden border border-gray-200/50 relative z-10 animate-in zoom-in-95 duration-300">
+          {/* Toolbar & Header */}
+          <UnitProgressToolbar
+            unitTitle={unit.title}
+            searchTerm={searchTerm}
+            setSearchTerm={setSearchTerm}
+            onClose={onClose}
+          />
 
-        {/* Table Content */}
-        <div className="flex-1 overflow-y-auto custom-scrollbar p-0">
-          <table className="w-full text-left border-collapse min-w-[700px]">
-            <thead className="sticky top-0 bg-white shadow-sm z-10">
-              <tr className="border-b border-gray-100 text-gray-500 text-xs uppercase tracking-wider">
-                <th className="py-4 px-6 font-bold w-1/4">Học sinh</th>
-                <th className="py-4 px-6 font-bold w-1/4">Tiến độ thuộc từ</th>
-                <th className="py-4 px-6 font-bold w-1/4">Hoạt động luyện tập</th>
-                <th className="py-4 px-6 font-bold w-1/4">Bài kiểm tra ({publishedUnitExams.length})</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredData.length === 0 ? (
-                <tr>
-                  <td colSpan={4} className="py-12 text-center text-gray-400">
-                    Không tìm thấy học sinh nào.
-                  </td>
+          {/* Table Content */}
+          <div className="flex-1 overflow-y-auto custom-scrollbar p-0">
+            <table className="w-full text-left border-collapse min-w-[700px]">
+              <thead className="sticky top-0 bg-white shadow-sm z-10">
+                <tr className="border-b border-gray-100 text-gray-500 text-xs uppercase tracking-wider">
+                  <th className="py-4 px-6 font-bold w-1/4">Học sinh</th>
+                  <th className="py-4 px-6 font-bold w-1/4">Tiến độ thuộc từ</th>
+                  <th className="py-4 px-6 font-bold w-1/4">Hoạt động luyện tập</th>
+                  <th className="py-4 px-6 font-bold w-1/4">Bài kiểm tra ({publishedUnitExams.length})</th>
                 </tr>
-              ) : (
-                filteredData.map((data) => (
-                  <UnitProgressStudentRow key={data.student.id} data={data} />
-                ))
-              )}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {filteredData.length === 0 ? (
+                  <tr>
+                    <td colSpan={4} className="py-12 text-center text-gray-400">
+                      Không tìm thấy học sinh nào.
+                    </td>
+                  </tr>
+                ) : (
+                  filteredData.map((data) => (
+                    <UnitProgressStudentRow key={data.student.id} data={data} />
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
-    </div>
+    </Portal>
   )
 }
 

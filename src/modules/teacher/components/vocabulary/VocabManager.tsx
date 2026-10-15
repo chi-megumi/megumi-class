@@ -1,3 +1,5 @@
+'use client'
+
 import { useState } from 'react'
 import { Trash2, Code, AlignLeft, Type, Edit2, Lightbulb } from 'lucide-react'
 

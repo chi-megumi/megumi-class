@@ -1,3 +1,5 @@
+'use client'
+
 import {
   Users,
   BookOpen,
@@ -8,13 +10,11 @@ import {
   BrainCircuit,
   Activity,
   Sparkles,
-  Plus,
   Edit2,
   Globe,
   Trash2,
   ToggleLeft,
   ToggleRight,
-  FileText,
   BarChart3,
 } from 'lucide-react'
 import { useState } from 'react'
@@ -41,7 +41,7 @@ const OverviewTab = ({ classData, activeStudents }: OverviewTabProps) => {
   const [generatedExam, setGeneratedExam] = useState<GeneratedExamResult | null>(null)
   const [examTab, setExamTab] = useState<'class' | 'units'>('class')
   const [isLeaderboardOpen, setIsLeaderboardOpen] = useState(false)
-  const [viewingResultsTest, setViewingResultsTest] = useState<any | null>(null)
+  const [viewingResultsTest, setViewingResultsTest] = useState<ExamData | null>(null)
   const [selectedStudentForExams, setSelectedStudentForExams] = useState<{ id: string; name: string } | null>(null)
   
   const totalVocab = classData.units.reduce((acc, unit) => acc + (unit.vocabItems?.length || 0), 0)
@@ -50,8 +50,8 @@ const OverviewTab = ({ classData, activeStudents }: OverviewTabProps) => {
   const publishedTests = classData.units.flatMap(unit => {
     const tests = Array.isArray(unit.exams) ? unit.exams : []
     return tests
-      .filter((t: any) => t.isPublished)
-      .map((t: any) => ({ ...t, unitTitle: unit.title, unitId: unit.id }))
+      .filter((t: ExamData) => t.isPublished)
+      .map((t: ExamData) => ({ ...t, unitTitle: unit.title, unitId: unit.id }))
   })
 
   // Extract all published exams (class + units)
@@ -64,10 +64,10 @@ const OverviewTab = ({ classData, activeStudents }: OverviewTabProps) => {
   const realStudentRankings = activeStudents.map((enrollment) => {
     const student = enrollment.student
     const completedExams = allPublishedExams.filter((exam) =>
-      exam.results?.some((r: any) => r.studentId === student.id && r.completedAt)
+      exam.results?.some((r) => r.studentId === student.id && r.completedAt)
     )
     const scores = completedExams
-      .map((exam) => exam.results?.find((r: any) => r.studentId === student.id)?.score)
+      .map((exam) => exam.results?.find((r) => r.studentId === student.id)?.score)
       .filter((s): s is number => s !== null && s !== undefined)
     const avgScore = scores.length > 0 ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length) : 0
 
@@ -254,9 +254,18 @@ const OverviewTab = ({ classData, activeStudents }: OverviewTabProps) => {
                   <div key={test.id} className="bg-white/10 border border-white/20 rounded-2xl p-4 backdrop-blur-sm space-y-3">
                     <div className="flex justify-between items-start">
                       <div className="flex-1 pr-2">
-                        <span className="inline-block px-2 py-0.5 bg-amber-400/20 text-amber-300 text-[10px] font-black rounded uppercase tracking-wider border border-amber-400/30 mb-1">
-                          Đề Tổng Hợp
-                        </span>
+                        <div className="flex items-center gap-1.5 mb-1 flex-wrap">
+                          <span className="inline-block px-2 py-0.5 bg-amber-400/20 text-amber-300 text-[10px] font-black rounded uppercase tracking-wider border border-amber-400/30">
+                            Đề Tổng Hợp
+                          </span>
+                          <span className={`inline-block px-2 py-0.5 text-[10px] font-black rounded uppercase tracking-wider border ${
+                            test.isRetakable
+                              ? 'bg-emerald-400/20 text-emerald-300 border-emerald-400/30'
+                              : 'bg-purple-400/20 text-purple-300 border-purple-400/30'
+                          }`}>
+                            {test.isRetakable ? '🔄 Luyện tập' : '🔒 Làm 1 lần'}
+                          </span>
+                        </div>
                         <h4 className="font-bold text-base leading-snug">{test.title}</h4>
                       </div>
                       <span className="text-xs text-indigo-200 font-semibold shrink-0">{test.duration} phút</span>
@@ -450,7 +459,7 @@ const OverviewTab = ({ classData, activeStudents }: OverviewTabProps) => {
                       </td>
                       <td className="py-4">
                         {(() => {
-                           const published = (Array.isArray(unit.exams) ? unit.exams : []).filter((t:any) => t.isPublished)
+                           const published = (Array.isArray(unit.exams) ? unit.exams : []).filter((t: ExamData) => t.isPublished)
                            if (published.length === 0) return <span className="text-gray-400 text-xs italic">Chưa có</span>
                            return (
                              <span className="px-2 py-1 bg-indigo-50 text-indigo-600 font-bold rounded-lg border border-indigo-100 text-xs">
@@ -525,7 +534,7 @@ const OverviewTab = ({ classData, activeStudents }: OverviewTabProps) => {
       {/* Modal View Results & Question Analytics for Exam */}
       {viewingResultsTest && (
         <TestResultsModal
-          unitId={viewingResultsTest.unitId}
+          unitId={viewingResultsTest.unitId || undefined}
           testId={viewingResultsTest.id}
           testTitle={viewingResultsTest.title}
           testData={viewingResultsTest}

@@ -1,3 +1,5 @@
+'use client'
+
 import { useState } from 'react'
 import { Users, Search, UserPlus, CheckCircle2, XCircle, Trash2, Loader2, Award, FileText } from 'lucide-react'
 import { EnrollmentData, ClassData } from '../../types'

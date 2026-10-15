@@ -19,6 +19,7 @@ export interface ExamGeneratorConfig {
 export interface GeneratedExamResult {
   title: string
   duration: number
+  isRetakable?: boolean
   blocks: TestBlock[]
 }
 

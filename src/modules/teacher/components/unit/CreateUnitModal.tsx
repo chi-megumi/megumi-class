@@ -1,4 +1,7 @@
+'use client'
+
 import { Loader2 } from 'lucide-react'
+import Portal from '@/components/common/Portal'
 
 type CreateUnitModalProps = {
   setShowCreateUnitModal: (show: boolean) => void
@@ -20,7 +23,8 @@ const CreateUnitModal = ({
   creatingUnit,
 }: CreateUnitModalProps) => {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+    <Portal>
+      <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 animate-in fade-in duration-200">
       <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-300">
         <div className="p-6 border-b border-gray-100">
           <h2 className="text-xl font-bold text-gray-800">Tạo bài học mới</h2>
@@ -65,7 +69,8 @@ const CreateUnitModal = ({
           </button>
         </div>
       </div>
-    </div>
+      </div>
+    </Portal>
   )
 }
 
