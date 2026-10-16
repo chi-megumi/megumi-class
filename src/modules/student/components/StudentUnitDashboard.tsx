@@ -119,6 +119,7 @@ const StudentUnitDashboard = ({
           key={`${activeTest?.id || 'game'}-${retakeSessionKey}-${isRetakeActive ? 'retake' : 'review'}`}
           mode={activeGame}
           unitId={unitData.id}
+          classId={classId}
           vocabItems={unitData.vocabItems || []}
           testData={activeTest}
           initialResult={isRetakeActive ? undefined : (activeTest ? getExamResult(activeTest) : undefined)}

@@ -225,6 +225,7 @@ export async function submitTestResult({
   classId,
   testId,
   answers,
+  isInterrupted,
 }: SubmitTestResultInput) {
   const me = await getMe()
   if (!me) {
@@ -313,6 +314,7 @@ export async function submitTestResult({
     completedAt: completedAt.toISOString(),
     attemptCount,
     bestScore,
+    isInterrupted: !!isInterrupted,
     history: test.isRetakable ? [...prevHistory, newHistoryEntry] : undefined,
   }
 

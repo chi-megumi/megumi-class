@@ -100,6 +100,39 @@ export default function TestView({ testData, unitId, onClose, initialResult, onT
 
   const isMiniChallenge = testData.duration <= 15
   const hasSubmittedRef = useRef(false)
+  const answersRef = useRef(answers)
+  const sessionKey = `megumi_active_test_${testData.id}`
+
+  useEffect(() => {
+    answersRef.current = answers
+  }, [answers])
+
+  // Clean up any stale session from F5
+  useEffect(() => {
+    if (isReviewMode || result || isRetake) return
+
+    try {
+      sessionStorage.removeItem(sessionKey)
+    } catch {
+      // Ignore
+    }
+
+    try {
+      sessionStorage.setItem(sessionKey, JSON.stringify({ answers: {} }))
+    } catch {
+      // Ignore
+    }
+  }, [testData.id, isReviewMode, result, isRetake, sessionKey])
+
+  // Sync answers into sessionStorage
+  useEffect(() => {
+    if (isReviewMode || result) return
+    try {
+      sessionStorage.setItem(sessionKey, JSON.stringify({ answers }))
+    } catch {
+      // Ignore
+    }
+  }, [answers, isReviewMode, result, sessionKey])
 
   // Matching states
   const [selectedMatchingRight, setSelectedMatchingRight] = useState<MatchingSelection | null>(null)
@@ -315,11 +348,17 @@ export default function TestView({ testData, unitId, onClose, initialResult, onT
     setIsSubmitting(true)
 
     try {
+      sessionStorage.removeItem(sessionKey)
+    } catch {
+      // Ignore
+    }
+
+    try {
       const res = await submitTestResult({
         classId,
         unitId,
         testId: testData.id,
-        answers
+        answers,
       })
 
       if (res.resultData) {
@@ -332,7 +371,7 @@ export default function TestView({ testData, unitId, onClose, initialResult, onT
       } else {
         throw new Error('No result data returned')
       }
-      
+
       router.refresh()
     } catch (e) {
       console.error(e)
@@ -340,17 +379,43 @@ export default function TestView({ testData, unitId, onClose, initialResult, onT
     } finally {
       setIsSubmitting(false)
     }
-  }, [isSubmitting, result, isReviewMode, onTestComplete, classId, unitId, testData.id, answers, router])
+  }, [isSubmitting, result, isReviewMode, onTestComplete, classId, unitId, testData.id, answers, router, sessionKey])
 
-  // --- TIMER & BEFOREUNLOAD ---
+  // --- TIMER & BEFOREUNLOAD / PAGEHIDE BEACON ---
   useEffect(() => {
     if (isReviewMode) return
 
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (hasSubmittedRef.current || isReviewMode || result) return
       e.preventDefault()
       e.returnValue = '' // Shows browser's native warning dialog
     }
+
+    const handlePageHide = () => {
+      if (hasSubmittedRef.current || isReviewMode || result) return
+      hasSubmittedRef.current = true
+      try {
+        sessionStorage.removeItem(sessionKey)
+      } catch {
+        // Ignore
+      }
+      const payload = {
+        classId,
+        unitId,
+        testId: testData.id,
+        answers: answersRef.current,
+        isInterrupted: true,
+      }
+      try {
+        const blob = new Blob([JSON.stringify(payload)], { type: 'application/json' })
+        navigator.sendBeacon('/api/analytics/test-submit', blob)
+      } catch {
+        // Fallback
+      }
+    }
+
     window.addEventListener('beforeunload', handleBeforeUnload)
+    window.addEventListener('pagehide', handlePageHide)
 
     if (timeLeft <= 0) {
       if (!isSubmitting && !result) {
@@ -358,18 +423,22 @@ export default function TestView({ testData, unitId, onClose, initialResult, onT
           handleSubmit()
         }, 0)
       }
-      return () => window.removeEventListener('beforeunload', handleBeforeUnload)
+      return () => {
+        window.removeEventListener('beforeunload', handleBeforeUnload)
+        window.removeEventListener('pagehide', handlePageHide)
+      }
     }
 
     const timer = setInterval(() => {
-      setTimeLeft(prev => prev - 1)
+      setTimeLeft((prev) => prev - 1)
     }, 1000)
 
     return () => {
       clearInterval(timer)
       window.removeEventListener('beforeunload', handleBeforeUnload)
+      window.removeEventListener('pagehide', handlePageHide)
     }
-  }, [timeLeft, isSubmitting, result, handleSubmit, isReviewMode])
+  }, [timeLeft, isSubmitting, result, handleSubmit, isReviewMode, classId, unitId, testData.id, sessionKey])
 
   // --- RETAKE ---
   const handleRetake = async () => {

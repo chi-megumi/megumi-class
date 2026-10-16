@@ -5,6 +5,44 @@ export type GameCompletionInput = {
   score?: number
   time?: number
   masteryProgress?: number
+  isInterrupted?: boolean
+  isQuickExit?: boolean
+  correctCount?: number
+  totalCount?: number
+}
+
+export type FlashcardAttempt = {
+  attempt: number
+  durationSeconds: number
+  masteryProgress?: number
+  isInterrupted?: boolean
+  isQuickExit?: boolean
+  completedAt: string
+}
+
+export type QuizAttempt = {
+  attempt: number
+  score: number
+  correctCount?: number
+  totalCount?: number
+  durationSeconds: number
+  isInterrupted?: boolean
+  isQuickExit?: boolean
+  completedAt: string
+}
+
+export type MatchAttempt = {
+  attempt: number
+  durationSeconds: number
+  isInterrupted?: boolean
+  isQuickExit?: boolean
+  completedAt: string
+}
+
+export type ActivityHistoryPayload = {
+  flashcard?: FlashcardAttempt[]
+  quiz?: QuizAttempt[]
+  match?: MatchAttempt[]
 }
 
 export type SubmitTestResultInput = {
@@ -12,6 +50,7 @@ export type SubmitTestResultInput = {
   classId: string
   testId: string
   answers: Record<string, string | number>
+  isInterrupted?: boolean
 }
 
 export type StartTestInput = {

@@ -118,23 +118,63 @@ export type ClassData = {
   exams?: ExamData[]
 }
 
+export type PracticeSessionEntry = {
+  attempt: number
+  durationSeconds: number
+  score?: number | null
+  correctCount?: number | null
+  totalCount?: number | null
+  isInterrupted?: boolean
+  isQuickExit?: boolean
+  completedAt: Date | string
+}
+
+export type StudentExamDetail = {
+  id: string
+  title: string
+  type?: 'class' | 'unit'
+  unitTitle?: string | null
+  duration?: number
+  isCompleted: boolean
+  isInProgress?: boolean
+  score?: number | null
+  correctAnswers?: number | null
+  totalQuestions?: number | null
+  completedAt?: Date | string | null
+  startedAt?: Date | string | null
+  answers?: Record<string, unknown> | null
+  correctAnswersDetail?: Record<string, string | number> | null
+  content?: unknown
+  isInterrupted?: boolean
+}
+
 export type StudentAnalyticsData = {
   student: {
     id: string
     name: string
+    email?: string
     avatarUrl?: string | null
   }
   masteryProgress: number
   games: {
-    flashcard: { played: boolean; progress: number; timesPlayed: number }
-    quiz: { played: boolean; score: number; timesPlayed: number }
-    match: { played: boolean; bestTime: number | null; timesPlayed: number }
+    flashcard: {
+      played: boolean
+      progress: number
+      timesPlayed: number
+      history?: PracticeSessionEntry[]
+    }
+    quiz: {
+      played: boolean
+      score: number
+      timesPlayed: number
+      history?: PracticeSessionEntry[]
+    }
+    match: {
+      played: boolean
+      bestTime: number | null
+      timesPlayed: number
+      history?: PracticeSessionEntry[]
+    }
   }
-  exams?: Array<{
-    id: string
-    title: string
-    isCompleted: boolean
-    score?: number | null
-    completedAt?: Date | string | null
-  }>
+  exams?: StudentExamDetail[]
 }

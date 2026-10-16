@@ -481,6 +481,7 @@ const OverviewTab = ({ classData, activeStudents }: OverviewTabProps) => {
         <UnitProgressModal
           unit={selectedUnitProgress}
           activeStudents={activeStudents}
+          classExams={classExams}
           onClose={() => setSelectedUnitProgress(null)}
         />
       )}

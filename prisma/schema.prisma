@@ -212,6 +212,7 @@ model UserUnitProgress {
   testCompletedAt    DateTime? @map("test_completed_at") @db.Timestamptz
   testAnswers        Json?     @map("test_answers")
   testResults        Json?     @map("test_results")
+  activityHistory    Json?     @map("activity_history")
 
   updatedAt          DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
 

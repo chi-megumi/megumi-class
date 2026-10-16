@@ -16,6 +16,10 @@ export async function recordGameCompletion({
   score,
   time,
   masteryProgress,
+  isInterrupted,
+  isQuickExit,
+  correctCount,
+  totalCount,
 }: GameCompletionInput) {
   const me = await getMe()
   if (!me) {
@@ -38,18 +42,70 @@ export async function recordGameCompletion({
     },
   })
 
+  const now = new Date().toISOString()
+  const duration = time || 0
+  const isQuick =
+    isQuickExit !== undefined
+      ? isQuickExit
+      : duration < 5 ||
+        (gameType === 'quiz' && (correctCount ?? 0) === 0 && (totalCount ?? 0) === 0 && duration < 10)
+
   if (!existingProgress) {
+    const initialHistory = {
+      flashcard:
+        gameType === 'flashcard'
+          ? [
+              {
+                attempt: 1,
+                durationSeconds: duration,
+                masteryProgress,
+                isInterrupted: !!isInterrupted,
+                isQuickExit: isQuick,
+                completedAt: now,
+              },
+            ]
+          : [],
+      quiz:
+        gameType === 'quiz'
+          ? [
+              {
+                attempt: 1,
+                score: score || 0,
+                correctCount,
+                totalCount,
+                durationSeconds: duration,
+                isInterrupted: !!isInterrupted,
+                isQuickExit: isQuick,
+                completedAt: now,
+              },
+            ]
+          : [],
+      match:
+        gameType === 'match'
+          ? [
+              {
+                attempt: 1,
+                durationSeconds: duration,
+                isInterrupted: !!isInterrupted,
+                isQuickExit: isQuick,
+                completedAt: now,
+              },
+            ]
+          : [],
+    }
+
     // Create new
     await prisma.userUnitProgress.create({
       data: {
         userId: me.id,
         unitId,
-        flashcardPlayCount: gameType === 'flashcard' ? 1 : 0,
-        quizPlayCount: gameType === 'quiz' ? 1 : 0,
-        bestQuizScore: gameType === 'quiz' ? score : null,
-        matchPlayCount: gameType === 'match' ? 1 : 0,
-        bestMatchTime: gameType === 'match' ? time : null,
+        flashcardPlayCount: gameType === 'flashcard' && !isQuick ? 1 : 0,
+        quizPlayCount: gameType === 'quiz' && !isQuick ? 1 : 0,
+        bestQuizScore: gameType === 'quiz' && !isQuick ? score : null,
+        matchPlayCount: gameType === 'match' && !isQuick ? 1 : 0,
+        bestMatchTime: gameType === 'match' && !isQuick && !isInterrupted ? duration : null,
         masteryProgress: masteryProgress || 0,
+        activityHistory: initialHistory as import('@prisma/client').Prisma.InputJsonValue,
       },
     })
   } else {
@@ -60,19 +116,152 @@ export async function recordGameCompletion({
       updateData.masteryProgress = masteryProgress
     }
 
+    const currentHistory = (existingProgress.activityHistory as Record<string, unknown> | null) || {}
+    const flashcardList = Array.isArray(currentHistory.flashcard) ? [...currentHistory.flashcard] : []
+    const quizList = Array.isArray(currentHistory.quiz) ? [...currentHistory.quiz] : []
+    const matchList = Array.isArray(currentHistory.match) ? [...currentHistory.match] : []
+
     if (gameType === 'flashcard') {
-      updateData.flashcardPlayCount = { increment: 1 }
+      const lastItem =
+        flashcardList.length > 0
+          ? (flashcardList[flashcardList.length - 1] as {
+              attempt?: number
+              completedAt?: string
+              isInterrupted?: boolean
+              durationSeconds?: number
+              isQuickExit?: boolean
+              masteryProgress?: number
+            })
+          : null
+
+      const isDuplicateInterrupted =
+        lastItem &&
+        (lastItem.isInterrupted || !!isInterrupted) &&
+        lastItem.completedAt &&
+        Math.abs(Date.now() - new Date(lastItem.completedAt).getTime()) < 15000
+
+      if (isDuplicateInterrupted && lastItem) {
+        lastItem.durationSeconds = Math.max(lastItem.durationSeconds || 0, duration)
+        lastItem.isQuickExit = lastItem.durationSeconds < 5
+        lastItem.completedAt = now
+        if (masteryProgress !== undefined) {
+          lastItem.masteryProgress = masteryProgress
+        }
+      } else {
+        if (!isQuick) {
+          updateData.flashcardPlayCount = { increment: 1 }
+        }
+        const lastAttempt = lastItem?.attempt || existingProgress.flashcardPlayCount || 0
+        flashcardList.push({
+          attempt: lastAttempt + 1,
+          durationSeconds: duration,
+          masteryProgress,
+          isInterrupted: !!isInterrupted,
+          isQuickExit: isQuick,
+          completedAt: now,
+        })
+      }
     } else if (gameType === 'quiz') {
-      updateData.quizPlayCount = { increment: 1 }
-      if (score !== undefined && (existingProgress.bestQuizScore === null || score > existingProgress.bestQuizScore)) {
-        updateData.bestQuizScore = score
+      const lastItem =
+        quizList.length > 0
+          ? (quizList[quizList.length - 1] as {
+              attempt?: number
+              completedAt?: string
+              isInterrupted?: boolean
+              durationSeconds?: number
+              isQuickExit?: boolean
+              score?: number
+              correctCount?: number
+              totalCount?: number
+            })
+          : null
+
+      const isDuplicateInterrupted =
+        lastItem &&
+        (lastItem.isInterrupted || !!isInterrupted) &&
+        lastItem.completedAt &&
+        Math.abs(Date.now() - new Date(lastItem.completedAt).getTime()) < 15000
+
+      if (isDuplicateInterrupted && lastItem) {
+        lastItem.durationSeconds = Math.max(lastItem.durationSeconds || 0, duration)
+        lastItem.isQuickExit = lastItem.durationSeconds < 5
+        lastItem.completedAt = now
+        if (score !== undefined) lastItem.score = score
+        if (correctCount !== undefined) lastItem.correctCount = correctCount
+        if (totalCount !== undefined) lastItem.totalCount = totalCount
+      } else {
+        if (!isQuick) {
+          updateData.quizPlayCount = { increment: 1 }
+        }
+        if (
+          !isQuick &&
+          score !== undefined &&
+          (existingProgress.bestQuizScore === null || score > existingProgress.bestQuizScore)
+        ) {
+          updateData.bestQuizScore = score
+        }
+        const lastAttempt = lastItem?.attempt || existingProgress.quizPlayCount || 0
+        quizList.push({
+          attempt: lastAttempt + 1,
+          score: score || 0,
+          correctCount,
+          totalCount,
+          durationSeconds: duration,
+          isInterrupted: !!isInterrupted,
+          isQuickExit: isQuick,
+          completedAt: now,
+        })
       }
     } else if (gameType === 'match') {
-      updateData.matchPlayCount = { increment: 1 }
-      if (time !== undefined && (existingProgress.bestMatchTime === null || time < existingProgress.bestMatchTime)) {
-        updateData.bestMatchTime = time
+      const lastItem =
+        matchList.length > 0
+          ? (matchList[matchList.length - 1] as {
+              attempt?: number
+              completedAt?: string
+              isInterrupted?: boolean
+              durationSeconds?: number
+              isQuickExit?: boolean
+            })
+          : null
+
+      const isDuplicateInterrupted =
+        lastItem &&
+        (lastItem.isInterrupted || !!isInterrupted) &&
+        lastItem.completedAt &&
+        Math.abs(Date.now() - new Date(lastItem.completedAt).getTime()) < 15000
+
+      if (isDuplicateInterrupted && lastItem) {
+        lastItem.durationSeconds = Math.max(lastItem.durationSeconds || 0, duration)
+        lastItem.isQuickExit = lastItem.durationSeconds < 5
+        lastItem.completedAt = now
+      } else {
+        if (!isQuick) {
+          updateData.matchPlayCount = { increment: 1 }
+        }
+        if (
+          !isQuick &&
+          duration > 0 &&
+          !isInterrupted &&
+          (existingProgress.bestMatchTime === null || duration < existingProgress.bestMatchTime)
+        ) {
+          updateData.bestMatchTime = duration
+        }
+        const lastAttempt = lastItem?.attempt || existingProgress.matchPlayCount || 0
+        matchList.push({
+          attempt: lastAttempt + 1,
+          durationSeconds: duration,
+          isInterrupted: !!isInterrupted,
+          isQuickExit: isQuick,
+          completedAt: now,
+        })
       }
     }
+
+    updateData.activityHistory = {
+      flashcard: flashcardList,
+      quiz: quizList,
+      match: matchList,
+    } as import('@prisma/client').Prisma.InputJsonValue
 
     await prisma.userUnitProgress.update({
       where: { id: existingProgress.id },

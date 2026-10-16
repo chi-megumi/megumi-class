@@ -1,6 +1,6 @@
 'use client'
 
-import { UnitData, EnrollmentData } from '../../types'
+import { UnitData, EnrollmentData, ExamData, StudentAnalyticsData } from '../../types'
 import { useState } from 'react'
 import UnitProgressToolbar from './UnitProgressToolbar'
 import UnitProgressStudentRow from './UnitProgressStudentRow'
@@ -9,90 +9,193 @@ import Portal from '@/components/common/Portal'
 type UnitProgressModalProps = {
   unit: UnitData
   activeStudents: EnrollmentData[]
+  classExams?: ExamData[]
   onClose: () => void
 }
 
-const UnitProgressModal = ({ unit, activeStudents, onClose }: UnitProgressModalProps) => {
+const UnitProgressModal = ({
+  unit,
+  activeStudents,
+  classExams = [],
+  onClose,
+}: UnitProgressModalProps) => {
   const [searchTerm, setSearchTerm] = useState('')
 
   const publishedUnitExams = (unit.exams || []).filter((e) => e.isPublished)
+  const publishedClassExams = (classExams || []).filter((e) => e.isPublished)
+  const totalExamsCount = publishedUnitExams.length + publishedClassExams.length
 
   // Map real analytics data from the database
-  const studentAnalytics = activeStudents.map((enrollment) => {
+  const studentAnalytics: StudentAnalyticsData[] = activeStudents.map((enrollment) => {
     // Find the real progress record for this student in this unit
     const progress = unit.studentProgress?.find((p) => p.userId === enrollment.student.id)
+    const history = (progress?.activityHistory as Record<string, unknown> | null) || {}
+    const flashcardHistory = Array.isArray(history.flashcard) ? history.flashcard : []
+    const quizHistory = Array.isArray(history.quiz) ? history.quiz : []
+    const matchHistory = Array.isArray(history.match) ? history.match : []
 
     // Find student exams in this unit
-    const studentExams = publishedUnitExams.map((exam) => {
+    const unitExamList = publishedUnitExams.map((exam) => {
       const res = exam.results?.find((r) => r.studentId === enrollment.student.id)
+      const answersPayload = (res?.answers as Record<string, unknown>) || {}
       return {
         id: exam.id,
         title: exam.title,
+        type: 'unit' as const,
+        unitTitle: unit.title,
+        duration: exam.duration,
         isCompleted: !!res?.completedAt,
-        score: res?.score ?? null,
+        isInProgress: !res?.completedAt && !!res?.startedAt,
+        score: res?.score ?? (res?.completedAt ? (answersPayload.score as number) ?? 0 : null),
+        correctAnswers: (answersPayload.correctAnswers as number) ?? null,
+        totalQuestions: (answersPayload.totalQuestions as number) ?? null,
         completedAt: res?.completedAt || null,
+        startedAt: res?.startedAt || null,
+        answers: (answersPayload.answers as Record<string, unknown>) || {},
+        correctAnswersDetail:
+          (answersPayload.correctAnswersDetail as Record<string, string | number>) || {},
+        content: exam.content,
+        isInterrupted: !!answersPayload.isInterrupted,
       }
     })
+
+    // Include class-level exams
+    const classExamList = publishedClassExams.map((exam) => {
+      const res = exam.results?.find((r) => r.studentId === enrollment.student.id)
+      const answersPayload = (res?.answers as Record<string, unknown>) || {}
+      return {
+        id: exam.id,
+        title: exam.title,
+        type: 'class' as const,
+        unitTitle: 'Đề Tổng Hợp',
+        duration: exam.duration,
+        isCompleted: !!res?.completedAt,
+        isInProgress: !res?.completedAt && !!res?.startedAt,
+        score: res?.score ?? (res?.completedAt ? (answersPayload.score as number) ?? 0 : null),
+        correctAnswers: (answersPayload.correctAnswers as number) ?? null,
+        totalQuestions: (answersPayload.totalQuestions as number) ?? null,
+        completedAt: res?.completedAt || null,
+        startedAt: res?.startedAt || null,
+        answers: (answersPayload.answers as Record<string, unknown>) || {},
+        correctAnswersDetail:
+          (answersPayload.correctAnswersDetail as Record<string, string | number>) || {},
+        content: exam.content,
+        isInterrupted: !!answersPayload.isInterrupted,
+      }
+    })
+
+    const allExams = [...unitExamList, ...classExamList]
 
     return {
       student: enrollment.student,
       masteryProgress: progress?.masteryProgress || 0, // % vocab mastered
       games: {
         flashcard: {
-          played: (progress?.flashcardPlayCount || 0) > 0,
+          played: (progress?.flashcardPlayCount || 0) > 0 || flashcardHistory.length > 0,
           progress: progress?.masteryProgress || 0,
           timesPlayed: progress?.flashcardPlayCount || 0,
+          history: flashcardHistory as import('../../types').PracticeSessionEntry[],
         },
         quiz: {
-          played: (progress?.quizPlayCount || 0) > 0,
+          played: (progress?.quizPlayCount || 0) > 0 || quizHistory.length > 0,
           score: progress?.bestQuizScore || 0,
           timesPlayed: progress?.quizPlayCount || 0,
+          history: quizHistory as import('../../types').PracticeSessionEntry[],
         },
         match: {
-          played: (progress?.matchPlayCount || 0) > 0,
+          played: (progress?.matchPlayCount || 0) > 0 || matchHistory.length > 0,
           bestTime: progress?.bestMatchTime || null,
           timesPlayed: progress?.matchPlayCount || 0,
+          history: matchHistory as import('../../types').PracticeSessionEntry[],
         },
       },
-      exams: studentExams,
+      exams: allExams,
     }
   })
 
-  // Also include the completely fake mock students if activeStudents is empty
-  const mockFakeStudents = [
+  // Mock fake students fallback
+  const mockFakeStudents: StudentAnalyticsData[] = [
     {
-      student: { id: '1', name: 'Nguyễn Văn A', avatarUrl: null },
+      student: { id: '1', name: 'Nguyễn Văn A', email: 'vana@gmail.com', avatarUrl: null },
       masteryProgress: 100,
       games: {
-        flashcard: { played: true, progress: 100, timesPlayed: 5 },
-        quiz: { played: true, score: 95, timesPlayed: 3 },
-        match: { played: true, bestTime: 32, timesPlayed: 12 },
+        flashcard: {
+          played: true,
+          progress: 100,
+          timesPlayed: 5,
+          history: [
+            { attempt: 1, durationSeconds: 45, completedAt: '2026-10-13T10:00:00.000Z' },
+            { attempt: 2, durationSeconds: 32, completedAt: '2026-10-14T14:30:00.000Z' },
+          ],
+        },
+        quiz: {
+          played: true,
+          score: 95,
+          timesPlayed: 3,
+          history: [
+            { attempt: 1, score: 80, correctCount: 8, totalCount: 10, durationSeconds: 55, completedAt: '2026-10-13T10:30:00.000Z' },
+            { attempt: 2, score: 95, correctCount: 10, totalCount: 10, durationSeconds: 42, completedAt: '2026-10-14T15:00:00.000Z' },
+          ],
+        },
+        match: {
+          played: true,
+          bestTime: 32,
+          timesPlayed: 12,
+          history: [
+            { attempt: 1, durationSeconds: 48, completedAt: '2026-10-13T11:00:00.000Z' },
+            { attempt: 2, durationSeconds: 32, completedAt: '2026-10-14T15:30:00.000Z' },
+          ],
+        },
       },
       exams: [
-        { id: '1', title: 'Bài kiểm tra 15 phút', isCompleted: true, score: 95, completedAt: new Date() },
+        {
+          id: '1',
+          title: 'Bài kiểm tra 15 phút',
+          type: 'unit',
+          unitTitle: unit.title,
+          duration: 15,
+          isCompleted: true,
+          score: 95,
+          correctAnswers: 19,
+          totalQuestions: 20,
+          completedAt: '2026-10-15T08:00:00.000Z',
+        },
       ],
     },
     {
-      student: { id: '2', name: 'Trần Thị B', avatarUrl: null },
+      student: { id: '2', name: 'Trần Thị B', email: 'thib@gmail.com', avatarUrl: null },
       masteryProgress: 65,
       games: {
-        flashcard: { played: true, progress: 80, timesPlayed: 2 },
-        quiz: { played: true, score: 85, timesPlayed: 2 },
+        flashcard: {
+          played: true,
+          progress: 80,
+          timesPlayed: 2,
+          history: [
+            { attempt: 1, durationSeconds: 60, completedAt: '2026-10-14T09:00:00.000Z' },
+          ],
+        },
+        quiz: {
+          played: true,
+          score: 85,
+          timesPlayed: 2,
+          history: [
+            { attempt: 1, score: 85, correctCount: 17, totalCount: 20, durationSeconds: 70, completedAt: '2026-10-14T09:30:00.000Z' },
+          ],
+        },
         match: { played: false, bestTime: null, timesPlayed: 0 },
       },
       exams: [
-        { id: '1', title: 'Bài kiểm tra 15 phút', isCompleted: false, score: null, completedAt: null },
+        {
+          id: '1',
+          title: 'Bài kiểm tra 15 phút',
+          type: 'unit',
+          unitTitle: unit.title,
+          duration: 15,
+          isCompleted: false,
+          score: null,
+          completedAt: null,
+        },
       ],
-    },
-    {
-      student: { id: '3', name: 'Lê Hoàng C', avatarUrl: null },
-      masteryProgress: 15,
-      games: {
-        flashcard: { played: true, progress: 40, timesPlayed: 1 },
-        quiz: { played: false, score: 0, timesPlayed: 0 },
-        match: { played: false, bestTime: null, timesPlayed: 0 },
-      },
-      exams: [],
     },
   ]
 
@@ -122,7 +225,9 @@ const UnitProgressModal = ({ unit, activeStudents, onClose }: UnitProgressModalP
                   <th className="py-4 px-6 font-bold w-1/4">Học sinh</th>
                   <th className="py-4 px-6 font-bold w-1/4">Tiến độ thuộc từ</th>
                   <th className="py-4 px-6 font-bold w-1/4">Hoạt động luyện tập</th>
-                  <th className="py-4 px-6 font-bold w-1/4">Bài kiểm tra ({publishedUnitExams.length})</th>
+                  <th className="py-4 px-6 font-bold w-1/4">
+                    Bài kiểm tra ({totalExamsCount})
+                  </th>
                 </tr>
               </thead>
               <tbody>
