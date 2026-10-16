@@ -38,7 +38,7 @@ export default function UnitGamesTab({
   onOpenGenerator,
 }: UnitGamesTabProps) {
   return (
-    <div className="p-8 h-full flex flex-col">
+    <div className="p-8 flex flex-col">
       {/* KHU VỰC BÀI KIỂM TRA */}
       <div className="mb-6 shrink-0 mt-2 flex items-center justify-between">
         <div>
@@ -138,11 +138,13 @@ export default function UnitGamesTab({
                 </div>
               </div>
               <div className="flex items-center gap-2 mb-3">
-                <span className={`text-[11px] font-bold px-2 py-0.5 rounded-md border flex items-center gap-1 ${
-                  test.isRetakable
-                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                    : 'bg-purple-50 text-purple-700 border-purple-200'
-                }`}>
+                <span
+                  className={`text-[11px] font-bold px-2 py-0.5 rounded-md border flex items-center gap-1 ${
+                    test.isRetakable
+                      ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                      : 'bg-purple-50 text-purple-700 border-purple-200'
+                  }`}
+                >
                   {test.isRetakable ? '🔄 Luyện tập' : '🔒 Làm 1 lần'}
                 </span>
                 <span className="text-xs text-gray-500">

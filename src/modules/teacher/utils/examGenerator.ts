@@ -321,7 +321,7 @@ export function generateExamFromVocab(
     blocks.push({
       id: crypto.randomUUID(),
       type: 'multiple_choice',
-      title: `Phần ${blocks.length + 1}: Trắc nghiệm từ vựng (Multiple Choice)`,
+      title: 'Trắc nghiệm từ vựng (Multiple Choice)',
       content: {
         questions: mcQuestions,
       },
@@ -332,7 +332,7 @@ export function generateExamFromVocab(
     blocks.push({
       id: crypto.randomUUID(),
       type: 'fill_blank',
-      title: `Phần ${blocks.length + 1}: Điền khuyết (Fill in the Blanks)`,
+      title: 'Điền khuyết (Fill in the Blanks)',
       content: {
         questions: fillBlankQuestions,
       },
@@ -343,7 +343,7 @@ export function generateExamFromVocab(
     blocks.push({
       id: crypto.randomUUID(),
       type: 'matching',
-      title: `Phần ${blocks.length + 1}: Ghép nối từ vựng (Matching)`,
+      title: 'Ghép nối từ vựng (Matching)',
       content: {
         pairs: matchingPairs,
       },
@@ -354,7 +354,7 @@ export function generateExamFromVocab(
     blocks.push({
       id: crypto.randomUUID(),
       type: 'reorder',
-      title: `Phần ${blocks.length + 1}: Sắp xếp câu (Sentence Reordering)`,
+      title: 'Sắp xếp câu (Sentence Reordering)',
       content: {
         questions: reorderQuestions,
       },

@@ -16,6 +16,11 @@ import {
   FileCode2,
   RotateCcw,
   Lock,
+  Clock,
+  Eye,
+  Save,
+  PanelLeftClose,
+  PanelLeftOpen,
 } from 'lucide-react'
 import { ExamData, TestBlock, TestQuestion, MatchingPair, VocabItemData } from '../../types'
 import ExamGeneratorModal from './ExamGeneratorModal'
@@ -61,6 +66,7 @@ export default function TestBuilderModal({
   const [isPreview, setIsPreview] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [isGeneratorOpen, setIsGeneratorOpen] = useState(false)
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true)
   const [dragItemIndex, setDragItemIndex] = useState<number | null>(null)
   const [dragOverItemIndex, setDragOverItemIndex] = useState<number | null>(null)
   
@@ -311,33 +317,82 @@ export default function TestBuilderModal({
       <div className="fixed inset-0 z-[100] flex bg-gray-900/50 backdrop-blur-sm animate-in fade-in duration-300">
         <div className="w-full h-full bg-[#f8f9fa] flex flex-col md:flex-row">
         
-        {/* SIDEBAR: TEMPLATES (Hidden in Preview) */}
-        {!isPreview && (
-          <div className="w-full md:w-80 bg-white border-r border-gray-200 h-full flex flex-col shrink-0 shadow-lg z-10 transition-all">
-            <div className="p-6 border-b border-gray-100 flex items-center justify-between">
+        {/* SIDEBAR: TEMPLATES (Hidden in Preview or when Collapsed) */}
+        {!isPreview && isSidebarOpen && (
+          <div className="w-full md:w-72 lg:w-80 bg-white border-r border-gray-200 h-auto max-h-[40vh] md:max-h-none md:h-full flex flex-col shrink-0 shadow-lg z-10 transition-all">
+            <div className="p-4 sm:p-5 border-b border-gray-100 flex items-center justify-between">
               <div>
-                <h2 className="text-xl font-bold text-gray-800">Kho Template</h2>
-                <p className="text-sm text-gray-500 mt-1">Từ lớp 3 đến lớp 12</p>
+                <h2 className="text-lg sm:text-xl font-bold text-gray-800">Kho Template</h2>
+                <p className="text-xs text-gray-500 mt-0.5">Từ lớp 3 đến lớp 12</p>
               </div>
-              <button onClick={onClose} className="md:hidden p-2 text-gray-500 hover:bg-gray-100 rounded-full">
-                <X size={24} />
-              </button>
+              <div className="flex items-center gap-1">
+                <button
+                  type="button"
+                  onClick={() => setIsSidebarOpen(false)}
+                  className="hidden md:flex p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+                  title="Thu gọn kho template"
+                >
+                  <PanelLeftClose size={18} />
+                </button>
+                <button onClick={onClose} className="md:hidden p-1.5 text-gray-500 hover:bg-gray-100 rounded-full">
+                  <X size={20} />
+                </button>
+              </div>
             </div>
             
-            <div className="p-4 overflow-y-auto flex-1 custom-scrollbar space-y-3">
+            <div className="p-3 sm:p-4 overflow-y-auto flex-1 custom-scrollbar space-y-3">
+              {/* Quick Generation Tools inside Sidebar */}
+              <div className="space-y-2 mb-3 pb-3 border-b border-gray-100">
+                <div className="text-[11px] font-bold uppercase tracking-wider text-gray-400 px-1">
+                  Công cụ tạo nhanh
+                </div>
+                {vocabItems && vocabItems.length > 0 && (
+                  <button 
+                    type="button"
+                    onClick={() => setIsGeneratorOpen(true)}
+                    className="w-full p-2.5 sm:p-3 bg-gradient-to-r from-purple-500 to-indigo-600 text-white rounded-xl text-left hover:shadow-md transition-all flex items-center gap-3 group hover:-translate-y-0.5"
+                  >
+                    <div className="w-8 h-8 rounded-lg bg-white/20 flex items-center justify-center shrink-0">
+                      <Sparkles size={16} className="text-amber-300" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="font-bold text-xs">Sinh đề tự động bằng AI</div>
+                      <div className="text-[11px] text-purple-100 truncate">Từ {vocabItems.length} từ vựng bài học</div>
+                    </div>
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setIsFullExamImportOpen(true)}
+                  className="w-full p-2.5 sm:p-3 bg-purple-50 hover:bg-purple-100 border border-purple-200 text-purple-700 rounded-xl text-left transition-all flex items-center gap-3 group"
+                >
+                  <div className="w-8 h-8 rounded-lg bg-purple-100 flex items-center justify-center shrink-0">
+                    <FileCode2 size={16} className="text-purple-600" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="font-bold text-xs">Import đề từ file JSON</div>
+                    <div className="text-[11px] text-purple-600/70 truncate">Nạp đề thi hoàn chỉnh</div>
+                  </div>
+                </button>
+              </div>
+
+              <div className="text-[11px] font-bold uppercase tracking-wider text-gray-400 px-1">
+                Thêm phần thi (Template)
+              </div>
+
               {TEMPLATES.map((tpl) => (
                 <div 
                   key={tpl.type}
                   onClick={() => addBlock(tpl.type as TemplateType, tpl.title)}
-                  className="group relative bg-white border border-gray-200 rounded-xl p-4 cursor-pointer hover:border-indigo-400 hover:shadow-md transition-all hover:-translate-y-1"
+                  className="group relative bg-white border border-gray-200 rounded-xl p-3.5 sm:p-4 cursor-pointer hover:border-indigo-400 hover:shadow-md transition-all hover:-translate-y-0.5"
                 >
-                  <div className="absolute top-4 right-4 w-8 h-8 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                    <Plus size={18} />
+                  <div className="absolute top-3.5 right-3.5 w-7 h-7 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                    <Plus size={16} />
                   </div>
-                  <div className="w-10 h-10 rounded-lg bg-gray-50 text-gray-600 flex items-center justify-center mb-3 group-hover:bg-indigo-50 group-hover:text-indigo-600 transition-colors">
-                    <tpl.icon size={20} />
+                  <div className="w-9 h-9 rounded-lg bg-gray-50 text-gray-600 flex items-center justify-center mb-2.5 group-hover:bg-indigo-50 group-hover:text-indigo-600 transition-colors">
+                    <tpl.icon size={18} />
                   </div>
-                  <h3 className="font-bold text-gray-800 mb-1">{tpl.title}</h3>
+                  <h3 className="font-bold text-gray-800 text-sm mb-1">{tpl.title}</h3>
                   <p className="text-xs text-gray-500 leading-relaxed">{tpl.desc}</p>
                 </div>
               ))}
@@ -348,93 +403,129 @@ export default function TestBuilderModal({
         {/* MAIN CANVAS: TEST BUILDER */}
         <div className="flex-1 flex flex-col h-full overflow-hidden relative bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]">
           {/* Header */}
-          <div className="h-16 bg-white border-b border-gray-200 px-6 flex items-center justify-between shrink-0 shadow-sm z-10">
-            <div className="flex items-center gap-4">
-              <button onClick={onClose} className="hidden md:flex p-2 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-full transition-colors">
-                <X size={24} />
+          <div className="min-h-16 bg-white border-b border-gray-200 px-3 sm:px-4 md:px-6 py-2.5 flex items-center justify-between gap-2.5 sm:gap-3 shrink-0 shadow-xs z-10">
+            {/* Left toolbar items */}
+            <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
+              <button 
+                onClick={onClose} 
+                className="p-2 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-xl transition-colors shrink-0"
+                title="Đóng"
+              >
+                <X size={20} />
               </button>
-              <input 
-                type="text" 
-                value={testTitle} 
-                onChange={(e) => setTestTitle(e.target.value)} 
-                className="text-lg font-bold text-gray-800 bg-white border border-gray-300 hover:border-gray-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 focus:outline-none px-3 py-1.5 rounded-lg w-72 transition-all shadow-sm"
-                placeholder="Nhập tên bài kiểm tra..."
-              />
-              <div className="flex items-center gap-2 text-gray-500 bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-100">
-                <span className="text-sm font-medium">Thời gian:</span>
+
+              {!isPreview && !isSidebarOpen && (
+                <button
+                  type="button"
+                  onClick={() => setIsSidebarOpen(true)}
+                  className="hidden md:flex p-2 text-indigo-600 hover:bg-indigo-50 rounded-xl transition-colors shrink-0 items-center gap-1.5 text-xs font-bold border border-indigo-100"
+                  title="Mở lại kho template"
+                >
+                  <PanelLeftOpen size={17} />
+                  <span className="hidden xl:inline">Kho Template</span>
+                </button>
+              )}
+
+              <div className="relative min-w-[130px] max-w-[200px] md:max-w-[240px] lg:max-w-xs flex-1 shrink">
+                <input 
+                  type="text" 
+                  value={testTitle} 
+                  onChange={(e) => setTestTitle(e.target.value)} 
+                  className="w-full text-sm md:text-base font-bold text-gray-800 bg-gray-50 hover:bg-gray-100/70 focus:bg-white border border-gray-200 hover:border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 focus:outline-none px-3 py-1.5 rounded-xl transition-all shadow-2xs truncate"
+                  placeholder="Nhập tên bài kiểm tra..."
+                  title={testTitle}
+                />
+              </div>
+
+              {/* Duration Badge */}
+              <div className="flex items-center gap-1.5 text-gray-600 bg-gray-50 px-2.5 py-1.5 rounded-xl border border-gray-200 shrink-0 text-xs font-semibold shadow-2xs">
+                <Clock size={14} className="text-gray-400 shrink-0" />
+                <span className="hidden sm:inline text-gray-500 font-medium">Thời gian:</span>
                 <input 
                   type="number" 
+                  min={1}
                   value={testDuration} 
                   onChange={(e) => setTestDuration(Number(e.target.value))} 
-                  className="w-12 bg-transparent font-bold text-gray-800 focus:outline-none text-center"
+                  className="w-9 bg-white border border-gray-200 rounded px-1 font-bold text-gray-800 focus:outline-none focus:border-indigo-400 text-center"
                 />
-                <span className="text-sm font-medium">phút</span>
+                <span className="text-gray-500 font-medium">phút</span>
               </div>
 
               {/* Mode Button: Làm 1 lần vs Luyện tập */}
-              <div className="hidden sm:flex items-center bg-gray-100 p-1 rounded-xl border border-gray-200 text-xs font-bold">
+              <div className="flex items-center bg-gray-100 p-0.5 rounded-xl border border-gray-200 text-xs font-bold shrink-0">
                 <button
                   type="button"
                   onClick={() => setIsRetakable(false)}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all ${
+                  className={`flex items-center gap-1 px-2.5 py-1 rounded-lg transition-all whitespace-nowrap ${
                     !isRetakable
-                      ? 'bg-white text-indigo-700 shadow-xs'
+                      ? 'bg-white text-indigo-700 shadow-2xs'
                       : 'text-gray-500 hover:text-gray-800'
                   }`}
                   title="Học sinh chỉ được nộp bài 1 lần duy nhất, kết quả chốt điểm ngay."
                 >
-                  <Lock size={13} />
-                  <span>Làm 1 lần</span>
+                  <Lock size={12} />
+                  <span className="hidden sm:inline">1 lần</span>
                 </button>
                 <button
                   type="button"
                   onClick={() => setIsRetakable(true)}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all ${
+                  className={`flex items-center gap-1 px-2.5 py-1 rounded-lg transition-all whitespace-nowrap ${
                     isRetakable
-                      ? 'bg-gradient-to-r from-emerald-500 to-teal-600 text-white shadow-xs'
+                      ? 'bg-gradient-to-r from-emerald-500 to-teal-600 text-white shadow-2xs'
                       : 'text-gray-500 hover:text-gray-800'
                   }`}
                   title="Học sinh có thể làm đi làm lại nhiều lần. Mỗi lần làm lại hệ thống sẽ tự động xáo trộn câu hỏi."
                 >
-                  <RotateCcw size={13} />
-                  <span>Luyện tập (Làm lại)</span>
+                  <RotateCcw size={12} />
+                  <span className="hidden sm:inline">Luyện tập</span>
                 </button>
               </div>
             </div>
-            <div className="flex items-center gap-3">
+
+            {/* Right action buttons */}
+            <div className="flex items-center gap-2 shrink-0">
               {!isPreview && (
                 <button
                   type="button"
                   onClick={() => setIsFullExamImportOpen(true)}
-                  className="px-3.5 py-2 bg-purple-50 hover:bg-purple-100 text-purple-700 font-bold rounded-xl border border-purple-200 shadow-2xs transition-all flex items-center gap-1.5 text-sm"
+                  className="px-3 py-1.5 bg-purple-50 hover:bg-purple-100 text-purple-700 font-bold rounded-xl border border-purple-200 shadow-2xs transition-all flex items-center gap-1.5 text-xs whitespace-nowrap shrink-0 hover:border-purple-300"
                   title="Import nhanh toàn bộ đề thi từ file JSON"
                 >
-                  <FileCode2 size={16} />
-                  <span>Import JSON Đề</span>
+                  <FileCode2 size={15} />
+                  <span className="hidden xl:inline">Import JSON</span>
+                  <span className="xl:hidden">JSON</span>
                 </button>
               )}
+
               {vocabItems && vocabItems.length > 0 && !isPreview && (
                 <button
                   type="button"
                   onClick={() => setIsGeneratorOpen(true)}
-                  className="px-4 py-2 bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 text-white font-bold rounded-xl shadow-md transition-all flex items-center gap-1.5 text-sm hover:-translate-y-0.5"
+                  className="px-3 py-1.5 bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 text-white font-bold rounded-xl shadow-2xs transition-all flex items-center gap-1.5 text-xs whitespace-nowrap shrink-0 hover:-translate-y-0.5 hover:shadow-xs"
+                  title="Tự động sinh câu hỏi từ danh sách từ vựng của bài học"
                 >
-                  <Sparkles size={16} className="text-amber-300" />
-                  Sinh Đề Từ Vựng
+                  <Sparkles size={15} className="text-amber-300" />
+                  <span className="hidden xl:inline">Sinh Đề Từ Vựng</span>
+                  <span className="xl:hidden">Sinh Đề AI</span>
                 </button>
               )}
+
               <button 
                 onClick={() => setIsPreview(!isPreview)}
-                className="px-5 py-2 text-indigo-600 font-semibold bg-indigo-50 hover:bg-indigo-100 rounded-xl transition-colors text-sm"
+                className="px-3.5 py-1.5 text-indigo-700 font-semibold bg-indigo-50 hover:bg-indigo-100 rounded-xl transition-colors text-xs flex items-center gap-1.5 whitespace-nowrap shrink-0 border border-indigo-100"
+                title={isPreview ? 'Quay lại chỉnh sửa đề thi' : 'Xem trước giao diện học sinh làm bài'}
               >
-                {isPreview ? 'Quay lại chỉnh sửa' : 'Xem thử (Preview)'}
+                <Eye size={15} />
+                <span>{isPreview ? 'Sửa đề' : 'Xem thử'}</span>
               </button>
+
               <button 
                 onClick={handleSave}
                 disabled={isSaving}
-                className="px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-md transition-colors disabled:opacity-50 text-sm"
+                className="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-sm transition-all disabled:opacity-50 text-xs flex items-center gap-1.5 whitespace-nowrap shrink-0 active:scale-95"
               >
-                {isSaving ? 'Đang lưu...' : 'Lưu Đề Thi'}
+                <Save size={15} />
+                <span>{isSaving ? 'Đang lưu...' : 'Lưu Đề Thi'}</span>
               </button>
             </div>
           </div>
@@ -456,14 +547,22 @@ export default function TestBuilderModal({
                   <div className="absolute top-0 left-0 w-full h-full bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-20"></div>
                   <h1 className="text-3xl font-black text-white uppercase tracking-wide mb-2 drop-shadow-md">🚀 {testTitle}</h1>
                   <p className="text-white/90 font-bold bg-black/20 inline-block px-4 py-1 rounded-full text-sm">
-                    ⚡ Thử thách chớp nhoáng: {testDuration} phút
+                    ⚡ Thử thách chớp nhoáng: {testDuration} phút • {isRetakable ? 'Luyện tập' : 'Làm 1 lần'}
                   </p>
                 </div>
               ) : (
                 <div className="bg-white rounded-t-2xl rounded-b-lg shadow-sm border border-gray-200 p-8 text-center relative overflow-hidden">
                   <div className="absolute top-0 left-0 w-full h-2 bg-indigo-600"></div>
                   <h1 className="text-3xl font-black text-gray-900 uppercase tracking-wide mb-2">{testTitle}</h1>
-                  <p className="text-gray-500 font-medium">Thời gian làm bài: {testDuration} phút | Không sử dụng tài liệu</p>
+                  <div className="flex items-center justify-center gap-2.5 text-sm font-medium text-gray-500 flex-wrap">
+                    <span>Thời gian làm bài: {testDuration} phút</span>
+                    <span>•</span>
+                    <span className={isRetakable ? 'text-emerald-600 font-semibold' : 'text-indigo-600 font-semibold'}>
+                      {isRetakable ? '🔄 Luyện tập (Làm lại tự do)' : '🔒 Bài thi (Nộp 1 lần)'}
+                    </span>
+                    <span>•</span>
+                    <span>Không sử dụng tài liệu</span>
+                  </div>
                 </div>
               )}
 
@@ -479,7 +578,9 @@ export default function TestBuilderModal({
                     return (
                       <div key={block.id} className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden mb-6">
                         <div className="bg-indigo-50/50 px-6 py-4 border-b border-gray-100">
-                          <h2 className="text-lg font-bold text-indigo-900">Phần {index + 1}: {block.title}</h2>
+                          <h2 className="text-lg font-bold text-indigo-900">
+                            Phần {index + 1}: {(block.title || '').replace(/^Phần\s+\d+:\s*/i, '')}
+                          </h2>
                         </div>
                         <div className="p-6">
                           {block.type === 'multiple_choice' && (
@@ -615,18 +716,18 @@ export default function TestBuilderModal({
                   >
                     {/* Block Toolbar */}
                     <div className={`${isMiniChallenge ? 'bg-orange-50/50 border-orange-100' : 'bg-gray-50 border-gray-100'} border-b px-4 py-3 flex items-center justify-between cursor-grab active:cursor-grabbing`}>
-                      <div className="flex items-center gap-3 flex-1">
+                      <div className="flex items-center gap-3 flex-1 min-w-0">
                         <GripVertical size={18} className={`${isMiniChallenge ? 'text-orange-300' : 'text-gray-400'} shrink-0`} />
                         <span className={`font-bold shrink-0 ${isMiniChallenge ? 'text-orange-600' : 'text-gray-700'}`}>Phần {index + 1}:</span>
                         <input
                           type="text"
-                          value={block.title}
+                          value={(block.title || '').replace(/^Phần\s+\d+:\s*/i, '')}
                           onChange={(e) => {
                             const newBlocks = [...blocks];
                             newBlocks[index].title = e.target.value;
                             setBlocks(newBlocks);
                           }}
-                          className={`font-bold bg-transparent border-b border-transparent focus:outline-none flex-1 py-1 px-2 transition-colors cursor-text ${
+                          className={`font-bold bg-transparent border-b border-transparent focus:outline-none flex-1 py-1 px-2 transition-colors cursor-text truncate ${
                             isMiniChallenge ? 'text-orange-700 focus:border-orange-400' : 'text-gray-700 focus:border-indigo-400'
                           }`}
                           onPointerDown={(e) => e.stopPropagation()} // Prevent drag when clicking input
