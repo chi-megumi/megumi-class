@@ -4,6 +4,7 @@ import * as classCrudModule from './class-crud'
 import * as enrollmentModule from './enrollment'
 import * as unitModule from './unit'
 import * as examModule from './exam'
+import * as settingsModule from './settings'
 
 /**
  * Class CRUD & Joining Actions
@@ -129,6 +130,33 @@ export async function deleteClassExam(
   ...args: Parameters<typeof examModule.deleteClassExam>
 ) {
   return examModule.deleteClassExam(...args)
+}
+
+/**
+  * Settings & Management Actions
+  */
+export async function updateClassInfoAction(
+  ...args: Parameters<typeof settingsModule.updateClassInfoAction>
+) {
+  return settingsModule.updateClassInfoAction(...args)
+}
+
+export async function regenerateInviteCodeAction(
+  ...args: Parameters<typeof settingsModule.regenerateInviteCodeAction>
+) {
+  return settingsModule.regenerateInviteCodeAction(...args)
+}
+
+export async function deleteClassAction(
+  ...args: Parameters<typeof settingsModule.deleteClassAction>
+) {
+  return settingsModule.deleteClassAction(...args)
+}
+
+export async function transferClassOwnershipAction(
+  ...args: Parameters<typeof settingsModule.transferClassOwnershipAction>
+) {
+  return settingsModule.transferClassOwnershipAction(...args)
 }
 
 /**

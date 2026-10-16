@@ -1,3 +1,9 @@
+export type QuizAnswerInput = {
+  wordId: string
+  correct: boolean
+  selectedWordId?: string
+}
+
 export type GameCompletionInput = {
   unitId: string
   classId: string
@@ -9,6 +15,7 @@ export type GameCompletionInput = {
   isQuickExit?: boolean
   correctCount?: number
   totalCount?: number
+  quizAnswers?: QuizAnswerInput[]
 }
 
 export type FlashcardAttempt = {
@@ -29,6 +36,7 @@ export type QuizAttempt = {
   isInterrupted?: boolean
   isQuickExit?: boolean
   completedAt: string
+  answers?: QuizAnswerInput[]
 }
 
 export type MatchAttempt = {
@@ -190,3 +198,56 @@ export type TestSubmissionItem = {
     history?: unknown[]
   }
 }
+
+export type VocabMistakeDetail = {
+  wrongWord: string
+  wrongMeaning?: string
+  count: number
+  percentage: number
+}
+
+export type UnitVocabStat = {
+  id: string
+  word: string
+  vi: string
+  ipa?: string | null
+  pos?: string | null
+  emoji?: string | null
+  example?: string | null
+  exampleVi?: string | null
+  tip?: string | null
+  totalAttempts: number
+  correctCount: number
+  incorrectCount: number
+  accuracyRate: number
+  errorRate: number
+  difficultyLevel: 'hard' | 'medium' | 'easy'
+  masteredStudentCount: number
+  masteryRate: number
+  commonMistakes: VocabMistakeDetail[]
+}
+
+export type UnitAnalyticsSummary = {
+  unitId: string
+  unitTitle: string
+  totalStudents: number
+  participatedStudents: number
+  participationRate: number
+  averageVocabMastery: number
+  averageQuizScore: number
+  averageExamScore: number
+  totalVocabCount: number
+  hardVocabCount: number
+  mediumVocabCount: number
+  easyVocabCount: number
+  totalPracticesCount: number
+  totalExamsCount: number
+  examSubmissionsCount: number
+}
+
+export type UnitAnalyticsResult = {
+  summary: UnitAnalyticsSummary
+  vocabStats: UnitVocabStat[]
+  students: import('@/modules/teacher/types').StudentAnalyticsData[]
+}
+

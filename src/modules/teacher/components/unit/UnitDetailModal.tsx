@@ -10,8 +10,9 @@ import TestResultsModal from './TestResultsModal'
 import UnitGamesTab from './UnitGamesTab'
 import ExamGeneratorModal from './ExamGeneratorModal'
 import { GeneratedExamResult } from '../../utils/examGenerator'
-import { TestContent, ExamData } from '../../types'
+import { TestContent, ExamData, EnrollmentData } from '../../types'
 import Portal from '@/components/common/Portal'
+import UnitAnalyticsTab from './UnitAnalyticsTab'
 
 interface UnitDetailModalProps {
   editingUnit: UnitData
@@ -20,6 +21,8 @@ interface UnitDetailModalProps {
   setEditingUnit: (unit: UnitData | null) => void
   setEditVocabList: (list: VocabItemData[]) => void
   handleSaveVocab: () => void
+  activeStudents?: EnrollmentData[]
+  classExams?: ExamData[]
 }
 
 const UnitDetailModalInner = ({
@@ -29,6 +32,8 @@ const UnitDetailModalInner = ({
   setEditingUnit,
   setEditVocabList,
   handleSaveVocab,
+  activeStudents,
+  classExams,
 }: UnitDetailModalProps) => {
   const [activeTab, setActiveTab] = useState<'vocab' | 'games' | 'analytics'>('vocab')
   const [editingTestId, setEditingTestId] = useState<string | null>(null)
@@ -153,14 +158,12 @@ const UnitDetailModalInner = ({
 
             {/* TAB 3: ANALYTICS */}
             {activeTab === 'analytics' && (
-              <div className="p-8 flex flex-col items-center justify-center flex-1 text-center bg-white rounded-t-3xl border-t border-gray-100">
-                <BarChart3 size={48} className="text-gray-300 mb-4" />
-                <h3 className="text-xl font-bold text-gray-600 mb-2">Báo cáo học tập</h3>
-                <p className="text-gray-500 max-w-md">
-                  Tính năng này sẽ hiển thị thống kê học sinh nào đã học, tiến độ hoàn thành, và các
-                  từ vựng học sinh thường làm sai nhất. Sẽ được phát triển trong Phase 4.
-                </p>
-              </div>
+              <UnitAnalyticsTab
+                unit={editingUnit}
+                activeStudents={activeStudents}
+                classExams={classExams}
+                onViewExamResults={(exam) => setViewingResultsTest(exam)}
+              />
             )}
           </div>
         </div>

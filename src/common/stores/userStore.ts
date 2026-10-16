@@ -5,6 +5,7 @@ export interface User {
   email: string
   name: string
   role: string | null
+  systemRole?: string | null
 }
 
 export interface UserState {

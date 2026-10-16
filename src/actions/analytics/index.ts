@@ -4,6 +4,7 @@ import * as gameProgressModule from './game-progress'
 import * as examSessionModule from './exam-session'
 import * as examAnalyticsModule from './exam-analytics'
 import * as classAnalyticsModule from './class-analytics'
+import * as unitAnalyticsModule from './unit-analytics'
 
 /**
  * Game progress action
@@ -55,6 +56,15 @@ export async function getStudentExamHistory(
   ...args: Parameters<typeof classAnalyticsModule.getStudentExamHistory>
 ) {
   return classAnalyticsModule.getStudentExamHistory(...args)
+}
+
+/**
+ * Unit analytics action
+ */
+export async function getUnitAnalytics(
+  ...args: Parameters<typeof unitAnalyticsModule.getUnitAnalytics>
+) {
+  return unitAnalyticsModule.getUnitAnalytics(...args)
 }
 
 export type * from './types'

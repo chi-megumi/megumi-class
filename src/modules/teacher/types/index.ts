@@ -18,6 +18,8 @@ export type StudentData = {
   name: string
   email: string
   avatarUrl?: string | null
+  userType?: string | null
+  systemRole?: string | null
 }
 
 export type EnrollmentData = {
@@ -113,6 +115,8 @@ export type ClassData = {
   name: string
   description?: string | null
   inviteCode?: string | null
+  teacherId?: string
+  teacher?: StudentData | null
   students: EnrollmentData[]
   units: UnitData[]
   exams?: ExamData[]

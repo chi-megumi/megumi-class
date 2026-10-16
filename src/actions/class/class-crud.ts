@@ -173,13 +173,21 @@ export async function requestJoinClass(inviteCode: string) {
 
 export async function getTeacherClassDetails(classId: string) {
   const user = await getMe()
-  if (!user || (user.role !== 'teacher' && user.role !== 'TEACHER')) {
+  const isTeacher = user?.role === 'teacher' || user?.role === 'TEACHER'
+  const isAdmin = user?.systemRole === 'admin'
+
+  if (!user || (!isTeacher && !isAdmin)) {
     return null
   }
 
-  const classData = await prisma.class.findUnique({
-    where: { id: classId, teacherId: user.id },
+  const whereClause = isAdmin ? { id: classId } : { id: classId, teacherId: user.id }
+
+  const classData = await prisma.class.findFirst({
+    where: whereClause,
     include: {
+      teacher: {
+        select: { id: true, name: true, email: true, avatarUrl: true },
+      },
       exams: {
         where: { unitId: null },
         orderBy: { createdAt: 'desc' },
@@ -219,7 +227,7 @@ export async function getTeacherClassDetails(classId: string) {
       students: {
         include: {
           student: {
-            select: { id: true, name: true, email: true, avatarUrl: true },
+            select: { id: true, name: true, email: true, avatarUrl: true, userType: true },
           },
         },
         orderBy: { joinedAt: 'desc' },

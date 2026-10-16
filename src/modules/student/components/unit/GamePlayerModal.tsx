@@ -123,6 +123,7 @@ const GamePlayerModal = ({
       let quizScore: number | undefined
       let correctCount: number | undefined
       let totalCount: number | undefined
+      let quizAnswers: Array<{ wordId: string; correct: boolean; selectedWordId?: string }> | undefined
       let isQuick = durationSeconds < 5
 
       if (mode === 'quiz') {
@@ -131,6 +132,11 @@ const GamePlayerModal = ({
         correctCount = quizState.sessionCorrect || 0
         totalCount = quizState.sessionTotal || totalAnswered
         quizScore = totalCount > 0 ? Math.round((correctCount / totalCount) * 100) : 0
+        quizAnswers = quizState.sessionAnswers?.map((ans) => ({
+          wordId: ans.wordId,
+          correct: ans.correct,
+          selectedWordId: ans.selectedWordId,
+        }))
         if (totalAnswered === 0 && durationSeconds < 10) {
           isQuick = true
         }
@@ -146,6 +152,7 @@ const GamePlayerModal = ({
           score: quizScore,
           correctCount,
           totalCount,
+          quizAnswers,
           isQuickExit: isQuick,
           isInterrupted: false,
         })

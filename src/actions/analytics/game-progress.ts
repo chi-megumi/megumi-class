@@ -20,6 +20,7 @@ export async function recordGameCompletion({
   isQuickExit,
   correctCount,
   totalCount,
+  quizAnswers,
 }: GameCompletionInput) {
   const me = await getMe()
   if (!me) {
@@ -77,6 +78,7 @@ export async function recordGameCompletion({
                 isInterrupted: !!isInterrupted,
                 isQuickExit: isQuick,
                 completedAt: now,
+                answers: quizAnswers,
               },
             ]
           : [],
@@ -210,6 +212,7 @@ export async function recordGameCompletion({
           isInterrupted: !!isInterrupted,
           isQuickExit: isQuick,
           completedAt: now,
+          answers: quizAnswers,
         })
       }
     } else if (gameType === 'match') {
@@ -267,6 +270,49 @@ export async function recordGameCompletion({
       where: { id: existingProgress.id },
       data: updateData,
     })
+  }
+
+  // Also persist QuizSession and QuizAnswer records for question/word mistake analytics
+  if (gameType === 'quiz' && quizAnswers && quizAnswers.length > 0 && !isQuick) {
+    try {
+      const validVocabs = await prisma.vocabItem.findMany({
+        where: { unitId },
+        select: { id: true },
+      })
+      const validIds = new Set(validVocabs.map((v) => v.id))
+
+      const answerRows = quizAnswers
+        .filter((ans) => validIds.has(ans.wordId))
+        .map((ans, idx) => ({
+          vocabItemId: ans.wordId,
+          selectedVocabId:
+            ans.selectedWordId && validIds.has(ans.selectedWordId)
+              ? ans.selectedWordId
+              : ans.wordId,
+          isCorrect: ans.correct,
+          questionOrder: idx + 1,
+        }))
+
+      if (answerRows.length > 0) {
+        await prisma.quizSession.create({
+          data: {
+            userId: me.id,
+            unitId,
+            mode: 'scored',
+            score: score ?? null,
+            correctCount: correctCount ?? 0,
+            totalCount: totalCount ?? quizAnswers.length,
+            durationMs: duration * 1000,
+            completedAt: new Date(now),
+            answers: {
+              create: answerRows,
+            },
+          },
+        })
+      }
+    } catch (err) {
+      console.error('Failed to create quiz session records:', err)
+    }
   }
 
   // Revalidate the teacher's dashboard so they see the updated counts immediately

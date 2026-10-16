@@ -29,6 +29,7 @@ import AddStudentModal from './students/AddStudentModal'
 import UnitsTab from './unit/UnitsTab'
 import CreateUnitModal from './unit/CreateUnitModal'
 import EditUnitModal from './unit/EditUnitModal'
+import ClassSettingsTab from './settings/ClassSettingsTab'
 import { StudentData, EnrollmentData, UnitData, ClassData, VocabItemData } from '../types'
 
 type ClassDashboardClientProps = {
@@ -39,6 +40,18 @@ const ClassDashboardClient = ({ classData }: ClassDashboardClientProps) => {
   const router = useRouter()
   const [activeTab, setActiveTab] = useState('overview')
   const [loadingEnrollmentId, setLoadingEnrollmentId] = useState<string | null>(null)
+
+  // Local state for class metadata to allow immediate optimistic updates from settings
+  const [classMeta, setClassMeta] = useState({
+    name: classData.name,
+    description: classData.description,
+    inviteCode: classData.inviteCode,
+  })
+
+  const currentClassData: ClassData = {
+    ...classData,
+    ...classMeta,
+  }
 
   // Add Students state
   const [showAddModal, setShowAddModal] = useState(false)
@@ -68,8 +81,8 @@ const ClassDashboardClient = ({ classData }: ClassDashboardClientProps) => {
   const activeStudents = classData.students.filter((s: EnrollmentData) => s.status === 'active')
 
   const handleCopyCode = () => {
-    if (classData.inviteCode) {
-      navigator.clipboard.writeText(classData.inviteCode)
+    if (currentClassData.inviteCode) {
+      navigator.clipboard.writeText(currentClassData.inviteCode)
       // Could add a toast here
     }
   }
@@ -220,20 +233,20 @@ const ClassDashboardClient = ({ classData }: ClassDashboardClientProps) => {
         <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-bl from-indigo-500/10 to-purple-500/10 rounded-full blur-3xl -z-10 group-hover:scale-110 transition-transform duration-700"></div>
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
           <div>
-            <h1 className="text-3xl font-bold text-gray-800 mb-2">{classData.name}</h1>
+            <h1 className="text-3xl font-bold text-gray-800 mb-2">{currentClassData.name}</h1>
             <p className="text-gray-500 line-clamp-2 max-w-2xl">
-              {classData.description || 'Chưa có mô tả'}
+              {currentClassData.description || 'Chưa có mô tả'}
             </p>
           </div>
 
-          {classData.inviteCode && (
+          {currentClassData.inviteCode && (
             <div className="bg-indigo-50/80 border border-indigo-100 rounded-2xl p-4 flex flex-col items-center shadow-sm shrink-0">
               <span className="text-xs font-semibold text-indigo-600 uppercase tracking-wider mb-1">
                 Mã tham gia
               </span>
               <div className="flex items-center gap-3">
                 <span className="text-2xl font-black text-indigo-900 tracking-widest">
-                  {classData.inviteCode}
+                  {currentClassData.inviteCode}
                 </span>
                 <button
                   onClick={handleCopyCode}
@@ -317,13 +330,29 @@ const ClassDashboardClient = ({ classData }: ClassDashboardClientProps) => {
           />
         )}
 
-        {/* OTHER TABS PLACEHOLDER */}
-        {activeTab !== 'overview' && activeTab !== 'students' && activeTab !== 'units' && (
-          <div className="flex flex-col items-center justify-center py-20 text-gray-400 animate-in zoom-in-95 duration-500">
-            <Settings size={48} className="mb-4 opacity-20" />
-            <p>Tính năng đang được phát triển...</p>
-          </div>
+        {/* SETTINGS TAB */}
+        {activeTab === 'settings' && (
+          <ClassSettingsTab
+            classData={currentClassData}
+            onClassUpdated={({ name, description }) => {
+              setClassMeta((prev) => ({ ...prev, name, description }))
+            }}
+            onCodeRegenerated={(newCode) => {
+              setClassMeta((prev) => ({ ...prev, inviteCode: newCode }))
+            }}
+          />
         )}
+
+        {/* OTHER TABS PLACEHOLDER */}
+        {activeTab !== 'overview' &&
+          activeTab !== 'students' &&
+          activeTab !== 'units' &&
+          activeTab !== 'settings' && (
+            <div className="flex flex-col items-center justify-center py-20 text-gray-400 animate-in zoom-in-95 duration-500">
+              <Settings size={48} className="mb-4 opacity-20" />
+              <p>Tính năng đang được phát triển...</p>
+            </div>
+          )}
       </div>
 
       {/* Add Students Modal */}
@@ -373,6 +402,8 @@ const ClassDashboardClient = ({ classData }: ClassDashboardClientProps) => {
           setEditingUnit={setEditingUnit}
           setEditVocabList={setEditVocabList}
           handleSaveVocab={handleSaveVocab}
+          activeStudents={activeStudents}
+          classExams={classData.exams}
         />
       )}
     </div>

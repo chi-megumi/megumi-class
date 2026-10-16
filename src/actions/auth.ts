@@ -26,6 +26,7 @@ export async function login(data: z.infer<typeof loginSchema>) {
     const token = await signToken({
       userId: user.id,
       role: user.userType,
+      systemRole: user.systemRole,
     })
 
     const cookieStore = await cookies()
@@ -38,7 +39,13 @@ export async function login(data: z.infer<typeof loginSchema>) {
 
     return {
       success: true,
-      user: { id: user.id, email: user.email, name: user.name, role: user.userType },
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role: user.userType,
+        systemRole: user.systemRole,
+      },
     }
   } catch {
     return { error: 'Dữ liệu không hợp lệ hoặc có lỗi xảy ra' }
@@ -75,6 +82,7 @@ export async function register(data: z.infer<typeof registerSchema>) {
     const token = await signToken({
       userId: user.id,
       role: user.userType,
+      systemRole: user.systemRole,
     })
 
     const cookieStore = await cookies()
@@ -87,7 +95,13 @@ export async function register(data: z.infer<typeof registerSchema>) {
 
     return {
       success: true,
-      user: { id: user.id, email: user.email, name: user.name, role: user.userType },
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role: user.userType,
+        systemRole: user.systemRole,
+      },
     }
   } catch {
     return { error: 'Dữ liệu không hợp lệ hoặc có lỗi xảy ra' }
@@ -114,7 +128,13 @@ export async function getMe() {
     })
     if (!user) return null
 
-    return { id: user.id, email: user.email, name: user.name, role: user.userType }
+    return {
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      role: user.userType,
+      systemRole: user.systemRole,
+    }
   } catch {
     return null
   }
