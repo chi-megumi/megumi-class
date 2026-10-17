@@ -7,6 +7,7 @@ import {
   User,
   CheckCircle2,
   Clock,
+  Calendar,
   Award,
   BarChart3,
   AlertTriangle,
@@ -14,6 +15,7 @@ import {
 } from 'lucide-react'
 import { getTestSubmissions, getExamQuestionAnalytics } from '@/actions/analytics/exam-analytics'
 import { ExamData, StudentData, TestBlock, TestContent, TestQuestion } from '../../types'
+import { formatDateTime } from '../../utils/date'
 import Portal from '@/components/common/Portal'
 
 type Submission = {
@@ -254,10 +256,29 @@ export default function TestResultsModal({
                             <p className="font-bold text-gray-900 text-sm truncate">
                               {sub.user.name}
                             </p>
-                            <p className="text-[11px] text-gray-400 truncate flex items-center gap-1 mt-0.5">
-                              <Clock size={11} />{' '}
-                              {new Date(sub.result.completedAt).toLocaleTimeString('vi-VN')}
-                            </p>
+                            {(() => {
+                              const dt = formatDateTime(sub.result.completedAt)
+                              if (!dt) {
+                                return (
+                                  <p className="text-[11px] text-gray-400 truncate flex items-center gap-1 mt-0.5">
+                                    <Clock size={11} /> Chưa có giờ nộp
+                                  </p>
+                                )
+                              }
+                              return (
+                                <div className="text-[11px] text-gray-500 flex items-center gap-1.5 mt-0.5 flex-wrap">
+                                  <span className="flex items-center gap-1 font-medium text-gray-700">
+                                    <Clock size={11} className="text-indigo-500 shrink-0" />
+                                    {dt.timeWithSeconds}
+                                  </span>
+                                  <span className="text-gray-300">•</span>
+                                  <span className="flex items-center gap-1 font-medium text-gray-500">
+                                    <Calendar size={11} className="text-indigo-400 shrink-0" />
+                                    {dt.date}
+                                  </span>
+                                </div>
+                              )
+                            })()}
                           </div>
 
                           <div className="text-right shrink-0">
@@ -287,26 +308,40 @@ export default function TestResultsModal({
               <div className="flex-1">
                 {selectedSubmission ? (
                   <div>
-                    <div className="flex items-center justify-between mb-6 bg-gray-50 p-4 rounded-xl border border-gray-100">
-                      <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-full bg-white shadow-sm flex items-center justify-center text-xl font-bold text-indigo-600">
-                          {selectedSubmission.result.score}
+                    {(() => {
+                      const dt = formatDateTime(selectedSubmission.result.completedAt)
+                      return (
+                        <div className="flex items-center justify-between mb-6 bg-gray-50 p-4 rounded-xl border border-gray-100 flex-wrap gap-3">
+                          <div className="flex items-center gap-4">
+                            <div className="w-12 h-12 rounded-full bg-white shadow-sm flex items-center justify-center text-xl font-bold text-indigo-600 border border-indigo-100">
+                              {selectedSubmission.result.score}
+                            </div>
+                            <div>
+                              <p className="font-bold text-gray-800 text-base">{selectedSubmission.user.name}</p>
+                              <p className="text-sm text-gray-500">
+                                Đúng {selectedSubmission.result.correctAnswers}/
+                                {selectedSubmission.result.totalQuestions} câu
+                              </p>
+                            </div>
+                          </div>
+                          {dt && (
+                            <div className="text-right text-xs sm:text-sm bg-white px-3.5 py-2 rounded-xl border border-gray-200/80 shadow-2xs flex items-center gap-2 flex-wrap">
+                              <div className="flex items-center gap-1.5 text-gray-600">
+                                <Clock size={14} className="text-indigo-600 shrink-0" />
+                                <span>Nộp lúc:</span>
+                                <span className="font-bold text-gray-900">{dt.timeWithSeconds}</span>
+                              </div>
+                              <span className="text-gray-300 font-bold">•</span>
+                              <div className="flex items-center gap-1.5 text-gray-600">
+                                <Calendar size={14} className="text-indigo-600 shrink-0" />
+                                <span>Ngày:</span>
+                                <span className="font-bold text-gray-900">{dt.date}</span>
+                              </div>
+                            </div>
+                          )}
                         </div>
-                        <div>
-                          <p className="font-bold text-gray-800">{selectedSubmission.user.name}</p>
-                          <p className="text-sm text-gray-500">
-                            Đúng {selectedSubmission.result.correctAnswers}/
-                            {selectedSubmission.result.totalQuestions} câu
-                          </p>
-                        </div>
-                      </div>
-                      <div className="text-right text-sm text-gray-500 flex items-center gap-1">
-                        <Clock size={14} /> Nộp lúc:{' '}
-                        {new Date(selectedSubmission.result.completedAt).toLocaleTimeString(
-                          'vi-VN',
-                        )}
-                      </div>
-                    </div>
+                      )
+                    })()}
 
                     <div className="space-y-4">
                       <h4 className="font-bold text-gray-700">Chi tiết đáp án:</h4>

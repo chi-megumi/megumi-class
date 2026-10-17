@@ -11,8 +11,10 @@ import {
   Calendar,
   FileText,
   AlertTriangle,
+  CheckCircle2,
 } from 'lucide-react'
 import { StudentAnalyticsData, StudentExamDetail, PracticeSessionEntry } from '../../types'
+import { formatDateTime } from '../../utils/date'
 import ExamSubmissionReview from '../unit/ExamSubmissionReview'
 
 type UnitProgressStudentRowProps = {
@@ -82,6 +84,188 @@ function getSessionList(
     ...entry,
     attempt: index + 1,
   }))
+}
+
+type PracticeActivityCardProps = {
+  title: string
+  subtitle: string
+  emptyText: string
+  icon: React.ReactNode
+  iconBg: string
+  cardBorder: string
+  badgeColor: string
+  calendarColor: string
+  timesPlayed: number
+  totalSeconds: number
+  bestMetricBadge?: React.ReactNode
+  sessions: EnrichedPracticeSession[]
+  type: 'flashcard' | 'quiz' | 'match'
+  legacyDurationText?: string
+}
+
+function PracticeActivityCard({
+  title,
+  subtitle,
+  emptyText,
+  icon,
+  iconBg,
+  cardBorder,
+  badgeColor,
+  calendarColor,
+  timesPlayed,
+  totalSeconds,
+  bestMetricBadge,
+  sessions,
+  type,
+  legacyDurationText = '~1-2 phút',
+}: PracticeActivityCardProps) {
+  return (
+    <div
+      className={`bg-white rounded-2xl p-4 sm:p-4.5 border ${cardBorder} shadow-xs hover:shadow-sm transition-all space-y-3.5`}
+    >
+      {/* Header */}
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-3 min-w-0">
+          <div
+            className={`w-9 h-9 rounded-xl ${iconBg} flex items-center justify-center text-white shadow-xs shrink-0`}
+          >
+            {icon}
+          </div>
+          <div className="min-w-0">
+            <span className="font-bold text-sm text-gray-900 block leading-tight">{title}</span>
+            {totalSeconds > 0 ? (
+              <span className="text-[11px] text-gray-500 font-medium flex items-center gap-1 mt-0.5">
+                <Clock size={11} className="text-gray-400 shrink-0" /> Tổng thời gian:{' '}
+                <strong className="text-gray-700 font-semibold">
+                  {formatDuration(totalSeconds)}
+                </strong>
+              </span>
+            ) : (
+              <span className="text-[11px] text-gray-400 font-medium block mt-0.5 truncate">
+                {subtitle}
+              </span>
+            )}
+          </div>
+        </div>
+        <div className="flex items-center gap-1.5 shrink-0">
+          {bestMetricBadge}
+          <span
+            className={`text-xs font-bold px-2.5 py-1 rounded-full border ${
+              timesPlayed > 0 ? badgeColor : 'text-gray-400 bg-gray-50 border-gray-200'
+            }`}
+          >
+            {timesPlayed} lượt
+          </span>
+        </div>
+      </div>
+
+      {/* Attempt Sessions List */}
+      {sessions.length > 0 ? (
+        <div className="space-y-2 pt-1">
+          {sessions.map((h, idx) => {
+            const isQuick =
+              h.isQuickExit ||
+              (h.durationSeconds !== undefined && h.durationSeconds < 5) ||
+              (type === 'quiz' &&
+                h.score === 0 &&
+                (h.totalCount ?? 0) === 0 &&
+                (h.durationSeconds ?? 0) < 10)
+            const dt = formatDateTime(h.completedAt)
+
+            return (
+              <div
+                key={idx}
+                className={`p-3 rounded-xl border transition-all text-xs ${
+                  isQuick
+                    ? 'bg-amber-50/60 border-amber-200/90 text-amber-950'
+                    : 'bg-slate-50/80 hover:bg-white border-slate-200/80 text-slate-800 shadow-2xs'
+                }`}
+              >
+                {/* Top line: Attempt # + Status badge + Score + Duration */}
+                <div className="flex items-center justify-between gap-2 flex-wrap">
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <span className="font-bold text-gray-900 bg-white px-2 py-0.5 rounded-md border border-gray-200/80 shadow-2xs">
+                      Lượt #{h.attempt || idx + 1}
+                    </span>
+                    {isQuick ? (
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-300 flex items-center gap-1">
+                        <AlertTriangle size={10} /> Thoát ngay (&lt; 5s)
+                      </span>
+                    ) : h.isLegacy ? (
+                      <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200">
+                        Lượt trước nâng cấp
+                      </span>
+                    ) : (
+                      <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1">
+                        <CheckCircle2 size={11} className="text-emerald-500" /> Hợp lệ
+                      </span>
+                    )}
+                    {h.isInterrupted && !isQuick && (
+                      <span className="text-[10px] font-bold text-rose-600 bg-rose-50 px-1.5 py-0.5 rounded border border-rose-200 flex items-center gap-1">
+                        <AlertTriangle size={10} /> F5 / Thoát dở
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="flex items-center gap-2 shrink-0">
+                    {type === 'quiz' && !isQuick && (
+                      <div className="flex items-center gap-1 bg-purple-50 px-2 py-0.5 rounded-md border border-purple-200 shadow-2xs">
+                        <span className="font-extrabold text-xs text-purple-700">
+                          {h.score ?? 0}đ
+                        </span>
+                        {h.correctCount !== undefined && h.totalCount !== undefined && (
+                          <span className="text-purple-600 text-[10px] font-medium">
+                            ({h.correctCount}/{h.totalCount} câu)
+                          </span>
+                        )}
+                      </div>
+                    )}
+                    <span
+                      className={`font-bold flex items-center gap-1 px-2 py-0.5 rounded-md border shadow-2xs ${
+                        isQuick
+                          ? 'bg-amber-100/70 text-amber-800 border-amber-200'
+                          : 'bg-white text-gray-700 border-gray-200/80'
+                      }`}
+                    >
+                      <Clock
+                        size={11}
+                        className={isQuick ? 'text-amber-600' : 'text-gray-400'}
+                      />
+                      {h.isLegacy ? legacyDurationText : formatDuration(h.durationSeconds)}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Bottom line: Ngày tháng năm làm bài & Giờ hoàn thành */}
+                {dt && !h.isLegacy && (
+                  <div className="mt-2 pt-2 border-t border-slate-200/60 flex items-center justify-between gap-2 text-[11px] text-gray-500 flex-wrap">
+                    <div className="flex items-center gap-1.5 font-medium text-gray-600">
+                      <Calendar size={12} className={`${calendarColor} shrink-0`} />
+                      <span>
+                        Ngày làm: <strong className="text-gray-800">{dt.date}</strong>
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1.5 text-gray-500">
+                      <Clock size={12} className="text-gray-400 shrink-0" />
+                      <span>
+                        Giờ hoàn thành:{' '}
+                        <strong className="text-gray-800">{dt.timeWithSeconds}</strong>
+                      </span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )
+          })}
+        </div>
+      ) : (
+        <div className="py-3 px-3 rounded-xl bg-slate-50/70 border border-dashed border-slate-200 text-xs text-slate-400 flex items-center justify-center gap-2">
+          <Clock size={13} className="text-slate-300" />
+          <span>{emptyText}</span>
+        </div>
+      )}
+    </div>
+  )
 }
 
 export default function UnitProgressStudentRow({ data }: UnitProgressStudentRowProps) {
@@ -237,310 +421,92 @@ export default function UnitProgressStudentRow({ data }: UnitProgressStudentRowP
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
               {/* Left Column: Chi tiết Hoạt động luyện tập (5 cols) */}
               <div className="lg:col-span-5 space-y-4">
-                <div className="flex items-center justify-between border-b border-gray-200 pb-2">
-                  <h4 className="text-sm font-bold text-gray-800 flex items-center gap-2">
-                    <Zap size={16} className="text-amber-500" /> Chi tiết hoạt động luyện tập
-                  </h4>
-                  <span className="text-[11px] text-gray-400 font-medium">Bấm dòng để thu gọn</span>
+                <div className="flex items-center justify-between border-b border-gray-200/80 pb-2.5">
+                  <div className="flex items-center gap-2">
+                    <div className="p-1 rounded-lg bg-amber-100 text-amber-600">
+                      <Zap size={16} />
+                    </div>
+                    <h4 className="text-sm font-bold text-gray-900">
+                      Chi tiết hoạt động luyện tập
+                    </h4>
+                    <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
+                      {data.games.flashcard.timesPlayed +
+                        data.games.quiz.timesPlayed +
+                        data.games.match.timesPlayed}{' '}
+                      lượt
+                    </span>
+                  </div>
+                  <span className="text-[11px] text-gray-400 font-medium">
+                    Bấm dòng để thu gọn
+                  </span>
                 </div>
 
                 {/* 1. Lật thẻ (Flashcard) */}
-                <div className="bg-white rounded-2xl p-4 border border-blue-100 shadow-xs space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <div className="p-1.5 rounded-lg bg-blue-50 text-blue-600">
-                        <BookA size={16} />
-                      </div>
-                      <div>
-                        <span className="font-bold text-xs text-gray-800 block">Lật Thẻ 3D</span>
-                        {totalFlashcardSeconds > 0 && (
-                          <span className="text-[11px] text-blue-600 font-medium flex items-center gap-1">
-                            <Clock size={10} /> Tổng thời gian: {formatDuration(totalFlashcardSeconds)}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                    <span className="text-xs font-bold text-blue-700 bg-blue-50 px-2.5 py-0.5 rounded-full border border-blue-200">
-                      {data.games.flashcard.timesPlayed} lượt
-                    </span>
-                  </div>
-
-                  {flashcardSessions.length > 0 ? (
-                    <div className="space-y-1.5 pt-1">
-                      {flashcardSessions.map((h, idx) => {
-                        const isQuick =
-                          h.isQuickExit ||
-                          (h.durationSeconds !== undefined && h.durationSeconds < 5)
-                        return (
-                          <div
-                            key={idx}
-                            className={`flex items-center justify-between text-xs py-2 px-3 rounded-xl border transition-all ${
-                              isQuick
-                                ? 'bg-amber-50/70 border-amber-200/90 text-amber-900'
-                                : 'bg-gray-50/80 border-gray-100 text-gray-700'
-                            }`}
-                          >
-                            <div className="flex items-center gap-2">
-                              <span className="font-bold text-gray-800">
-                                Lượt #{h.attempt || idx + 1}
-                              </span>
-                              {isQuick ? (
-                                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-300 flex items-center gap-1">
-                                  <AlertTriangle size={10} /> Thoát ngay (&lt; 5s)
-                                </span>
-                              ) : h.isLegacy ? (
-                                <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200">
-                                  Lượt trước nâng cấp
-                                </span>
-                              ) : (
-                                <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
-                                  Hợp lệ
-                                </span>
-                              )}
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <span
-                                className={`font-bold flex items-center gap-1 ${
-                                  isQuick ? 'text-amber-700' : 'text-gray-700'
-                                }`}
-                              >
-                                <Clock
-                                  size={11}
-                                  className={isQuick ? 'text-amber-500' : 'text-gray-400'}
-                                />
-                                {h.isLegacy ? '~1-2 phút' : formatDuration(h.durationSeconds)}
-                              </span>
-                              {h.isInterrupted && !isQuick && (
-                                <span className="text-[10px] text-rose-600 bg-rose-50 px-1.5 py-0.2 rounded border border-rose-200">
-                                  F5 / Thoát dở
-                                </span>
-                              )}
-                              {h.completedAt && !h.isLegacy && (
-                                <span className="text-[10px] text-gray-400 hidden sm:inline">
-                                  {new Date(h.completedAt).toLocaleTimeString('vi-VN', {
-                                    hour: '2-digit',
-                                    minute: '2-digit',
-                                  })}
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                        )
-                      })}
-                    </div>
-                  ) : (
-                    <p className="text-xs text-gray-400 italic">Chưa tham gia lật thẻ</p>
-                  )}
-                </div>
+                <PracticeActivityCard
+                  type="flashcard"
+                  title="Lật Thẻ 3D"
+                  subtitle="Học từ vựng trực quan"
+                  emptyText="Chưa tham gia lật thẻ"
+                  icon={<BookA size={18} />}
+                  iconBg="bg-gradient-to-br from-blue-500 to-indigo-600"
+                  cardBorder="border-blue-100/90 hover:border-blue-200"
+                  badgeColor="text-blue-700 bg-blue-50 border-blue-200"
+                  calendarColor="text-blue-500"
+                  timesPlayed={data.games.flashcard.timesPlayed}
+                  totalSeconds={totalFlashcardSeconds}
+                  sessions={flashcardSessions}
+                  legacyDurationText="~1-2 phút"
+                />
 
                 {/* 2. Đố vui (Quiz) */}
-                <div className="bg-white rounded-2xl p-4 border border-purple-100 shadow-xs space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <div className="p-1.5 rounded-lg bg-purple-50 text-purple-600">
-                        <Gamepad2 size={16} />
-                      </div>
-                      <div>
-                        <span className="font-bold text-xs text-gray-800 block">Đố Vui Trắc Nghiệm</span>
-                        {totalQuizSeconds > 0 && (
-                          <span className="text-[11px] text-purple-600 font-medium flex items-center gap-1">
-                            <Clock size={10} /> Tổng thời gian: {formatDuration(totalQuizSeconds)}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-xs font-bold text-purple-700 bg-purple-50 px-2 py-0.5 rounded-full border border-purple-200">
-                        {data.games.quiz.timesPlayed} lượt
+                <PracticeActivityCard
+                  type="quiz"
+                  title="Đố Vui Trắc Nghiệm"
+                  subtitle="Kiểm tra phản xạ từ vựng"
+                  emptyText="Chưa tham gia đố vui"
+                  icon={<Gamepad2 size={18} />}
+                  iconBg="bg-gradient-to-br from-purple-500 to-fuchsia-600"
+                  cardBorder="border-purple-100/90 hover:border-purple-200"
+                  badgeColor="text-purple-700 bg-purple-50 border-purple-200"
+                  calendarColor="text-purple-500"
+                  timesPlayed={data.games.quiz.timesPlayed}
+                  totalSeconds={totalQuizSeconds}
+                  bestMetricBadge={
+                    data.games.quiz.score > 0 ? (
+                      <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                        Cao nhất: {data.games.quiz.score}đ
                       </span>
-                      {data.games.quiz.score > 0 && (
-                        <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
-                          Cao nhất: {data.games.quiz.score}đ
-                        </span>
-                      )}
-                    </div>
-                  </div>
-
-                  {quizSessions.length > 0 ? (
-                    <div className="space-y-1.5 pt-1">
-                      {quizSessions.map((h, idx) => {
-                        const isQuick =
-                          h.isQuickExit ||
-                          (h.durationSeconds !== undefined && h.durationSeconds < 5) ||
-                          (h.score === 0 &&
-                            (h.totalCount ?? 0) === 0 &&
-                            (h.durationSeconds ?? 0) < 10)
-                        return (
-                          <div
-                            key={idx}
-                            className={`flex items-center justify-between text-xs py-2 px-3 rounded-xl border transition-all ${
-                              isQuick
-                                ? 'bg-amber-50/70 border-amber-200/90 text-amber-900'
-                                : 'bg-gray-50/80 border-gray-100 text-gray-700'
-                            }`}
-                          >
-                            <div className="flex items-center gap-2">
-                              <span className="font-bold text-gray-800">
-                                Lượt #{h.attempt || idx + 1}
-                              </span>
-                              {isQuick ? (
-                                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-300 flex items-center gap-1">
-                                  <AlertTriangle size={10} /> Thoát ngay (&lt; 5s)
-                                </span>
-                              ) : h.isLegacy ? (
-                                <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-purple-50 text-purple-700 border border-purple-200">
-                                  Lượt trước nâng cấp
-                                </span>
-                              ) : (
-                                <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
-                                  Hợp lệ
-                                </span>
-                              )}
-                            </div>
-                            <div className="flex items-center gap-2">
-                              {!isQuick && (
-                                <span className="font-bold text-purple-700">
-                                  {h.score ?? (h.isLegacy ? data.games.quiz.score : 0)}đ
-                                </span>
-                              )}
-                              {h.correctCount !== undefined && h.totalCount !== undefined && (
-                                <span className="text-gray-400 text-[11px]">
-                                  ({h.correctCount}/{h.totalCount} câu)
-                                </span>
-                              )}
-                              <span
-                                className={`font-semibold flex items-center gap-1 ${
-                                  isQuick ? 'text-amber-700' : 'text-gray-700'
-                                }`}
-                              >
-                                <Clock
-                                  size={11}
-                                  className={isQuick ? 'text-amber-500' : 'text-gray-400'}
-                                />
-                                {h.isLegacy ? '~2-3 phút' : formatDuration(h.durationSeconds)}
-                              </span>
-                              {h.isInterrupted && !isQuick && (
-                                <span className="text-[10px] text-rose-600 bg-rose-50 px-1.5 py-0.2 rounded border border-rose-200">
-                                  F5 / Thoát dở
-                                </span>
-                              )}
-                              {h.completedAt && !h.isLegacy && (
-                                <span className="text-[10px] text-gray-400 hidden sm:inline">
-                                  {new Date(h.completedAt).toLocaleTimeString('vi-VN', {
-                                    hour: '2-digit',
-                                    minute: '2-digit',
-                                  })}
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                        )
-                      })}
-                    </div>
-                  ) : (
-                    <p className="text-xs text-gray-400 italic">Chưa tham gia đố vui</p>
-                  )}
-                </div>
+                    ) : undefined
+                  }
+                  sessions={quizSessions}
+                  legacyDurationText="~2-3 phút"
+                />
 
                 {/* 3. Ghép thẻ (Match Game) */}
-                <div className="bg-white rounded-2xl p-4 border border-orange-100 shadow-xs space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <div className="p-1.5 rounded-lg bg-orange-50 text-orange-600">
-                        <Zap size={16} />
-                      </div>
-                      <div>
-                        <span className="font-bold text-xs text-gray-800 block">Ghép Thẻ Nhanh</span>
-                        {totalMatchSeconds > 0 && (
-                          <span className="text-[11px] text-orange-600 font-medium flex items-center gap-1">
-                            <Clock size={10} /> Tổng thời gian: {formatDuration(totalMatchSeconds)}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-xs font-bold text-orange-700 bg-orange-50 px-2 py-0.5 rounded-full border border-orange-200">
-                        {data.games.match.timesPlayed} lượt
+                <PracticeActivityCard
+                  type="match"
+                  title="Ghép Thẻ Nhanh"
+                  subtitle="Thử thách phản xạ nhanh"
+                  emptyText="Chưa tham gia ghép thẻ"
+                  icon={<Zap size={18} />}
+                  iconBg="bg-gradient-to-br from-amber-500 to-orange-500"
+                  cardBorder="border-amber-100/90 hover:border-amber-200"
+                  badgeColor="text-orange-700 bg-orange-50 border-orange-200"
+                  calendarColor="text-orange-500"
+                  timesPlayed={data.games.match.timesPlayed}
+                  totalSeconds={totalMatchSeconds}
+                  bestMetricBadge={
+                    data.games.match.bestTime ? (
+                      <span className="text-xs font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
+                        ⚡ {data.games.match.bestTime}s
                       </span>
-                      {data.games.match.bestTime && (
-                        <span className="text-xs font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
-                          ⚡ {data.games.match.bestTime}s
-                        </span>
-                      )}
-                    </div>
-                  </div>
-
-                  {matchSessions.length > 0 ? (
-                    <div className="space-y-1.5 pt-1">
-                      {matchSessions.map((h, idx) => {
-                        const isQuick =
-                          h.isQuickExit ||
-                          (h.durationSeconds !== undefined && h.durationSeconds < 5)
-                        return (
-                          <div
-                            key={idx}
-                            className={`flex items-center justify-between text-xs py-2 px-3 rounded-xl border transition-all ${
-                              isQuick
-                                ? 'bg-amber-50/70 border-amber-200/90 text-amber-900'
-                                : 'bg-gray-50/80 border-gray-100 text-gray-700'
-                            }`}
-                          >
-                            <div className="flex items-center gap-2">
-                              <span className="font-bold text-gray-800">
-                                Lượt #{h.attempt || idx + 1}
-                              </span>
-                              {isQuick ? (
-                                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-300 flex items-center gap-1">
-                                  <AlertTriangle size={10} /> Thoát ngay (&lt; 5s)
-                                </span>
-                              ) : h.isLegacy ? (
-                                <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-orange-50 text-orange-700 border border-orange-200">
-                                  Lượt trước nâng cấp
-                                </span>
-                              ) : (
-                                <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
-                                  Hợp lệ
-                                </span>
-                              )}
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <span
-                                className={`font-bold flex items-center gap-1 ${
-                                  isQuick ? 'text-amber-700' : 'text-orange-700'
-                                }`}
-                              >
-                                <Clock
-                                  size={11}
-                                  className={isQuick ? 'text-amber-500' : 'text-orange-400'}
-                                />
-                                {h.isLegacy
-                                  ? data.games.match.bestTime
-                                    ? `${data.games.match.bestTime}s`
-                                    : '~1 phút'
-                                  : formatDuration(h.durationSeconds)}
-                              </span>
-                              {h.isInterrupted && !isQuick && (
-                                <span className="text-[10px] text-rose-600 bg-rose-50 px-1.5 py-0.2 rounded border border-rose-200">
-                                  F5 / Thoát dở
-                                </span>
-                              )}
-                              {h.completedAt && !h.isLegacy && (
-                                <span className="text-[10px] text-gray-400 hidden sm:inline">
-                                  {new Date(h.completedAt).toLocaleTimeString('vi-VN', {
-                                    hour: '2-digit',
-                                    minute: '2-digit',
-                                  })}
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                        )
-                      })}
-                    </div>
-                  ) : (
-                    <p className="text-xs text-gray-400 italic">Chưa tham gia ghép thẻ</p>
-                  )}
-                </div>
+                    ) : undefined
+                  }
+                  sessions={matchSessions}
+                  legacyDurationText={
+                    data.games.match.bestTime ? `${data.games.match.bestTime}s` : '~1 phút'
+                  }
+                />
               </div>
 
               {/* Right Column: Danh sách Bài kiểm tra đầy đủ (7 cols) */}
@@ -596,12 +562,26 @@ export default function UnitProgressStudentRow({ data }: UnitProgressStudentRowP
                               </div>
                               <h5 className="font-bold text-gray-900 text-sm">{exam.title}</h5>
 
-                              {exam.isCompleted && exam.completedAt && (
-                                <p className="text-[11px] text-gray-400 mt-1 flex items-center gap-1">
-                                  <Calendar size={12} /> Đã nộp:{' '}
-                                  {new Date(exam.completedAt).toLocaleString('vi-VN')}
-                                </p>
-                              )}
+                              {exam.isCompleted && exam.completedAt && (() => {
+                                const dt = formatDateTime(exam.completedAt)
+                                return (
+                                  <div className="text-[11px] text-gray-500 mt-1.5 flex items-center gap-1.5 flex-wrap">
+                                    <span className="flex items-center gap-1 font-medium text-gray-700">
+                                      <Clock size={12} className="text-indigo-500 shrink-0" />
+                                      Đã nộp: <strong>{dt ? dt.timeWithSeconds : ''}</strong>
+                                    </span>
+                                    {dt && (
+                                      <>
+                                        <span className="text-gray-300">•</span>
+                                        <span className="flex items-center gap-1 font-medium text-gray-600">
+                                          <Calendar size={12} className="text-indigo-400 shrink-0" />
+                                          <strong>{dt.date}</strong>
+                                        </span>
+                                      </>
+                                    )}
+                                  </div>
+                                )
+                              })()}
                             </div>
 
                             <div className="flex items-center gap-3 shrink-0">

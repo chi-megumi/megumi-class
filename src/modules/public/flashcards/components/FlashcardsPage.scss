@@ -10,58 +10,48 @@
   text-align: center;
   margin-bottom: 20px;
   position: relative;
-}
 
-.badge-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  background: white;
-  color: var(--primary);
-  padding: 6px 18px;
-  border-radius: 50px;
-  font-family: 'Fredoka', sans-serif;
-  font-size: 14px;
-  font-weight: 600;
-  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.15);
-  margin-bottom: 12px;
-  border: 1px solid rgba(99, 102, 241, 0.2);
-  animation: bounce 2s infinite ease-in-out;
-}
-
-@keyframes bounce {
-  0%,
-  100% {
-    transform: translateY(0);
+  .badge-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: white;
+    color: var(--primary);
+    padding: 6px 18px;
+    border-radius: 50px;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.15);
+    margin-bottom: 12px;
+    border: 1px solid rgba(99, 102, 241, 0.2);
+    animation: bounce 2s infinite ease-in-out;
   }
-  50% {
-    transform: translateY(-4px);
+
+  h1 {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 2.2rem;
+    color: #0f172a;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 6px;
+
+    span.highlight {
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
   }
-}
 
-h1 {
-  font-family: 'Fredoka', sans-serif;
-  font-size: 2.2rem;
-  color: #0f172a;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  flex-wrap: wrap;
-  margin-bottom: 6px;
-}
-
-h1 span.highlight {
-  background: linear-gradient(135deg, var(--primary), var(--secondary));
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-}
-
-.subtitle {
-  color: #64748b;
-  font-size: 0.95rem;
-  font-weight: 500;
+  .subtitle {
+    color: #64748b;
+    font-size: 0.95rem;
+    font-weight: 500;
+  }
 }
 
 /* NAVIGATION TABS (MODES) */
@@ -84,7 +74,7 @@ h1 span.highlight {
 .tab-btn {
   border: none;
   background: transparent;
-  font-family: 'Fredoka', sans-serif;
+  font-family: 'Plus Jakarta Sans', sans-serif;
   font-size: 0.95rem;
   font-weight: 600;
   padding: 8px 18px;
@@ -349,7 +339,7 @@ h1 span.highlight {
 }
 
 .card-word {
-  font-family: 'Fredoka', sans-serif;
+  font-family: 'Plus Jakarta Sans', sans-serif;
   font-size: 2.3rem;
   font-weight: 700;
   color: #0f172a;
@@ -397,7 +387,7 @@ h1 span.highlight {
 
 /* BACK CARD CONTENT */
 .meaning-vi {
-  font-family: 'Fredoka', sans-serif;
+  font-family: 'Plus Jakarta Sans', sans-serif;
   font-size: 1.8rem;
   font-weight: 700;
   color: #ec4899;
@@ -460,7 +450,7 @@ h1 span.highlight {
 
 .card-counter {
   text-align: center;
-  font-family: 'Fredoka', sans-serif;
+  font-family: 'Plus Jakarta Sans', sans-serif;
   font-size: 0.95rem;
   font-weight: 600;
   color: var(--primary);
@@ -472,7 +462,7 @@ h1 span.highlight {
   border: 2px solid #e2e8f0;
   padding: 12px 22px;
   border-radius: 50px;
-  font-family: 'Fredoka', sans-serif;
+  font-family: 'Plus Jakarta Sans', sans-serif;
   font-size: 1rem;
   font-weight: 600;
   color: #334155;
@@ -514,7 +504,7 @@ h1 span.highlight {
   border: none;
   padding: 12px 20px;
   border-radius: 50px;
-  font-family: 'Fredoka', sans-serif;
+  font-family: 'Plus Jakarta Sans', sans-serif;
   font-size: 0.95rem;
   font-weight: 600;
   cursor: pointer;
@@ -599,7 +589,7 @@ h1 span.highlight {
   background: transparent;
   padding: 6px 16px;
   border-radius: 50px;
-  font-family: 'Fredoka', sans-serif;
+  font-family: 'Plus Jakarta Sans', sans-serif;
   font-size: 0.9rem;
   font-weight: 600;
   color: #64748b;
@@ -647,7 +637,7 @@ h1 span.highlight {
   color: #b45309;
   padding: 6px 16px;
   border-radius: 50px;
-  font-family: 'Fredoka', sans-serif;
+  font-family: 'Plus Jakarta Sans', sans-serif;
   font-weight: 700;
   font-size: 1.1rem;
 }
@@ -657,7 +647,7 @@ h1 span.highlight {
 }
 
 .quiz-word-prompt {
-  font-family: 'Fredoka', sans-serif;
+  font-family: 'Plus Jakarta Sans', sans-serif;
   font-size: 2.2rem;
   color: var(--primary);
   margin-bottom: 6px;
@@ -722,7 +712,7 @@ h1 span.highlight {
 }
 
 .quiz-summary-score {
-  font-family: 'Fredoka', sans-serif;
+  font-family: 'Plus Jakarta Sans', sans-serif;
   font-size: 4rem;
   font-weight: 700;
   line-height: 1;
@@ -751,7 +741,7 @@ h1 span.highlight {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  font-family: 'Fredoka', sans-serif;
+  font-family: 'Plus Jakarta Sans', sans-serif;
   font-size: 1rem;
   font-weight: 700;
   color: #334155;
@@ -792,7 +782,7 @@ h1 span.highlight {
 }
 
 .quiz-history-score {
-  font-family: 'Fredoka', sans-serif;
+  font-family: 'Plus Jakarta Sans', sans-serif;
   font-size: 2rem;
   font-weight: 700;
   line-height: 1;
@@ -887,7 +877,7 @@ button.quiz-history-card {
 }
 
 .quiz-modal-title {
-  font-family: 'Fredoka', sans-serif;
+  font-family: 'Plus Jakarta Sans', sans-serif;
   font-size: 1.3rem;
   font-weight: 700;
   color: #1e293b;
@@ -900,7 +890,7 @@ button.quiz-history-card {
 }
 
 .quiz-modal-score {
-  font-family: 'Fredoka', sans-serif;
+  font-family: 'Plus Jakarta Sans', sans-serif;
   font-size: 2rem;
   font-weight: 700;
   line-height: 1;
@@ -939,7 +929,7 @@ button.quiz-history-card {
 }
 
 .quiz-modal-section-title {
-  font-family: 'Fredoka', sans-serif;
+  font-family: 'Plus Jakarta Sans', sans-serif;
   font-size: 1rem;
   font-weight: 700;
   margin-bottom: 12px;
@@ -989,7 +979,7 @@ button.quiz-history-card {
 }
 
 .quiz-modal-card-word {
-  font-family: 'Fredoka', sans-serif;
+  font-family: 'Plus Jakarta Sans', sans-serif;
   font-size: 1.15rem;
   font-weight: 700;
   color: #1e293b;
@@ -1059,7 +1049,7 @@ button.quiz-history-card {
 }
 
 .mini-card-word {
-  font-family: 'Fredoka', sans-serif;
+  font-family: 'Plus Jakarta Sans', sans-serif;
   font-size: 1.25rem;
   font-weight: 700;
   color: #0f172a;

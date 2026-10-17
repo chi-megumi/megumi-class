@@ -1,16 +1,21 @@
 'use client'
 
+import React, { useState } from 'react'
 import { Button } from '~/components/button/Button'
 import '~/common/styles/components/Sidebar.scss'
-import { useState } from 'react'
 import { logout } from '~/actions/auth'
 import MenuTabs from '~/components/menu/MenuTabs'
 import { ArrowRight, KeyRound, Loader2 } from 'lucide-react'
 import { useUserStore } from '~/providers/UserProvider'
 import { requestJoinClass } from '~/actions/class'
 
-const SideBar = () => {
+export interface SideBarProps {
+  position?: 'left' | 'right'
+}
+
+const SideBar: React.FC<SideBarProps> = ({ position = 'left' }) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
+  const isRight = position === 'right'
   const user = useUserStore((s) => s.user)
   const isTeacher = user?.role === 'teacher' || user?.role === 'TEACHER'
 
@@ -45,7 +50,7 @@ const SideBar = () => {
   }
 
   return (
-    <div className="sidebar-wrapper">
+    <div className={`sidebar-wrapper ${isRight ? 'is-right' : ''}`}>
       <button
         className={`mobile-menu-toggle ${isSidebarOpen ? 'is-active' : ''}`}
         onClick={toggleSidebar}
@@ -59,10 +64,12 @@ const SideBar = () => {
       <div
         className={`sidebar-overlay ${isSidebarOpen ? 'is-visible' : ''}`}
         onClick={closeSidebar}
-      ></div>
+      />
 
       <div
-        className={`sidebar-container w-62.5 fixed top-1/2 -translate-y-1/2 left-4 z-50 rounded-2xl ${isSidebarOpen ? 'is-open' : ''}`}
+        className={`sidebar-container w-62.5 fixed top-1/2 -translate-y-1/2 ${
+          isRight ? 'right-4' : 'left-4'
+        } z-50 rounded-2xl ${isSidebarOpen ? 'is-open' : ''}`}
       >
         <div
           className={[

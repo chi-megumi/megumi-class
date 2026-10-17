@@ -1,0 +1,68 @@
+/* Landing Page Scoped Styles & Animations */
+
+/* Override body padding from _reset.scss when landing page is active */
+body:has(.megumi-landing),
+body.has-megumi-landing {
+  padding: 0 !important;
+  display: block !important;
+  background: #ffffff !important;
+  overflow-x: hidden;
+}
+
+.megumi-landing {
+  width: 100%;
+  min-height: 100vh;
+  position: relative;
+  background-color: #ffffff;
+  color: #0f172a;
+  overflow-x: hidden;
+  font-family: var(--font-plus-jakarta), 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+
+  &, *, *::before, *::after,
+  h1, h2, h3, h4, h5, h6, p, span, a, button, input, textarea, div {
+    font-family: var(--font-plus-jakarta), 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+  }
+
+  /* Continuous Marquee Keyframes */
+  .animate-marquee-left {
+    animation: marquee-scroll-left 38s linear infinite;
+    will-change: transform;
+  }
+
+  .animate-marquee-right {
+    animation: marquee-scroll-right 38s linear infinite;
+    will-change: transform;
+  }
+}
+
+@keyframes marquee-scroll-left {
+  0% {
+    transform: translateX(0%);
+  }
+  100% {
+    transform: translateX(-33.333333%);
+  }
+}
+
+@keyframes marquee-scroll-right {
+  0% {
+    transform: translateX(-33.333333%);
+  }
+  100% {
+    transform: translateX(0%);
+  }
+}
+
+/* Custom smooth pulse & floating effects */
+@keyframes float-gentle {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+
+.animate-float-gentle {
+  animation: float-gentle 4s ease-in-out infinite;
+}
