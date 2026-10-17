@@ -1,11 +1,19 @@
 'use server'
 
 import { cookies } from 'next/headers'
+import { randomInt } from 'crypto'
 import { signToken, verifyToken } from '@/common/libs/jwt'
 import { prisma } from '@/common/libs/prisma'
 import bcrypt from 'bcryptjs'
-import { loginSchema, registerSchema } from '@/common/schemas'
+import { loginSchema, registerSchema, forgotPasswordSchema, resetPasswordSchema } from '@/common/schemas'
+import { sendResetPasswordOtpEmail } from '@/common/libs/mail'
 import { z } from 'zod'
+
+const resetWithEmailSchema = resetPasswordSchema.and(
+  z.object({
+    email: z.string().email('Email không hợp lệ'),
+  })
+)
 
 export async function login(data: z.infer<typeof loginSchema>) {
   try {
@@ -137,5 +145,131 @@ export async function getMe() {
     }
   } catch {
     return null
+  }
+}
+
+export async function sendPasswordResetOtp(data: { email: string }) {
+  try {
+    const validated = forgotPasswordSchema.parse(data)
+
+    const user = await prisma.user.findUnique({
+      where: { email: validated.email },
+    })
+
+    if (!user) {
+      return { error: 'Không tìm thấy tài khoản với email này' }
+    }
+
+    // Rate limiting: cooldown 60 seconds
+    const recentToken = await prisma.passwordResetToken.findFirst({
+      where: {
+        email: validated.email,
+        createdAt: { gt: new Date(Date.now() - 60 * 1000) },
+      },
+      orderBy: { createdAt: 'desc' },
+    })
+
+    if (recentToken) {
+      return { error: 'Vui lòng đợi 60 giây trước khi yêu cầu mã OTP mới' }
+    }
+
+    // Remove any previous tokens for this email
+    await prisma.passwordResetToken.deleteMany({
+      where: { email: validated.email },
+    })
+
+    // Generate 6-digit OTP
+    const otp = randomInt(100000, 1000000).toString()
+    const otpHash = await bcrypt.hash(otp, 10)
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000) // 10 minutes
+
+    await prisma.passwordResetToken.create({
+      data: {
+        email: validated.email,
+        otpHash,
+        expiresAt,
+      },
+    })
+
+    await sendResetPasswordOtpEmail({ to: validated.email, otp })
+
+    return { success: true, email: validated.email }
+  } catch (err: unknown) {
+    if (err instanceof z.ZodError) {
+      return { error: err.errors[0]?.message || 'Email không hợp lệ' }
+    }
+    console.error('sendPasswordResetOtp error:', err)
+    return { error: 'Có lỗi xảy ra khi gửi mã OTP. Vui lòng thử lại sau.' }
+  }
+}
+
+export async function resetPasswordWithOtp(data: {
+  email: string
+  otp: string
+  newPassword: string
+  confirmPassword: string
+}) {
+  try {
+    const validated = resetWithEmailSchema.parse(data)
+
+    const user = await prisma.user.findUnique({
+      where: { email: validated.email },
+    })
+
+    if (!user) {
+      return { error: 'Tài khoản không tồn tại' }
+    }
+
+    const resetToken = await prisma.passwordResetToken.findFirst({
+      where: {
+        email: validated.email,
+        expiresAt: { gt: new Date() },
+      },
+      orderBy: { createdAt: 'desc' },
+    })
+
+    if (!resetToken) {
+      return { error: 'Mã OTP không hợp lệ hoặc đã hết hạn. Vui lòng yêu cầu mã mới.' }
+    }
+
+    if (resetToken.attempts >= 5) {
+      await prisma.passwordResetToken.delete({ where: { id: resetToken.id } })
+      return { error: 'Bạn đã nhập sai mã OTP quá 5 lần. Vui lòng yêu cầu mã mới.' }
+    }
+
+    const isValid = await bcrypt.compare(validated.otp, resetToken.otpHash)
+    if (!isValid) {
+      const updatedAttempts = resetToken.attempts + 1
+      await prisma.passwordResetToken.update({
+        where: { id: resetToken.id },
+        data: { attempts: updatedAttempts },
+      })
+      const remaining = 5 - updatedAttempts
+      return {
+        error:
+          remaining > 0
+            ? `Mã OTP không chính xác. Bạn còn ${remaining} lần thử.`
+            : 'Bạn đã nhập sai mã OTP quá 5 lần. Vui lòng yêu cầu mã mới.',
+      }
+    }
+
+    const newPasswordHash = await bcrypt.hash(validated.newPassword, 10)
+    await prisma.user.update({
+      where: { email: validated.email },
+      data: { passwordHash: newPasswordHash },
+    })
+
+    // Delete token once successfully used
+    await prisma.passwordResetToken.deleteMany({
+      where: { email: validated.email },
+    })
+
+    return { success: true }
+  } catch (err: unknown) {
+    if (err instanceof z.ZodError) {
+      return { error: err.errors[0]?.message || 'Dữ liệu không hợp lệ' }
+    }
+    console.error('resetPasswordWithOtp error:', err)
+    return { error: 'Có lỗi xảy ra khi đặt lại mật khẩu. Vui lòng thử lại.' }
   }
 }

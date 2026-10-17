@@ -1,16 +1,12 @@
+import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { z } from 'zod'
 import FormItem from '~/components/form/formItem'
 import InputControl from '~/components/form/input/InputControler'
 import { Button } from '~/components/button/Button'
 import useAuthStore from '~/common/stores/authStore'
-
-const schema = z.object({
-  email: z.string().min(1, 'Email không được để trống').email('Email không hợp lệ'),
-})
-
-type ForgotPasswordFormValues = z.infer<typeof schema>
+import { forgotPasswordSchema, type ForgotPasswordFormValues } from '~/common/schemas'
+import { sendPasswordResetOtp } from '~/actions/auth'
 
 interface ForgotPasswordFormProps {
   onSuccess?: (email: string) => void
@@ -18,19 +14,24 @@ interface ForgotPasswordFormProps {
 
 const ForgotPasswordForm = ({ onSuccess }: ForgotPasswordFormProps) => {
   const showLogin = useAuthStore((s) => s.showLogin)
+  const [serverError, setServerError] = useState('')
 
   const {
     control,
     handleSubmit,
     formState: { errors, isSubmitting },
   } = useForm<ForgotPasswordFormValues>({
-    resolver: zodResolver(schema),
+    resolver: zodResolver(forgotPasswordSchema),
     defaultValues: { email: '' },
   })
 
   const onSubmit = async (data: ForgotPasswordFormValues) => {
-    // TODO: call API to send OTP to email
-    await new Promise((res) => setTimeout(res, 800))
+    setServerError('')
+    const res = await sendPasswordResetOtp(data)
+    if (res.error) {
+      setServerError(res.error)
+      return
+    }
     onSuccess?.(data.email)
   }
 
@@ -41,6 +42,12 @@ const ForgotPasswordForm = ({ onSuccess }: ForgotPasswordFormProps) => {
           Nhập email của bạn. Chúng tôi sẽ gửi mã OTP để đặt lại mật khẩu.
         </p>
       </div>
+
+      {serverError && (
+        <div className="rounded-lg bg-red-50 border border-red-200 p-3 text-center text-sm text-red-600">
+          {serverError}
+        </div>
+      )}
 
       <FormItem label="Email" isRequired>
         <InputControl
@@ -62,7 +69,7 @@ const ForgotPasswordForm = ({ onSuccess }: ForgotPasswordFormProps) => {
         <button
           type="button"
           onClick={showLogin}
-          className="text-primary hover:underline font-medium"
+          className="text-primary hover:underline font-medium cursor-pointer"
         >
           Đăng nhập
         </button>
