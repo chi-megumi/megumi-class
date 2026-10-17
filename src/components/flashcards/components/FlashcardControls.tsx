@@ -2,6 +2,7 @@ import { useFlashcardStore, useFilteredIds } from '../stores/useFlashcardStore'
 import { useConfetti } from '../hooks/useConfetti'
 import { playSound } from '../utils/sound'
 import { Button } from '@/components/button/Button'
+import { ChevronLeft, ChevronRight, RotateCw, RotateCcw, Check, Keyboard } from 'lucide-react'
 
 export function FlashcardControls() {
   const vocabItems = useFlashcardStore((s) => s.vocabItems)
@@ -48,11 +49,15 @@ export function FlashcardControls() {
           onClick={prevCard}
           disabled={currentFiltered <= 0}
         >
-          <span>⬅️</span> Trước
+          <span className="flex items-center gap-1.5">
+            <ChevronLeft size={16} /> Trước
+          </span>
         </Button>
 
         <Button variant="primary" size="md" onClick={flipCard} disabled={isEmptyCards}>
-          <span>🔄</span> Lật Thẻ (Space)
+          <span className="flex items-center gap-1.5">
+            <RotateCw size={16} /> Lật Thẻ (Space)
+          </span>
         </Button>
 
         <Button
@@ -61,8 +66,10 @@ export function FlashcardControls() {
           onClick={handleToggleMastered}
           disabled={isEmptyCards}
         >
-          <span>{isMastered ? '↩️' : '✅'}</span>
-          <span>{isMastered ? 'Bỏ đánh dấu' : 'Đánh dấu đã thuộc'}</span>
+          <span className="flex items-center gap-1.5">
+            {isMastered ? <RotateCcw size={16} /> : <Check size={16} />}
+            <span>{isMastered ? 'Bỏ đánh dấu' : 'Đánh dấu đã thuộc'}</span>
+          </span>
         </Button>
 
         <Button
@@ -72,7 +79,9 @@ export function FlashcardControls() {
           onClick={nextCard}
           disabled={currentFiltered >= filtered.length - 1 || currentFiltered === -1}
         >
-          Tiếp <span>➡️</span>
+          <span className="flex items-center gap-1.5">
+            Tiếp <ChevronRight size={16} />
+          </span>
         </Button>
       </div>
 
@@ -82,7 +91,9 @@ export function FlashcardControls() {
       </div>
 
       <div className="keyboard-hint">
-        <span>⌨️ Phím tắt:</span>
+        <span className="flex items-center gap-1">
+          <Keyboard size={14} /> Phím tắt:
+        </span>
         <span>
           <kbd className="kbd">Space</kbd> Lật thẻ
         </span>

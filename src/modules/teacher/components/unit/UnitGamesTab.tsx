@@ -9,6 +9,13 @@ import {
   Globe,
   Trash2,
   Sparkles,
+  ClipboardList,
+  RotateCcw,
+  Lock,
+  Gamepad2,
+  Layers,
+  HelpCircle,
+  Puzzle,
 } from 'lucide-react'
 import { UnitData, TestContent, ExamData } from '../../types'
 
@@ -43,7 +50,7 @@ export default function UnitGamesTab({
       <div className="mb-6 shrink-0 mt-2 flex items-center justify-between">
         <div>
           <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
-            <span className="text-xl">📝</span> Danh Sách Bài Kiểm Tra
+            <ClipboardList className="w-5 h-5 text-indigo-600 shrink-0" /> Danh Sách Bài Kiểm Tra
           </h3>
           <p className="text-gray-500 text-sm mt-1">
             Quản lý các bài kiểm tra 15 phút, 45 phút, hoặc thi cuối khóa.
@@ -145,7 +152,15 @@ export default function UnitGamesTab({
                       : 'bg-purple-50 text-purple-700 border-purple-200'
                   }`}
                 >
-                  {test.isRetakable ? '🔄 Luyện tập' : '🔒 Làm 1 lần'}
+                  {test.isRetakable ? (
+                    <>
+                      <RotateCcw size={12} className="shrink-0" /> Luyện tập
+                    </>
+                  ) : (
+                    <>
+                      <Lock size={12} className="shrink-0" /> Làm 1 lần
+                    </>
+                  )}
                 </span>
                 <span className="text-xs text-gray-500">
                   {test.duration || 45} phút • {test.content?.length || 0} phần thi
@@ -215,7 +230,7 @@ export default function UnitGamesTab({
       {/* KHU VỰC TRÒ CHƠI */}
       <div className="mb-6 shrink-0 pt-6 border-t border-gray-100">
         <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
-          <span className="text-xl">🎮</span> Hoạt động & Trò chơi
+          <Gamepad2 className="w-5 h-5 text-purple-600 shrink-0" /> Hoạt động & Trò chơi
         </h3>
         <p className="text-gray-500 text-sm mt-1">
           Danh sách các hoạt động học tập luyện tập tự do dành cho học sinh trong bài học này.
@@ -225,8 +240,8 @@ export default function UnitGamesTab({
       <div className="flex-1 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 auto-rows-max">
         {/* Lật thẻ */}
         <div className="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow flex flex-col">
-          <div className="w-12 h-12 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center mb-4 text-2xl">
-            🃏
+          <div className="w-12 h-12 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center mb-4">
+            <Layers className="w-6 h-6 text-blue-600" />
           </div>
           <h4 className="text-lg font-bold text-gray-800 mb-2">Lật thẻ (Flashcards)</h4>
           <p className="text-sm text-gray-500 mb-4 flex-1">
@@ -255,8 +270,8 @@ export default function UnitGamesTab({
 
         {/* Trắc nghiệm */}
         <div className="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow flex flex-col">
-          <div className="w-12 h-12 rounded-xl bg-purple-100 text-purple-600 flex items-center justify-center mb-4 text-2xl">
-            🎮
+          <div className="w-12 h-12 rounded-xl bg-purple-100 text-purple-600 flex items-center justify-center mb-4">
+            <HelpCircle className="w-6 h-6 text-purple-600" />
           </div>
           <h4 className="text-lg font-bold text-gray-800 mb-2">Đố vui (Quiz)</h4>
           <p className="text-sm text-gray-500 mb-4 flex-1">
@@ -285,8 +300,8 @@ export default function UnitGamesTab({
 
         {/* Ghép thẻ */}
         <div className="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow flex flex-col">
-          <div className="w-12 h-12 rounded-xl bg-orange-100 text-orange-600 flex items-center justify-center mb-4 text-2xl">
-            🧩
+          <div className="w-12 h-12 rounded-xl bg-orange-100 text-orange-600 flex items-center justify-center mb-4">
+            <Puzzle className="w-6 h-6 text-orange-600" />
           </div>
           <h4 className="text-lg font-bold text-gray-800 mb-2">Ghép thẻ (Match Game)</h4>
           <p className="text-sm text-gray-500 mb-4 flex-1">

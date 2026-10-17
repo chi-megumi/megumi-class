@@ -9,7 +9,7 @@ export default async function StudentClassPage({ params }: { params: Promise<{ c
   let classData
   try {
     classData = await getStudentClassDetails(classId)
-  } catch (error) {
+  } catch {
     redirect('/')
   }
 

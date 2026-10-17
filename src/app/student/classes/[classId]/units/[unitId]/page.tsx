@@ -9,7 +9,7 @@ export default async function StudentUnitPage({ params }: { params: Promise<{ cl
   let unitData
   try {
     unitData = await getStudentUnitDetails(unitId)
-  } catch (error) {
+  } catch {
     redirect(`/student/classes/${classId}`)
   }
 

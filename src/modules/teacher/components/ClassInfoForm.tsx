@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { ImagePlus, Users, Search, X, Check, Loader2 } from 'lucide-react'
+import { ImagePlus, Users, Search, X, Check, Loader2, GraduationCap } from 'lucide-react'
 import { useFormContext } from 'react-hook-form'
 import { CreateClassFormValues } from '~/app/teacher/classes/create/page'
 import { searchStudents } from '~/actions/student'
@@ -92,7 +92,10 @@ const ClassInfoForm = () => {
   return (
     <div className="bg-white/70 backdrop-blur-md rounded-3xl p-6 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-white/50">
       <h2 className="text-lg font-semibold text-gray-800 mb-5 flex items-center gap-2">
-        <span className="bg-[#6A5EEB]/10 p-1.5 rounded-lg text-[#6A5EEB]">🎓</span> Thông tin cơ bản
+        <span className="bg-[#6A5EEB]/10 p-1.5 rounded-lg text-[#6A5EEB] flex items-center justify-center">
+          <GraduationCap size={16} />
+        </span>{' '}
+        Thông tin cơ bản
       </h2>
 
       {/* Cover Image Upload */}

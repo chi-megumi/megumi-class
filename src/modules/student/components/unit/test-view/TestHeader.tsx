@@ -1,5 +1,5 @@
 import React from 'react'
-import { Clock } from 'lucide-react'
+import { Clock, Rocket } from 'lucide-react'
 import { formatTime } from './constants'
 
 type TestHeaderProps = {
@@ -15,8 +15,8 @@ export default function TestHeader({ title, isMiniChallenge, isReviewMode, timeL
       isMiniChallenge ? 'bg-gradient-to-r from-orange-400 to-pink-500 border-transparent text-white' : 'bg-white border-gray-100'
     }`}>
       <div>
-        <h1 className={`text-sm sm:text-base font-bold uppercase tracking-tight ${isMiniChallenge ? 'drop-shadow-sm' : 'text-gray-800'}`}>
-          {isMiniChallenge && '🚀 '} {title}
+        <h1 className={`text-sm sm:text-base font-bold uppercase tracking-tight flex items-center gap-1.5 ${isMiniChallenge ? 'drop-shadow-sm' : 'text-gray-800'}`}>
+          {isMiniChallenge && <Rocket size={16} className="text-white shrink-0" />} {title}
         </h1>
         <p className={`text-[11px] font-medium ${isMiniChallenge ? 'text-white/90' : 'text-gray-500'}`}>
           Hãy đọc kỹ câu hỏi và chọn đáp án đúng nhất.

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Trash2, Code, AlignLeft, Type, Edit2, Lightbulb } from 'lucide-react'
+import { Trash2, Code, AlignLeft, Type, Edit2, Lightbulb, BookOpen } from 'lucide-react'
 
 import { VocabItemData } from '../../types'
 import JsonImport from '@/modules/teacher/components/vocabulary/JsonImport'
@@ -111,7 +111,9 @@ const VocabManager = ({ vocabList, onChange }: VocabManagerProps) => {
     <div className="bg-white/70 backdrop-blur-md rounded-3xl p-6 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-white/50">
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
-          <span className="bg-[#6A5EEB]/10 p-1.5 rounded-lg text-[#6A5EEB]">📝</span>
+          <span className="bg-[#6A5EEB]/10 p-1.5 rounded-lg text-[#6A5EEB] flex items-center justify-center">
+            <BookOpen size={16} />
+          </span>
           Bộ từ vựng ({vocabList.length})
         </h2>
       </div>

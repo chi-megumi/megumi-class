@@ -1,6 +1,7 @@
 import { useFlashcardStore, useFilteredIds } from '../stores/useFlashcardStore'
 import { categoryBadgeLabels } from '../data/vocabData'
 import { useSpeech } from '../hooks/useSpeech'
+import { Volume2, Star } from 'lucide-react'
 
 export function Flashcard3D() {
   const vocabItems = useFlashcardStore((s) => s.vocabItems)
@@ -105,14 +106,17 @@ export function Flashcard3D() {
                 title="Phát âm chuẩn (Phím S)"
                 onClick={handleSpeak}
               >
-                🔊
+                <Volume2 size={16} />
               </button>
               <button
                 className={`icon-btn ${isStarred ? 'starred' : ''}`}
                 title="Đánh dấu yêu thích"
                 onClick={handleStarClick}
               >
-                ⭐
+                <Star
+                  size={16}
+                  className={isStarred ? 'fill-amber-400 text-amber-400' : 'text-gray-400'}
+                />
               </button>
             </div>
           </div>
@@ -151,7 +155,7 @@ export function Flashcard3D() {
                 title="Phát âm cả câu ví dụ"
                 onClick={handleSpeakExample}
               >
-                📢
+                <Volume2 size={16} />
               </button>
             </div>
           </div>

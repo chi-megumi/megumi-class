@@ -9,6 +9,13 @@ import {
   Gamepad2,
   ChevronRight,
   RotateCcw,
+  Layers,
+  HelpCircle,
+  Puzzle,
+  ClipboardCheck,
+  Clock,
+  FileText,
+  Zap,
 } from 'lucide-react'
 import { ExamData, UnitData } from '~/modules/teacher/types'
 import { useSpeech } from '@/components/flashcards/hooks/useSpeech'
@@ -301,8 +308,8 @@ const StudentUnitDashboard = ({
               <div className="absolute -top-3 -right-3 bg-blue-500 text-white text-xs font-bold px-3 py-1 rounded-full shadow-lg transform rotate-6 group-hover:rotate-12 transition-transform">
                 NÊN THỬ
               </div>
-              <div className="w-16 h-16 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center text-3xl mb-6 shadow-inner group-hover:scale-110 transition-transform">
-                🃏
+              <div className="w-16 h-16 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center mb-6 shadow-inner group-hover:scale-110 transition-transform">
+                <Layers size={32} />
               </div>
               <h3 className="text-xl font-bold text-gray-800 mb-2">Lật thẻ 3D</h3>
               <p className="text-gray-500 text-sm mb-6 line-clamp-2">
@@ -322,8 +329,8 @@ const StudentUnitDashboard = ({
               className={`group relative bg-white border border-gray-100 rounded-3xl p-8 shadow-sm transition-all duration-300 hover:shadow-2xl hover:shadow-purple-500/10 hover:-translate-y-2 cursor-pointer`}
               onClick={() => setActiveGame('quiz')}
             >
-              <div className="w-16 h-16 rounded-2xl bg-purple-50 text-purple-600 flex items-center justify-center text-3xl mb-6 shadow-inner group-hover:scale-110 transition-transform">
-                🎮
+              <div className="w-16 h-16 rounded-2xl bg-purple-50 text-purple-600 flex items-center justify-center mb-6 shadow-inner group-hover:scale-110 transition-transform">
+                <HelpCircle size={32} />
               </div>
               <h3 className="text-xl font-bold text-gray-800 mb-2">Đố Vui (Quiz)</h3>
               <p className="text-gray-500 text-sm mb-6 line-clamp-2">
@@ -346,11 +353,12 @@ const StudentUnitDashboard = ({
               className={`group relative bg-white border border-gray-100 rounded-3xl p-8 shadow-sm transition-all duration-300 hover:shadow-2xl hover:shadow-orange-500/10 hover:-translate-y-2 cursor-pointer`}
               onClick={() => setActiveGame('match')}
             >
-              <div className="absolute -top-3 -right-3 bg-gradient-to-r from-orange-400 to-pink-500 text-white text-xs font-bold px-3 py-1 rounded-full shadow-lg transform -rotate-3 group-hover:-rotate-12 transition-transform">
-                HOT 🔥
+              <div className="absolute -top-3 -right-3 bg-gradient-to-r from-orange-400 to-pink-500 text-white text-xs font-bold px-3 py-1 rounded-full shadow-lg transform -rotate-3 group-hover:-rotate-12 transition-transform flex items-center gap-1">
+                <span>HOT</span>
+                <Flame size={12} className="text-amber-200 fill-amber-200" />
               </div>
-              <div className="w-16 h-16 rounded-2xl bg-orange-50 text-orange-600 flex items-center justify-center text-3xl mb-6 shadow-inner group-hover:scale-110 transition-transform">
-                🧩
+              <div className="w-16 h-16 rounded-2xl bg-orange-50 text-orange-600 flex items-center justify-center mb-6 shadow-inner group-hover:scale-110 transition-transform">
+                <Puzzle size={32} />
               </div>
               <h3 className="text-xl font-bold text-gray-800 mb-2">Ghép Thẻ Tốc Độ</h3>
               <p className="text-gray-500 text-sm mb-6 line-clamp-2">
@@ -375,7 +383,7 @@ const StudentUnitDashboard = ({
         <div className="mb-16 print:hidden">
           <div className="flex items-center justify-between mb-8">
             <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-3">
-              <span className="text-3xl">📝</span>
+              <ClipboardCheck size={28} className="text-indigo-600 shrink-0" />
               Bài kiểm tra (Tests)
             </h2>
             <div className="text-sm font-semibold text-gray-500 bg-gray-100 px-4 py-2 rounded-full">
@@ -417,26 +425,33 @@ const StudentUnitDashboard = ({
                   }}
                 >
                   {test.isRetakable ? (
-                    <div className="absolute -top-3 -right-3 bg-gradient-to-r from-emerald-500 to-teal-600 text-white text-xs font-bold px-3 py-1 rounded-full shadow-lg transform -rotate-2">
-                      🔄 LUYỆN TẬP
+                    <div className="absolute -top-3 -right-3 bg-gradient-to-r from-emerald-500 to-teal-600 text-white text-xs font-bold px-3 py-1 rounded-full shadow-lg transform -rotate-2 flex items-center gap-1">
+                      <RotateCcw size={12} /> LUYỆN TẬP
                     </div>
                   ) : test.duration <= 15 ? (
-                    <div className="absolute -top-3 -right-3 bg-gradient-to-r from-orange-400 to-pink-500 text-white text-xs font-bold px-3 py-1 rounded-full shadow-lg transform -rotate-3 group-hover:-rotate-12 transition-transform">
-                      MINI THỬ THÁCH ⚡
+                    <div className="absolute -top-3 -right-3 bg-gradient-to-r from-orange-400 to-pink-500 text-white text-xs font-bold px-3 py-1 rounded-full shadow-lg transform -rotate-3 group-hover:-rotate-12 transition-transform flex items-center gap-1">
+                      <span>MINI THỬ THÁCH</span>
+                      <Zap size={12} className="text-amber-200 fill-amber-200" />
                     </div>
                   ) : (
                     <div className="absolute -top-3 -right-3 bg-red-500 text-white text-xs font-bold px-3 py-1 rounded-full shadow-lg transform rotate-6">
                       QUAN TRỌNG
                     </div>
                   )}
-                  <div className={`w-16 h-16 rounded-2xl flex items-center justify-center text-3xl mb-6 shadow-inner group-hover:scale-110 transition-transform ${
+                  <div className={`w-16 h-16 rounded-2xl flex items-center justify-center mb-6 shadow-inner group-hover:scale-110 transition-transform ${
                     test.isRetakable
                       ? 'bg-emerald-50 text-emerald-600'
                       : test.duration <= 15
                         ? 'bg-orange-50 text-orange-600'
                         : 'bg-red-50 text-red-600'
                   }`}>
-                    {test.isRetakable ? '🔄' : test.duration <= 15 ? '⏱️' : '📝'}
+                    {test.isRetakable ? (
+                      <RotateCcw size={28} />
+                    ) : test.duration <= 15 ? (
+                      <Clock size={28} />
+                    ) : (
+                      <FileText size={28} />
+                    )}
                   </div>
                   <h3 className="text-xl font-bold text-gray-800 mb-2">{test.title || 'Bài Kiểm Tra'}</h3>
                   <p className="text-gray-500 text-sm mb-6 line-clamp-2">

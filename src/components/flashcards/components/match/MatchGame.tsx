@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useFlashcardStore } from '../../stores/useFlashcardStore'
 import { playSound } from '../../utils/sound'
 import { formatDuration } from '../../utils/score'
-import { PlayCircle, Clock } from 'lucide-react'
+import { PlayCircle, Clock, RotateCcw } from 'lucide-react'
 import { useConfetti } from '../../hooks/useConfetti'
 
 type Card = {
@@ -158,7 +158,7 @@ export function MatchGame() {
             onClick={startGame}
             className="flex justify-center items-center gap-2 py-2 px-6 bg-green-500 hover:bg-green-600 text-white font-bold rounded-xl transition-all shadow-sm"
           >
-            🔄 Chơi lại
+            <RotateCcw size={16} /> Chơi lại
           </button>
         )}
       </div>

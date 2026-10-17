@@ -1,7 +1,7 @@
 'use client'
 
 import React from 'react'
-import { CheckCircle2, X } from 'lucide-react'
+import { CheckCircle2, Check, X } from 'lucide-react'
 import { MatchingPair, TestBlock, TestQuestion } from '../../types'
 
 type ExamSubmissionReviewProps = {
@@ -64,8 +64,20 @@ export default function ExamSubmissionReview({
                                 : 'bg-gray-50 border-gray-100 text-gray-500'
                             }`}
                           >
-                            <span className="w-4 h-4 rounded-full flex items-center justify-center text-[10px] border">
-                              {isCorrectChoice ? '✓' : isStudentChoice ? '✗' : ''}
+                            <span
+                              className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 border ${
+                                isCorrectChoice
+                                  ? 'border-emerald-500 bg-emerald-500 text-white'
+                                  : isStudentChoice
+                                    ? 'border-rose-500 bg-rose-500 text-white'
+                                    : 'border-gray-300'
+                              }`}
+                            >
+                              {isCorrectChoice ? (
+                                <Check size={10} strokeWidth={3} />
+                              ) : isStudentChoice ? (
+                                <X size={10} strokeWidth={3} />
+                              ) : null}
                             </span>
                             <span>{opt}</span>
                           </div>

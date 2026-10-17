@@ -11,6 +11,10 @@ import {
   Sparkles,
   Trophy,
   RotateCcw,
+  FileText,
+  BookOpen,
+  GraduationCap,
+  Zap,
 } from 'lucide-react'
 import { ClassData, ExamData } from '@/modules/teacher/types'
 import GamePlayerModal from '@/modules/student/components/unit/GamePlayerModal'
@@ -139,8 +143,8 @@ export default function StudentClassDashboardClient({
         <Portal>
           <div className="fixed inset-0 z-[150] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
             <div className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl animate-in zoom-in-95 duration-200">
-              <div className="w-12 h-12 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center text-2xl mb-4">
-                📝
+              <div className="w-12 h-12 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center mb-4">
+                <FileText size={24} />
               </div>
               <h3 className="text-2xl font-bold text-gray-900 mb-3">Sẵn sàng làm bài?</h3>
               <p className="text-gray-600 mb-6 leading-relaxed text-sm">
@@ -214,8 +218,8 @@ export default function StudentClassDashboardClient({
             </p>
           )}
           <div className="flex flex-wrap items-center gap-3">
-            <div className="px-4 py-2 bg-white/15 backdrop-blur-md rounded-xl text-sm font-semibold border border-white/20">
-              📚 {classData.units.length} bài học
+            <div className="px-4 py-2 bg-white/15 backdrop-blur-md rounded-xl text-sm font-semibold border border-white/20 flex items-center gap-1.5">
+              <BookOpen size={16} /> {classData.units.length} bài học
             </div>
             {publishedClassExams.length > 0 && (
               <div className="px-4 py-2 bg-white/25 backdrop-blur-md rounded-xl text-sm font-bold border border-white/30 text-yellow-200 flex items-center gap-1.5">
@@ -226,8 +230,8 @@ export default function StudentClassDashboardClient({
         </div>
 
         {/* Decorative elements */}
-        <div className="absolute -right-8 -bottom-8 text-9xl opacity-10 select-none pointer-events-none rotate-12">
-          🎓
+        <div className="absolute -right-8 -bottom-8 text-white opacity-10 select-none pointer-events-none rotate-12">
+          <GraduationCap size={140} />
         </div>
       </div>
 
@@ -237,7 +241,7 @@ export default function StudentClassDashboardClient({
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6 pb-4 border-b border-gray-100">
             <div>
               <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-3">
-                <span className="text-2xl">🏆</span>
+                <Trophy className="w-7 h-7 text-amber-500 shrink-0" />
                 Bài Kiểm Tra Tổng Hợp
               </h2>
               <p className="text-gray-500 text-sm mt-1">
@@ -297,15 +301,29 @@ export default function StudentClassDashboardClient({
                                 : 'bg-indigo-100 text-indigo-800 border border-indigo-200'
                       }`}
                     >
-                      {test.isRetakable
-                        ? '🔄 Luyện tập (Làm lại)'
-                        : isCompleted
-                          ? 'Đã hoàn thành'
-                          : isInProgress
-                            ? 'Đang làm dở ⏱️'
-                            : test.duration <= 15
-                              ? 'Mini Thử Thách ⚡'
-                              : 'Đề Tổng Hợp ⭐'}
+                      {test.isRetakable ? (
+                        <span className="flex items-center gap-1">
+                          <RotateCcw size={12} /> Luyện tập (Làm lại)
+                        </span>
+                      ) : isCompleted ? (
+                        <span className="flex items-center gap-1">
+                          <CheckCircle2 size={12} /> Đã hoàn thành
+                        </span>
+                      ) : isInProgress ? (
+                        <span className="flex items-center gap-1">
+                          <Clock size={12} /> Đang làm dở
+                        </span>
+                      ) : test.duration <= 15 ? (
+                        <span className="flex items-center gap-1">
+                          <span>Mini Thử Thách</span>
+                          <Zap size={12} className="text-amber-500 fill-amber-500" />
+                        </span>
+                      ) : (
+                        <span className="flex items-center gap-1">
+                          <span>Đề Tổng Hợp</span>
+                          <Sparkles size={12} className="text-indigo-600" />
+                        </span>
+                      )}
                     </span>
                     <span className="text-xs text-gray-500 font-semibold flex items-center gap-1 bg-white px-2.5 py-1 rounded-lg border border-gray-100 shadow-2xs">
                       <Clock size={12} className="text-gray-400" />

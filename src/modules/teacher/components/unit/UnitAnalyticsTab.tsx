@@ -6,27 +6,22 @@ import {
   Award,
   TrendingUp,
   AlertTriangle,
-  RotateCw,
-  Download,
   Search,
   Volume2,
   CheckCircle2,
   XCircle,
-  HelpCircle,
   Sparkles,
   BookOpen,
   GraduationCap,
   ClipboardList,
   Eye,
   ChevronRight,
-  Filter,
-  BarChart3,
   Loader2,
   Clock,
 } from 'lucide-react'
 import { UnitData, EnrollmentData, ExamData, StudentAnalyticsData } from '../../types'
 import { getUnitAnalytics } from '@/actions/analytics'
-import type { UnitAnalyticsResult, UnitVocabStat } from '@/actions/analytics/types'
+import type { UnitAnalyticsResult } from '@/actions/analytics/types'
 import { useSpeech } from '@/components/flashcards/hooks/useSpeech'
 import UnitProgressStudentRow from '../overview/UnitProgressStudentRow'
 
@@ -37,19 +32,7 @@ type UnitAnalyticsTabProps = {
   onViewExamResults?: (exam: ExamData) => void
 }
 
-function exportCsvFile(filename: string, rows: (string | number)[][]) {
-  const processRow = (row: (string | number)[]) =>
-    row.map((val) => `"${String(val ?? '').replace(/"/g, '""')}"`).join(',')
-  const csvContent = '\uFEFF' + rows.map(processRow).join('\r\n')
-  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
-  const url = URL.createObjectURL(blob)
-  const link = document.createElement('a')
-  link.setAttribute('href', url)
-  link.setAttribute('download', filename)
-  document.body.appendChild(link)
-  link.click()
-  document.body.removeChild(link)
-}
+const EMPTY_VOCAB_STATS: NonNullable<UnitAnalyticsResult['vocabStats']> = []
 
 export default function UnitAnalyticsTab({
   unit,
@@ -58,7 +41,6 @@ export default function UnitAnalyticsTab({
   onViewExamResults,
 }: UnitAnalyticsTabProps) {
   const [loading, setLoading] = useState(true)
-  const [refreshing, setRefreshing] = useState(false)
   const [analyticsData, setAnalyticsData] = useState<UnitAnalyticsResult | null>(null)
   const [subTab, setSubTab] = useState<'vocab' | 'students' | 'exams'>('vocab')
   const { speak, isSpeaking } = useSpeech()
@@ -77,24 +59,29 @@ export default function UnitAnalyticsTab({
     'mastery_desc',
   )
 
-  const loadData = async (isManualRefresh = false) => {
-    if (isManualRefresh) setRefreshing(true)
-    else setLoading(true)
-
-    try {
-      const res = await getUnitAnalytics(unit.id)
-      setAnalyticsData(res)
-    } catch (err) {
-      console.error('Failed to load unit analytics:', err)
-    } finally {
-      setLoading(false)
-      setRefreshing(false)
-    }
-  }
-
   useEffect(() => {
-    loadData()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    let ignore = false
+
+    const fetchData = async () => {
+      try {
+        const res = await getUnitAnalytics(unit.id)
+        if (!ignore) {
+          setAnalyticsData(res)
+        }
+      } catch (err) {
+        console.error('Failed to load unit analytics:', err)
+      } finally {
+        if (!ignore) {
+          setLoading(false)
+        }
+      }
+    }
+
+    fetchData()
+
+    return () => {
+      ignore = true
+    }
   }, [unit.id])
 
   // Fallback student list if server action has not returned yet
@@ -175,7 +162,7 @@ export default function UnitAnalyticsTab({
   }, [unit, activeStudents, classExams])
 
   const students = analyticsData?.students || fallbackStudents
-  const vocabStats = analyticsData?.vocabStats || []
+  const vocabStats = analyticsData?.vocabStats ?? EMPTY_VOCAB_STATS
 
   // Compute summary stats with fallbacks
   const totalStudents = students.length

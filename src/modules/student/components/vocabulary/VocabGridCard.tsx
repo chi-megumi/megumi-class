@@ -79,8 +79,8 @@ export const VocabGridCard: React.FC<VocabGridCardProps> = ({
         </button>
 
         {isMastered && (
-          <span className="text-[11px] font-semibold text-emerald-600">
-            ✓ Mastered
+          <span className="text-[11px] font-semibold text-emerald-600 flex items-center gap-1">
+            <Check size={12} strokeWidth={3} /> Mastered
           </span>
         )}
       </div>

@@ -22,11 +22,11 @@ export const HeroContent: React.FC = () => {
 
       {/* Main Punchy Heading */}
       <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight leading-[1.15]">
-        <span className="block bg-gradient-to-r from-indigo-600 via-pink-600 to-rose-500 bg-clip-text text-transparent">
+        <span className="block bg-gradient-to-r from-indigo-600 via-pink-600 to-rose-500 bg-clip-text text-transparent leading-20">
           {HERO_CONFIG.titleHighlight}
         </span>
 
-        <span className="flex flex-col gap-1 mt-3 sm:mt-4">
+        <span className="flex flex-col gap-1">
           <span className="text-2xl sm:text-3xl lg:text-4xl font-bold text-violet-600">
             {HERO_CONFIG.subtitle}
           </span>

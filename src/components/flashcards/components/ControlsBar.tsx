@@ -1,6 +1,7 @@
-import { useFlashcardStore, type FilterType } from '../stores/useFlashcardStore'
+import { useFlashcardStore } from '../stores/useFlashcardStore'
 import { categoryLabels } from '../data/vocabData'
 import { useEffect, useRef } from 'react'
+import { Search } from 'lucide-react'
 
 
 const DEBOUNCE_MS = 300
@@ -68,7 +69,9 @@ export function ControlsBar() {
       </div>
 
       <div className="search-box">
-        <span className="search-icon">🔍</span>
+        <span className="search-icon flex items-center justify-center">
+          <Search size={16} className="text-gray-400" />
+        </span>
         <input
           ref={inputRef}
           type="text"

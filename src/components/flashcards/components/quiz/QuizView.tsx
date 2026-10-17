@@ -3,6 +3,7 @@ import { useQuizStore } from '../../stores/useQuizStore'
 import { useConfetti } from '../../hooks/useConfetti'
 import { useSpeech } from '../../hooks/useSpeech'
 import { playSound } from '../../utils/sound'
+import { Volume2, RotateCcw, Trophy, ArrowRight, Flame, CheckCircle2 } from 'lucide-react'
 import type { QuizHistoryEntry } from '../../stores/useQuizStore'
 import HistoryDetailModal from '@/components/flashcards/components/quiz/HistoryDetailModal'
 import ModeSelector from '@/components/flashcards/components/quiz/ModeSelector'
@@ -128,11 +129,34 @@ export function QuizView() {
             }}
           >
             {quizMode === 'endless' && (
-              <div style={{ fontWeight: 700, color: '#f59e0b' }}>🔥 {streak}</div>
+              <div
+                style={{
+                  fontWeight: 700,
+                  color: '#f59e0b',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 4,
+                }}
+              >
+                <Flame size={16} className="text-amber-500 fill-amber-500" />
+                <span>{streak}</span>
+              </div>
             )}
             {quizMode === 'scored' && (
-              <div style={{ fontWeight: 700, color: '#6366f1', fontSize: '0.9rem' }}>
-                ✅ {sessionCorrect}/{sessionTotal - sessionQueue.length}
+              <div
+                style={{
+                  fontWeight: 700,
+                  color: '#6366f1',
+                  fontSize: '0.9rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 4,
+                }}
+              >
+                <CheckCircle2 size={16} className="text-indigo-500" />
+                <span>
+                  {sessionCorrect}/{sessionTotal - sessionQueue.length}
+                </span>
               </div>
             )}
             <button
@@ -141,10 +165,14 @@ export function QuizView() {
               onClick={handleSpeak}
               disabled={sessionDone}
             >
-              🔊
+              <Volume2 size={16} />
             </button>
-            <button className="icon-btn" onClick={() => startSession(vocabItems)} title="Chơi lại">
-              🔄
+            <button
+              className="icon-btn"
+              onClick={() => startSession(vocabItems)}
+              title="Chơi lại"
+            >
+              <RotateCcw size={16} />
             </button>
           </div>
         </div>
@@ -194,13 +222,21 @@ export function QuizView() {
 
             {answered && (
               <button
-                className="nav-btn flip-btn-main"
+                className="nav-btn flip-btn-main flex items-center justify-center gap-1.5"
                 onClick={() => nextQuestion(vocabItems)}
                 style={{ margin: '0 auto' }}
               >
-                {quizMode === 'scored' && sessionQueue.length === 0
-                  ? 'Xem kết quả 🏆'
-                  : 'Câu tiếp theo ➡️'}
+                {quizMode === 'scored' && sessionQueue.length === 0 ? (
+                  <>
+                    <span>Xem kết quả</span>
+                    <Trophy size={16} className="text-amber-500" />
+                  </>
+                ) : (
+                  <>
+                    <span>Câu tiếp theo</span>
+                    <ArrowRight size={16} />
+                  </>
+                )}
               </button>
             )}
           </>

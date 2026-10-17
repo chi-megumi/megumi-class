@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react'
 import Image from 'next/image'
 import {
   X,
+  Check,
   User,
   CheckCircle2,
   Clock,
@@ -397,7 +398,11 @@ export default function TestResultsModal({
                                                     : 'border-gray-300'
                                               }`}
                                             >
-                                              {isCorrectChoice ? '✓' : isStudentChoice ? '✗' : ''}
+                                              {isCorrectChoice ? (
+                                                <Check size={11} strokeWidth={3} />
+                                              ) : isStudentChoice ? (
+                                                <X size={11} strokeWidth={3} />
+                                              ) : null}
                                             </div>
                                             <span>{opt}</span>
                                           </div>
@@ -848,7 +853,7 @@ export default function TestResultsModal({
                                         : 'bg-emerald-100 text-emerald-700 border border-emerald-200'
                                   }`}
                                 >
-                                  {isHard ? '⚠️ Khó' : isMedium ? '🟡 Trung bình' : '✓ Nắm vững'}:{' '}
+                                  {isHard ? 'Khó' : isMedium ? 'Trung bình' : 'Nắm vững'}:{' '}
                                   {q.accuracyRate}% đúng
                                 </span>
                               </div>

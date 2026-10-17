@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Tabs from '~/components/tabs'
-import { BookOpen, ChevronDown, ChevronRight, PlusCircle, Settings } from 'lucide-react'
+import { BookOpen, ChevronDown, ChevronRight, Folder, PlusCircle, Settings } from 'lucide-react'
 import Link from 'next/link'
 import { useUserStore } from '~/providers/UserProvider'
 import { getTeacherClasses, getStudentClasses } from '~/actions/class'
@@ -36,10 +36,6 @@ const MenuTabs = () => {
         const data = isTeacher ? await getTeacherClasses() : await getStudentClasses()
         if (isMounted) {
           setClasses(data)
-          // Automatically expand active class
-          if (activeClassId) {
-            setExpandedClasses((prev) => ({ ...prev, [activeClassId]: true }))
-          }
         }
       } catch (err) {
         console.error('Failed to load classes', err)
@@ -57,11 +53,18 @@ const MenuTabs = () => {
     }
   }, [isTeacher])
 
+  const isClassExpanded = (classId: string) => {
+    return expandedClasses[classId] ?? (classId === activeClassId)
+  }
+
   const toggleClass = (classId: string) => {
-    setExpandedClasses((prev) => ({
-      ...prev,
-      [classId]: !prev[classId],
-    }))
+    setExpandedClasses((prev) => {
+      const current = prev[classId] ?? (classId === activeClassId)
+      return {
+        ...prev,
+        [classId]: !current,
+      }
+    })
   }
 
   return (
@@ -101,16 +104,17 @@ const MenuTabs = () => {
                     onClick={() => toggleClass(cls.id)}
                     className={[
                       'flex items-center justify-between py-2 px-2 hover:bg-white rounded-xl cursor-pointer transition-all border border-transparent hover:border-gray-100 ',
-                      expandedClasses[cls.id] && 'bg-white',
+                      isClassExpanded(cls.id) && 'bg-white',
                     ]
                       .filter(Boolean)
                       .join(' ')}
                   >
                     <span
-                      className="font-medium text-gray-800 text-sm truncate max-w-30"
+                      className="font-medium text-gray-800 text-sm truncate max-w-30 flex items-center gap-1.5"
                       title={cls.name}
                     >
-                      🗂️ {cls.name}
+                      <Folder size={15} className="text-indigo-500 shrink-0" />
+                      <span className="truncate">{cls.name}</span>
                     </span>
                     <div className="flex items-center gap-1">
                       {isTeacher && (
@@ -123,7 +127,7 @@ const MenuTabs = () => {
                           <Settings size={14} />
                         </Link>
                       )}
-                      {expandedClasses[cls.id] ? (
+                      {isClassExpanded(cls.id) ? (
                         <ChevronDown size={18} className="text-gray-400" />
                       ) : (
                         <ChevronRight size={18} className="text-gray-400" />
@@ -132,7 +136,7 @@ const MenuTabs = () => {
                   </div>
 
                   {/* Cấp Con (Units) - Chỉ hiển thị khi được mở rộng */}
-                  {expandedClasses[cls.id] && (
+                  {isClassExpanded(cls.id) && (
                     <div className="mt-2 ml-5 flex flex-col gap-1 border-l-2 border-[#E5D9F2] pl-3 py-1 animate-in slide-in-from-top-2 fade-in duration-200">
                       {cls.units
                         .filter(unit => unit.isPublished)

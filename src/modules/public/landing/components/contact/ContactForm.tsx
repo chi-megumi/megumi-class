@@ -4,6 +4,7 @@ import React, { useState } from 'react'
 import { COURSE_OPTIONS } from '../../data/contact'
 import { ContactFormData, ContactFormErrors } from '../../types/landing'
 import { Send, CheckCircle2, AlertCircle, Sparkles, RotateCcw } from 'lucide-react'
+import { submitConsultation } from '~/actions/consultation'
 
 export const ContactForm: React.FC = () => {
   const [formData, setFormData] = useState<ContactFormData>({
@@ -15,6 +16,7 @@ export const ContactForm: React.FC = () => {
   })
 
   const [errors, setErrors] = useState<ContactFormErrors>({})
+  const [serverError, setServerError] = useState<string>('')
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false)
   const [isSubmitted, setIsSubmitted] = useState<boolean>(false)
 
@@ -62,11 +64,17 @@ export const ContactForm: React.FC = () => {
     if (!validate()) return
 
     setIsSubmitting(true)
+    setServerError('')
 
-    // Simulate reliable submission
     try {
-      await new Promise((resolve) => setTimeout(resolve, 800))
-      setIsSubmitted(true)
+      const result = await submitConsultation(formData)
+      if (result.error) {
+        setServerError(result.error)
+      } else {
+        setIsSubmitted(true)
+      }
+    } catch {
+      setServerError('Có lỗi kết nối xảy ra. Vui lòng thử lại sau hoặc liên hệ Zalo.')
     } finally {
       setIsSubmitting(false)
     }
@@ -81,6 +89,7 @@ export const ContactForm: React.FC = () => {
       learningGoal: '',
     })
     setErrors({})
+    setServerError('')
     setIsSubmitted(false)
   }
 
@@ -130,6 +139,13 @@ export const ContactForm: React.FC = () => {
       </div>
 
       <form onSubmit={handleSubmit} noValidate className="space-y-4">
+        {serverError && (
+          <div className="p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-600 text-xs sm:text-sm font-medium flex items-center gap-2">
+            <AlertCircle size={16} className="shrink-0" />
+            <span>{serverError}</span>
+          </div>
+        )}
+
         {/* Full Name */}
         <div>
           <label htmlFor="fullName" className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
