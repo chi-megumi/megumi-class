@@ -3,8 +3,9 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 model User {
@@ -22,26 +23,11 @@ model User {
   classesTaught     Class[]           @relation("TeacherClasses")
   classEnrollments  ClassEnrollment[]
 
-  vocabProgress     UserVocabProgress[]
   unitProgress      UserUnitProgress[]
   quizSessions      QuizSession[]
-  settings          UserSettings?
   examResults       ExamResult[]
 
   @@map("users")
-}
-
-model VocabCategory {
-  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  slug       String   @unique @db.VarChar(100) // 'stress', 'solution', 'tech', 'school'
-  name       String   @db.VarChar(255) // 'Áp lực & Cảm xúc'
-  emoji      String?  @db.VarChar(10) // '😰'
-  sortOrder  Int      @default(0) @map("sort_order")
-  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz
-
-  vocabItems VocabItem[]
-
-  @@map("vocab_categories")
 }
 
 model Class {
@@ -56,23 +42,9 @@ model Class {
   teacher     User     @relation("TeacherClasses", fields: [teacherId], references: [id])
   students    ClassEnrollment[]
   units       Unit[]
-  invitations ClassInvitation[]
   exams       Exam[]
 
   @@map("classes")
-}
-
-model ClassInvitation {
-  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  classId   String   @map("class_id") @db.Uuid
-  email     String   @db.VarChar(255)
-  status    String   @default("pending") @db.VarChar(50) // 'pending' | 'accepted'
-  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
-
-  class     Class    @relation(fields: [classId], references: [id], onDelete: Cascade)
-
-  @@unique([classId, email])
-  @@map("class_invitations")
 }
 
 model ClassEnrollment {
@@ -102,7 +74,7 @@ model Unit {
   createdAt          DateTime @default(now()) @map("created_at") @db.Timestamptz
   updatedAt          DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
 
-  class       Class    @relation(fields: [classId], references: [id], onDelete: Cascade)
+  class            Class              @relation(fields: [classId], references: [id], onDelete: Cascade)
   vocabItems       VocabItem[]
   quizSessions     QuizSession[]
   studentProgress  UserUnitProgress[]
@@ -152,7 +124,6 @@ model ExamResult {
 model VocabItem {
   id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   unitId      String?  @map("unit_id") @db.Uuid // Optional to allow general vocab items
-  categoryId  String?  @map("category_id") @db.Uuid
   word        String   @db.VarChar(500)
   ipa         String?  @db.VarChar(255)
   pos         String?  @db.VarChar(50) // 'n', 'v', 'adj', 'v phr', 'n phr', 'adj phr'
@@ -165,34 +136,13 @@ model VocabItem {
   createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
   updatedAt   DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
 
-  unit        Unit?          @relation(fields: [unitId], references: [id], onDelete: Cascade)
-  category    VocabCategory? @relation(fields: [categoryId], references: [id])
+  unit        Unit?    @relation(fields: [unitId], references: [id], onDelete: Cascade)
 
-  progress    UserVocabProgress[]
   quizAnswersAsQuestion QuizAnswer[] @relation("QuestionVocab")
   quizAnswersAsSelected QuizAnswer[] @relation("SelectedVocab")
 
   @@index([unitId])
-  @@index([categoryId])
   @@map("vocab_items")
-}
-
-model UserVocabProgress {
-  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  userId         String    @map("user_id") @db.Uuid
-  vocabItemId    String    @map("vocab_item_id") @db.Uuid
-  isStarred      Boolean   @default(false) @map("is_starred")
-  isMastered     Boolean   @default(false) @map("is_mastered")
-  reviewCount    Int       @default(0) @map("review_count")
-  lastReviewedAt DateTime? @map("last_reviewed_at") @db.Timestamptz
-  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz
-
-  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  vocabItem      VocabItem @relation(fields: [vocabItemId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, vocabItemId])
-  @@index([userId])
-  @@map("user_vocab_progress")
 }
 
 model UserUnitProgress {
@@ -259,19 +209,6 @@ model QuizAnswer {
 
   @@index([sessionId])
   @@map("quiz_answers")
-}
-
-model UserSettings {
-  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  userId       String   @unique @map("user_id") @db.Uuid
-  locale       String   @default("vi") @db.VarChar(10)
-  theme        String   @default("light") @db.VarChar(20)
-  soundEnabled Boolean  @default(true) @map("sound_enabled")
-  updatedAt    DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
-
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@map("user_settings")
 }
 
 model PasswordResetToken {
