@@ -1,5 +1,6 @@
 'use client'
 
+import Image from 'next/image'
 import {
   Users,
   BookOpen,
@@ -96,12 +97,46 @@ const OverviewTab = ({ classData, activeStudents }: OverviewTabProps) => {
     return b.xp - a.xp
   })
 
-  // If no active students yet, display placeholders
-  const displayTopStudents = realStudentRankings.length > 0 ? realStudentRankings.slice(0, 3) : [
-    { id: '1', name: 'Nguyễn Văn A', avatarUrl: null, progress: 98, xp: 3200, testsTaken: 5, avgScore: 95 },
-    { id: '2', name: 'Trần Thị B', avatarUrl: null, progress: 85, xp: 2800, testsTaken: 4, avgScore: 88 },
-    { id: '3', name: 'Lê Hoàng C', avatarUrl: null, progress: 72, xp: 2100, testsTaken: 3, avgScore: 78 },
-  ]
+  // Overall class completion rate
+  const completionRate = (() => {
+    if (activeStudents.length === 0) return 0
+    let totalRateSum = 0
+    let metricCount = 0
+
+    // Metric 1: Exam completion rate
+    if (allPublishedExams.length > 0) {
+      const activeStudentIds = new Set(activeStudents.map((s) => s.student.id))
+      const totalPossible = activeStudents.length * allPublishedExams.length
+      const totalCompleted = allPublishedExams.reduce((acc, exam) => {
+        const completedResults = (exam.results || []).filter(
+          (r) => activeStudentIds.has(r.studentId) && r.completedAt
+        )
+        return acc + completedResults.length
+      }, 0)
+      totalRateSum += Math.round((totalCompleted / totalPossible) * 100)
+      metricCount++
+    }
+
+    // Metric 2: Unit Vocab mastery
+    if (classData.units.length > 0) {
+      const activeStudentIds = new Set(activeStudents.map((s) => s.student.id))
+      let totalMastery = 0
+      const totalUnitSlots = activeStudents.length * classData.units.length
+      classData.units.forEach((unit) => {
+        (unit.studentProgress || []).forEach((p) => {
+          if (activeStudentIds.has(p.userId)) {
+            totalMastery += p.masteryProgress || 0
+          }
+        })
+      })
+      totalRateSum += Math.round(totalMastery / totalUnitSlots)
+      metricCount++
+    }
+
+    return metricCount > 0 ? Math.round(totalRateSum / metricCount) : 0
+  })()
+
+  const topStudents = realStudentRankings.slice(0, 3)
 
   return (
     <div className="space-y-8 animate-in slide-in-from-bottom-4 duration-500">
@@ -144,7 +179,7 @@ const OverviewTab = ({ classData, activeStudents }: OverviewTabProps) => {
           </div>
           <div>
             <p className="text-orange-600/80 text-sm font-bold uppercase tracking-wider">Tỉ lệ hoàn thành</p>
-            <h3 className="text-3xl font-black text-orange-900">68%</h3>
+            <h3 className="text-3xl font-black text-orange-900">{completionRate}%</h3>
           </div>
         </div>
       </div>
@@ -152,63 +187,83 @@ const OverviewTab = ({ classData, activeStudents }: OverviewTabProps) => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         
         {/* 2. Top Students (Leaderboard) */}
-        <div className="lg:col-span-2 bg-white rounded-3xl border border-gray-100 shadow-sm p-6 relative overflow-hidden">
+        <div className="lg:col-span-2 bg-white rounded-3xl border border-gray-100 shadow-sm p-6 relative overflow-hidden flex flex-col justify-between">
           <div className="absolute top-0 right-0 w-32 h-32 bg-yellow-400/10 rounded-full blur-3xl -z-10"></div>
           
-          <div className="flex items-center justify-between mb-6">
-            <h3 className="text-xl font-bold text-gray-800 flex items-center gap-2">
-              <Award className="text-yellow-500" /> Bảng vàng học tập
-            </h3>
-            <button
-              onClick={() => setIsLeaderboardOpen(true)}
-              className="text-sm text-indigo-600 font-semibold hover:underline flex items-center gap-1 cursor-pointer"
-            >
-              Xem tất cả <ChevronRight size={16} />
-            </button>
-          </div>
-
-          <div className="space-y-4">
-            {displayTopStudents.map((student, index) => (
-              <div
-                key={student.id}
-                onClick={() => setSelectedStudentForExams({ id: student.id, name: student.name })}
-                className="flex items-center gap-4 p-4 rounded-2xl bg-gray-50/50 border border-gray-100 hover:bg-indigo-50/50 hover:border-indigo-200 transition-all cursor-pointer group"
-                title="Bấm để xem chi tiết lịch sử bài thi"
-              >
-                <div
-                  className={`w-10 h-10 rounded-2xl flex items-center justify-center font-black text-sm shrink-0 shadow-xs ${
-                    index === 0
-                      ? 'bg-gradient-to-br from-amber-300 to-yellow-500 text-white'
-                      : index === 1
-                      ? 'bg-gradient-to-br from-slate-200 to-slate-400 text-slate-800'
-                      : index === 2
-                      ? 'bg-gradient-to-br from-amber-600 to-orange-500 text-white'
-                      : 'bg-indigo-50 text-indigo-400'
-                  }`}
+          <div>
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-xl font-bold text-gray-800 flex items-center gap-2">
+                <Award className="text-yellow-500" /> Bảng vàng học tập
+              </h3>
+              {activeStudents.length > 0 && (
+                <button
+                  onClick={() => setIsLeaderboardOpen(true)}
+                  className="text-sm text-indigo-600 font-semibold hover:underline flex items-center gap-1 cursor-pointer"
                 >
-                  {index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `#${index + 1}`}
-                </div>
-                
-                <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold shrink-0">
-                  {student.name.charAt(0)}
-                </div>
-                
-                <div className="flex-1 min-w-0">
-                  <h4 className="font-bold text-gray-800 group-hover:text-indigo-600 transition-colors truncate">{student.name}</h4>
-                  <p className="text-xs text-gray-500 flex items-center gap-2 mt-0.5">
-                    <span>Hoàn thành <b>{student.testsTaken}</b> bài thi</span>
-                    {'avgScore' in student && (student.avgScore as number) > 0 && (
-                      <span className="text-emerald-600 font-bold">• ĐTB: {student.avgScore as number}đ</span>
-                    )}
-                  </p>
-                </div>
-                
-                <div className="text-right shrink-0">
-                  <div className="font-black text-indigo-600">{student.xp} XP</div>
-                  <div className="text-xs font-semibold text-emerald-500">{student.progress}% từ vựng</div>
-                </div>
+                  Xem tất cả <ChevronRight size={16} />
+                </button>
+              )}
+            </div>
+
+            {topStudents.length === 0 ? (
+              <div className="py-12 px-4 text-center bg-gray-50/70 rounded-2xl border border-dashed border-gray-200">
+                <Award className="w-10 h-10 text-gray-300 mx-auto mb-2" />
+                <p className="text-sm font-bold text-gray-600">Chưa có dữ liệu bảng vàng</p>
+                <p className="text-xs text-gray-400 mt-1">
+                  {activeStudents.length === 0
+                    ? 'Lớp học hiện chưa có học sinh nào tham gia.'
+                    : 'Chưa có học sinh nào hoàn thành bài thi hoặc ghi nhận điểm số.'}
+                </p>
               </div>
-            ))}
+            ) : (
+              <div className="space-y-4">
+                {topStudents.map((student, index) => (
+                  <div
+                    key={student.id}
+                    onClick={() => setSelectedStudentForExams({ id: student.id, name: student.name })}
+                    className="flex items-center gap-4 p-4 rounded-2xl bg-gray-50/50 border border-gray-100 hover:bg-indigo-50/50 hover:border-indigo-200 transition-all cursor-pointer group"
+                    title="Bấm để xem chi tiết lịch sử bài thi"
+                  >
+                    <div
+                      className={`w-10 h-10 rounded-2xl flex items-center justify-center font-black text-sm shrink-0 shadow-xs ${
+                        index === 0
+                          ? 'bg-gradient-to-br from-amber-300 to-yellow-500 text-white'
+                          : index === 1
+                          ? 'bg-gradient-to-br from-slate-200 to-slate-400 text-slate-800'
+                          : index === 2
+                          ? 'bg-gradient-to-br from-amber-600 to-orange-500 text-white'
+                          : 'bg-indigo-50 text-indigo-400'
+                      }`}
+                    >
+                      {index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `#${index + 1}`}
+                    </div>
+                    
+                    <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold shrink-0 overflow-hidden">
+                      {student.avatarUrl ? (
+                        <Image src={student.avatarUrl} alt={student.name} width={40} height={40} className="w-full h-full object-cover" />
+                      ) : (
+                        student.name.charAt(0)
+                      )}
+                    </div>
+                    
+                    <div className="flex-1 min-w-0">
+                      <h4 className="font-bold text-gray-800 group-hover:text-indigo-600 transition-colors truncate">{student.name}</h4>
+                      <p className="text-xs text-gray-500 flex items-center gap-2 mt-0.5">
+                        <span>Hoàn thành <b>{student.testsTaken}</b> bài thi</span>
+                        {student.avgScore > 0 && (
+                          <span className="text-emerald-600 font-bold">• ĐTB: {student.avgScore}đ</span>
+                        )}
+                      </p>
+                    </div>
+                    
+                    <div className="text-right shrink-0">
+                      <div className="font-black text-indigo-600">{student.xp} XP</div>
+                      <div className="text-xs font-semibold text-emerald-500">{student.progress}% từ vựng</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
 

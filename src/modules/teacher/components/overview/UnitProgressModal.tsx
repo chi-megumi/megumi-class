@@ -113,93 +113,7 @@ const UnitProgressModal = ({
     }
   })
 
-  // Mock fake students fallback
-  const mockFakeStudents: StudentAnalyticsData[] = [
-    {
-      student: { id: '1', name: 'Nguyễn Văn A', email: 'vana@gmail.com', avatarUrl: null },
-      masteryProgress: 100,
-      games: {
-        flashcard: {
-          played: true,
-          progress: 100,
-          timesPlayed: 5,
-          history: [
-            { attempt: 1, durationSeconds: 45, completedAt: '2026-10-13T10:00:00.000Z' },
-            { attempt: 2, durationSeconds: 32, completedAt: '2026-10-14T14:30:00.000Z' },
-          ],
-        },
-        quiz: {
-          played: true,
-          score: 95,
-          timesPlayed: 3,
-          history: [
-            { attempt: 1, score: 80, correctCount: 8, totalCount: 10, durationSeconds: 55, completedAt: '2026-10-13T10:30:00.000Z' },
-            { attempt: 2, score: 95, correctCount: 10, totalCount: 10, durationSeconds: 42, completedAt: '2026-10-14T15:00:00.000Z' },
-          ],
-        },
-        match: {
-          played: true,
-          bestTime: 32,
-          timesPlayed: 12,
-          history: [
-            { attempt: 1, durationSeconds: 48, completedAt: '2026-10-13T11:00:00.000Z' },
-            { attempt: 2, durationSeconds: 32, completedAt: '2026-10-14T15:30:00.000Z' },
-          ],
-        },
-      },
-      exams: [
-        {
-          id: '1',
-          title: 'Bài kiểm tra 15 phút',
-          type: 'unit',
-          unitTitle: unit.title,
-          duration: 15,
-          isCompleted: true,
-          score: 95,
-          correctAnswers: 19,
-          totalQuestions: 20,
-          completedAt: '2026-10-15T08:00:00.000Z',
-        },
-      ],
-    },
-    {
-      student: { id: '2', name: 'Trần Thị B', email: 'thib@gmail.com', avatarUrl: null },
-      masteryProgress: 65,
-      games: {
-        flashcard: {
-          played: true,
-          progress: 80,
-          timesPlayed: 2,
-          history: [
-            { attempt: 1, durationSeconds: 60, completedAt: '2026-10-14T09:00:00.000Z' },
-          ],
-        },
-        quiz: {
-          played: true,
-          score: 85,
-          timesPlayed: 2,
-          history: [
-            { attempt: 1, score: 85, correctCount: 17, totalCount: 20, durationSeconds: 70, completedAt: '2026-10-14T09:30:00.000Z' },
-          ],
-        },
-        match: { played: false, bestTime: null, timesPlayed: 0 },
-      },
-      exams: [
-        {
-          id: '1',
-          title: 'Bài kiểm tra 15 phút',
-          type: 'unit',
-          unitTitle: unit.title,
-          duration: 15,
-          isCompleted: false,
-          score: null,
-          completedAt: null,
-        },
-      ],
-    },
-  ]
-
-  const displayData = studentAnalytics.length > 0 ? studentAnalytics : mockFakeStudents
+  const displayData = studentAnalytics
 
   const filteredData = displayData.filter((d) =>
     d.student.name.toLowerCase().includes(searchTerm.toLowerCase()),
@@ -234,7 +148,9 @@ const UnitProgressModal = ({
                 {filteredData.length === 0 ? (
                   <tr>
                     <td colSpan={4} className="py-12 text-center text-gray-400">
-                      Không tìm thấy học sinh nào.
+                      {studentAnalytics.length === 0
+                        ? 'Chưa có học sinh nào trong lớp học.'
+                        : 'Không tìm thấy học sinh nào phù hợp.'}
                     </td>
                   </tr>
                 ) : (

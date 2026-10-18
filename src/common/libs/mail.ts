@@ -5,34 +5,61 @@ interface SendResetPasswordOtpParams {
   otp: string
 }
 
-export async function sendResetPasswordOtpEmail({ to, otp }: SendResetPasswordOtpParams) {
-  const host = process.env.SMTP_HOST
-  const port = process.env.SMTP_PORT ? parseInt(process.env.SMTP_PORT, 10) : 587
+export interface SendConsultationEmailParams {
+  fullName: string
+  phone: string
+  email?: string
+  course: string
+  learningGoal?: string
+}
+
+/**
+ * Khởi tạo Gmail / SMTP Transporter
+ */
+const getMailTransporter = () => {
   const user = process.env.SMTP_USER
   const pass = process.env.SMTP_PASS
-  const from = process.env.SMTP_FROM || '"Megumi English" <noreply@megumi.edu.vn>'
-  const isSecure = process.env.SMTP_SECURE === 'true' || port === 465
 
-  // If SMTP is not fully configured, log OTP in console for development/testing
-  if (!host || !user || !pass) {
+  if (!user || !pass) return null
+
+  const host = process.env.SMTP_HOST || 'smtp.gmail.com'
+  const port = process.env.SMTP_PORT ? parseInt(process.env.SMTP_PORT, 10) : 465
+  const isSecure = process.env.SMTP_SECURE === 'false' ? false : true
+
+  return {
+    transporter: nodemailer.createTransport({
+      host,
+      port,
+      secure: isSecure,
+      auth: {
+        user,
+        // Tự động bỏ dấu cách nếu người dùng copy mã App Password dạng "abcd efgh ijkl mnop"
+        pass: pass.replace(/\s+/g, ''),
+      },
+    }),
+    from: process.env.SMTP_FROM || `"Megumi English" <${user}>`,
+  }
+}
+
+/**
+ * Gửi email chứa mã OTP đặt lại mật khẩu
+ */
+export async function sendResetPasswordOtpEmail({ to, otp }: SendResetPasswordOtpParams) {
+  const mailer = getMailTransporter()
+
+  // Chế độ Dev/Fallback: Nếu chưa cấu hình mật khẩu SMTP, in mã OTP ra Terminal
+  if (!mailer) {
     console.log('\n========================================================')
     console.log(`[Megumi English Auth] PASSWORD RESET OTP FOR: ${to}`)
     console.log(`🔑 OTP CODE: ${otp}`)
     console.log(`⏳ EXPIRES IN: 10 minutes`)
+    console.log('💡 Lưu ý: Hãy cấu hình SMTP_USER và SMTP_PASS trong .env để gửi email thật.')
     console.log('========================================================\n')
     return { success: true, mocked: true }
   }
 
-  const transporter = nodemailer.createTransport({
-    host,
-    port,
-    secure: isSecure,
-    auth: {
-      user,
-      pass,
-    },
-  })
-
+  const subject = `[Megumi English] Mã xác thực đặt lại mật khẩu: ${otp}`
+  const text = `Mã OTP đặt lại mật khẩu của bạn là: ${otp}. Mã có hiệu lực trong 10 phút.`
   const htmlContent = `
     <!DOCTYPE html>
     <html lang="vi">
@@ -72,33 +99,23 @@ export async function sendResetPasswordOtpEmail({ to, otp }: SendResetPasswordOt
     </html>
   `
 
-  await transporter.sendMail({
-    from,
+  await mailer.transporter.sendMail({
+    from: mailer.from,
     to,
-    subject: `[Megumi English] Mã xác thực đặt lại mật khẩu: ${otp}`,
-    text: `Mã OTP đặt lại mật khẩu của bạn là: ${otp}. Mã có hiệu lực trong 10 phút.`,
+    subject,
+    text,
     html: htmlContent,
   })
 
   return { success: true, mocked: false }
 }
 
-export interface SendConsultationEmailParams {
-  fullName: string
-  phone: string
-  email?: string
-  course: string
-  learningGoal?: string
-}
-
+/**
+ * Gửi email thông báo khi có học viên đăng ký tư vấn 0đ từ Landing Page
+ */
 export async function sendConsultationNotificationEmail(params: SendConsultationEmailParams) {
   const { fullName, phone, email, course, learningGoal } = params
-  const host = process.env.SMTP_HOST
-  const port = process.env.SMTP_PORT ? parseInt(process.env.SMTP_PORT, 10) : 587
-  const user = process.env.SMTP_USER
-  const pass = process.env.SMTP_PASS
-  const from = process.env.SMTP_FROM || '"Megumi Class System" <noreply@megumi.edu.vn>'
-  const isSecure = process.env.SMTP_SECURE === 'true' || port === 465
+  const mailer = getMailTransporter()
   const receiverEmail = process.env.CONSULTATION_RECEIVER_EMAIL || 'chidoan995.work@gmail.com'
 
   const cleanedPhone = phone.replace(/\D/g, '')
@@ -110,8 +127,7 @@ export async function sendConsultationNotificationEmail(params: SendConsultation
     timeStyle: 'medium',
   })
 
-  // If SMTP is not fully configured, log consultation info to server console
-  if (!host || !user || !pass) {
+  if (!mailer) {
     console.log('\n========================================================')
     console.log(`[Megumi Class] NEW CONSULTATION REGISTRATION!`)
     console.log(`📨 Sent To: ${receiverEmail}`)
@@ -124,16 +140,6 @@ export async function sendConsultationNotificationEmail(params: SendConsultation
     console.log('========================================================\n')
     return { success: true, mocked: true }
   }
-
-  const transporter = nodemailer.createTransport({
-    host,
-    port,
-    secure: isSecure,
-    auth: {
-      user,
-      pass,
-    },
-  })
 
   const htmlContent = `
     <!DOCTYPE html>
@@ -227,8 +233,8 @@ export async function sendConsultationNotificationEmail(params: SendConsultation
     </html>
   `
 
-  await transporter.sendMail({
-    from,
+  await mailer.transporter.sendMail({
+    from: mailer.from,
     to: receiverEmail,
     replyTo: email || undefined,
     subject: `[Megumi Class] Đăng ký học thử 0đ mới: ${fullName} - ${phone}`,

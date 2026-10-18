@@ -11,12 +11,18 @@ import type {
 /**
  * Returns class-wide leaderboard aggregating exam performances and vocab progress
  */
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
 export async function getClassLeaderboard(
   classId: string
 ): Promise<ClassLeaderboardResult> {
   const me = await getMe()
   if (!me || (me.role !== 'teacher' && me.role !== 'TEACHER')) {
     throw new Error('Unauthorized')
+  }
+
+  if (!classId || !UUID_REGEX.test(classId)) {
+    throw new Error('Mã lớp học không hợp lệ')
   }
 
   const cls = await prisma.class.findUnique({
@@ -148,6 +154,10 @@ export async function getStudentExamHistory(
   const me = await getMe()
   if (!me || (me.role !== 'teacher' && me.role !== 'TEACHER')) {
     throw new Error('Unauthorized')
+  }
+
+  if (!classId || !UUID_REGEX.test(classId) || !studentId || !UUID_REGEX.test(studentId)) {
+    throw new Error('Thông tin học sinh hoặc lớp học không hợp lệ')
   }
 
   const cls = await prisma.class.findUnique({
