@@ -54,6 +54,7 @@ const LoginForm = () => {
         <FormItem label="Mật khẩu" isRequired>
           <InputControl
             name="password"
+            type="password"
             control={control}
             error={errors.password?.message}
             placeholder="Nhập mật khẩu của bạn"
