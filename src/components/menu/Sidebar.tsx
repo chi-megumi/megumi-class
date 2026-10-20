@@ -80,7 +80,7 @@ const SideBar: React.FC<SideBarProps> = ({ position = 'left' }) => {
             .join(' ')}
         >
           <div>
-            <MenuTabs />
+            <MenuTabs onNavigate={closeSidebar} />
           </div>
 
           <div className="mt-auto">

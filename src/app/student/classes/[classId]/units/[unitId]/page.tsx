@@ -6,14 +6,14 @@ import { FlashcardProvider } from '@/components/flashcards/stores/useFlashcardSt
 export default async function StudentUnitPage({ params }: { params: Promise<{ classId: string, unitId: string }> }) {
   const { classId, unitId } = await params
 
-  let unitData
+  let unitData = null
   try {
     unitData = await getStudentUnitDetails(unitId)
-  } catch {
-    redirect(`/student/classes/${classId}`)
+  } catch (err) {
+    console.error('Error loading student unit details:', err)
   }
 
-  if (!unitData) return redirect(`/student/classes/${classId}`)
+  if (!unitData) return redirect('/')
 
   return (
     <FlashcardProvider storageName={`student-unit-${unitData.id}`}>

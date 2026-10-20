@@ -12,7 +12,7 @@ export default async function ClassManagementPage({ params }: PageProps) {
   const classData = await getTeacherClassDetails(classId)
 
   if (!classData) {
-    redirect('/teacher')
+    redirect('/')
   }
 
   return (

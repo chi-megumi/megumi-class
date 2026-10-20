@@ -20,7 +20,7 @@ export default async function FlashcardsRoute() {
     <UserProvider user={user}>
       <div
         className={`main-layout flex justify-center gap-3 ${
-          user ? 'lg:pl-[280px]' : ''
+          user ? 'lg:pl-[260px]' : ''
         } print:pl-0 print:block print:w-full`}
       >
         {user && (

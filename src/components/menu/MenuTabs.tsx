@@ -11,7 +11,11 @@ import { usePathname } from 'next/navigation'
 // Type inference from Prisma output or simple type
 type ClassData = Awaited<ReturnType<typeof getTeacherClasses>>[0]
 
-const MenuTabs = () => {
+interface MenuTabsProps {
+  onNavigate?: () => void
+}
+
+const MenuTabs = ({ onNavigate }: MenuTabsProps = {}) => {
   const [activeSidebar, setActiveSidebar] = useState('class')
   const [expandedClasses, setExpandedClasses] = useState<Record<string, boolean>>({})
   const user = useUserStore((s) => s.user)
@@ -120,11 +124,14 @@ const MenuTabs = () => {
                       {isTeacher && (
                         <Link
                           href={`/teacher/classes/${cls.id}`}
-                          className="p-1 hover:bg-indigo-50 rounded text-gray-400 hover:text-indigo-500 transition-colors"
-                          onClick={(e) => e.stopPropagation()}
+                          className="min-w-8 min-h-8 p-1.5 flex items-center justify-center hover:bg-indigo-50 rounded-lg text-gray-400 hover:text-indigo-600 transition-colors"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            onNavigate?.()
+                          }}
                           title="Quản lý lớp học"
                         >
-                          <Settings size={14} />
+                          <Settings size={15} />
                         </Link>
                       )}
                       {isClassExpanded(cls.id) ? (
@@ -146,6 +153,7 @@ const MenuTabs = () => {
                           <Link
                             key={unit.id}
                             href={`/student/classes/${cls.id}/units/${unit.id}`}
+                            onClick={() => onNavigate?.()}
                             className={[
                               'flex items-center gap-2 p-2.5 text-sm cursor-pointer rounded-xl transition-all font-medium',
                               isActiveUnit 
@@ -172,6 +180,7 @@ const MenuTabs = () => {
           <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar mt-2">
             <Link
               href="/teacher/classes/create"
+              onClick={() => onNavigate?.()}
               className="flex items-center gap-3 py-3 px-3 bg-white/60 hover:bg-white rounded-xl shadow-[0_2px_10px_rgba(106,94,235,0.05)] hover:shadow-[0_4px_15px_rgba(106,94,235,0.15)] cursor-pointer transition-all duration-300 border border-[#E5D9F2] hover:border-[#6A5EEB]/40 group"
             >
               <div className="bg-[#6A5EEB]/10 p-1.5 rounded-lg group-hover:bg-[#6A5EEB]/20 group-hover:scale-110 transition-all duration-300">

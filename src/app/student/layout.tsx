@@ -12,21 +12,27 @@ export default async function StudentLayout({ children }: { children: React.Reac
     redirect('/')
   }
   // Allow teachers to preview student views
-  const isAuthorized = user.role === 'student' || user.role === 'STUDENT' || user.role === 'teacher' || user.role === 'TEACHER'
+  const isAuthorized =
+    user.role === 'student' ||
+    user.role === 'STUDENT' ||
+    user.role === 'teacher' ||
+    user.role === 'TEACHER'
   if (!isAuthorized) {
     redirect('/')
   }
 
   return (
     <UserProvider user={user}>
-      <div className={`main-layout flex justify-center gap-3 ${user ? 'lg:pl-[280px]' : ''} print:pl-0 print:block print:w-full`}>
+      <div
+        className={`main-layout flex justify-center gap-3 ${user ? 'lg:pl-[260px]' : ''} print:pl-0 print:block print:w-full`}
+      >
         {user && (
           <div className="print:hidden">
             <SideBar />
           </div>
         )}
 
-        <div className="main-content-wrapper min-w-0 w-full max-w-[1200px] px-4 pr-[50px] print:p-6 print:m-0 print:max-w-none print:w-full">
+        <div className="main-content-wrapper min-w-0 w-full max-w-[1200px] px-4 print:p-6 print:m-0 print:max-w-none print:w-full">
           <div className="max-w-[900px] mx-auto w-full print:hidden">
             <AppHeader />
           </div>

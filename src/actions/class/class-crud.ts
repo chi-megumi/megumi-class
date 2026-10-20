@@ -242,9 +242,10 @@ export async function getStudentClassDetails(classId: string) {
   const user = await getMe()
   if (!user) throw new Error('Unauthorized')
 
-  if (user.role === 'teacher' || user.role === 'TEACHER') {
+  if (user.role === 'teacher' || user.role === 'TEACHER' || user.systemRole === 'admin') {
+    const classWhere = user.systemRole === 'admin' ? { id: classId } : { id: classId, teacherId: user.id }
     const classOwned = await prisma.class.findUnique({
-      where: { id: classId, teacherId: user.id },
+      where: classWhere,
       include: {
         units: {
           orderBy: { createdAt: 'asc' },

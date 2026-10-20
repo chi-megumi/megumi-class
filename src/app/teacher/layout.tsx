@@ -17,10 +17,10 @@ export default async function TeacherLayout({ children }: { children: React.Reac
 
   return (
     <UserProvider user={user}>
-      <div className={`main-layout flex justify-center gap-3 ${user ? 'lg:pl-[280px]' : ''}`}>
+      <div className={`main-layout flex justify-center gap-3 ${user ? 'lg:pl-[260px]' : ''}`}>
         {user && <SideBar />}
 
-        <div className="main-content-wrapper min-w-0 w-full max-w-[1200px] px-4 pr-[50px]">
+        <div className="main-content-wrapper min-w-0 w-full max-w-[1200px] px-4">
           <div className="max-w-[900px] mx-auto w-full">
             <AppHeader />
           </div>

@@ -131,7 +131,7 @@ export async function getStudentUnitDetails(unitId: string) {
   const user = await getMe()
   if (!user) throw new Error('Unauthorized')
 
-  if (user.role === 'teacher' || user.role === 'TEACHER') {
+  if (user.role === 'teacher' || user.role === 'TEACHER' || user.systemRole === 'admin') {
     const unitOwned = await prisma.unit.findUnique({
       where: { id: unitId },
       include: {
@@ -152,7 +152,7 @@ export async function getStudentUnitDetails(unitId: string) {
         },
       },
     })
-    if (unitOwned && unitOwned.class.teacherId === user.id) {
+    if (unitOwned && (unitOwned.class.teacherId === user.id || user.systemRole === 'admin')) {
       // Sanitize for student view
       const exams = unitOwned.exams || []
       return { ...unitOwned, exams: sanitizeExams(exams) }
