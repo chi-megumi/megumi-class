@@ -146,17 +146,17 @@ export function MatchGame() {
   }
 
   return (
-    <div className="w-full max-w-4xl mx-auto py-8 px-4 flex flex-col items-center animate-in fade-in duration-500">
-      <div className="w-full flex justify-between items-center mb-8 px-4">
-        <div className="flex items-center gap-2 text-xl font-bold text-indigo-700 bg-indigo-50 px-4 py-2 rounded-2xl border border-indigo-100">
-          <Clock size={20} className={!isFinished ? "animate-pulse" : ""} />
+    <div className="w-full max-w-4xl mx-auto py-4 sm:py-8 px-2 sm:px-4 flex flex-col items-center animate-in fade-in duration-500">
+      <div className="w-full flex justify-between items-center mb-4 sm:mb-8 px-2 sm:px-4">
+        <div className="flex items-center gap-2 text-base sm:text-xl font-bold text-indigo-700 bg-indigo-50 px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl sm:rounded-2xl border border-indigo-100">
+          <Clock size={18} className={!isFinished ? "animate-pulse" : ""} />
           {formatDuration(elapsed)}
         </div>
         
         {isFinished && (
           <button
             onClick={startGame}
-            className="flex justify-center items-center gap-2 py-2 px-6 bg-green-500 hover:bg-green-600 text-white font-bold rounded-xl transition-all shadow-sm"
+            className="flex justify-center items-center gap-2 py-2 px-4 sm:px-6 bg-green-500 hover:bg-green-600 text-white font-bold rounded-xl transition-all shadow-sm text-sm sm:text-base"
           >
             <RotateCcw size={16} /> Chơi lại
           </button>
@@ -164,16 +164,16 @@ export function MatchGame() {
       </div>
 
       {isFinished && (
-        <div className="w-full bg-green-50 border border-green-100 rounded-3xl p-8 text-center mb-8 animate-in slide-in-from-top-4 fade-in">
-          <div className="text-4xl mb-4">🎉</div>
-          <h2 className="text-2xl font-bold text-green-800 mb-2">Hoàn thành xuất sắc!</h2>
-          <p className="text-green-600">
+        <div className="w-full bg-green-50 border border-green-100 rounded-3xl p-6 sm:p-8 text-center mb-6 sm:mb-8 animate-in slide-in-from-top-4 fade-in">
+          <div className="text-3xl sm:text-4xl mb-3 sm:mb-4">🎉</div>
+          <h2 className="text-xl sm:text-2xl font-bold text-green-800 mb-2">Hoàn thành xuất sắc!</h2>
+          <p className="text-green-600 text-sm sm:text-base">
             Bạn đã ghép đúng tất cả các thẻ trong {formatDuration(elapsed)}.
           </p>
         </div>
       )}
 
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 w-full">
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5 sm:gap-4 w-full">
         {cards.map((card) => {
           const isSelected = selectedCards.some((c) => c.id === card.id)
           const isMatched = card.isMatched
@@ -198,9 +198,9 @@ export function MatchGame() {
               key={card.id}
               onClick={() => handleCardClick(card)}
               disabled={isMatched || mismatchWait || (isSelected && selectedCards.length === 1)}
-              className={`min-h-[120px] p-4 rounded-2xl border-2 flex items-center justify-center text-center font-semibold text-lg transition-all duration-300 ${btnClass}`}
+              className={`min-h-[72px] sm:min-h-[100px] md:min-h-[120px] p-2 sm:p-3 md:p-4 rounded-xl sm:rounded-2xl border-2 flex items-center justify-center text-center font-semibold text-sm sm:text-base md:text-lg transition-all duration-300 select-none ${btnClass}`}
             >
-              {card.text}
+              <span className="line-clamp-3">{card.text}</span>
             </button>
           )
         })}

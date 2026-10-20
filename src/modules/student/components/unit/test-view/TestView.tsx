@@ -279,6 +279,31 @@ export default function TestView({ testData, unitId, onClose, initialResult, onT
     handleAnswer(questionId, '')
   }
 
+  const handleMoveWord = (questionId: string, fromPos: number, toPos: number, words: string[]) => {
+    if (result || isReviewMode) return
+    const currentIndices = reorderSelections[questionId] || []
+    if (fromPos < 0 || fromPos >= currentIndices.length || toPos < 0 || toPos >= currentIndices.length || fromPos === toPos) return
+    const newIndices = [...currentIndices]
+    const [movedItem] = newIndices.splice(fromPos, 1)
+    newIndices.splice(toPos, 0, movedItem)
+    setReorderSelections(prev => ({ ...prev, [questionId]: newIndices }))
+    const assembled = newIndices.map(i => words[i]).join(' ')
+    handleAnswer(questionId, assembled)
+  }
+
+  const handleSwapWords = (questionId: string, posA: number, posB: number, words: string[]) => {
+    if (result || isReviewMode) return
+    const currentIndices = reorderSelections[questionId] || []
+    if (posA < 0 || posA >= currentIndices.length || posB < 0 || posB >= currentIndices.length || posA === posB) return
+    const newIndices = [...currentIndices]
+    const temp = newIndices[posA]
+    newIndices[posA] = newIndices[posB]
+    newIndices[posB] = temp
+    setReorderSelections(prev => ({ ...prev, [questionId]: newIndices }))
+    const assembled = newIndices.map(i => words[i]).join(' ')
+    handleAnswer(questionId, assembled)
+  }
+
   const handleDragStartBankWord = (e: React.DragEvent, questionId: string, wordIdx: number) => {
     if (result || isReviewMode) return
     setDraggedReorderWord({ questionId, wordIdx, fromSentence: false })
@@ -584,6 +609,8 @@ export default function TestView({ testData, unitId, onClose, initialResult, onT
                   dragOverReorderPos={dragOverReorderPos}
                   onSelectWord={handleSelectWord}
                   onRemoveWord={handleRemoveWord}
+                  onMoveWord={handleMoveWord}
+                  onSwapWords={handleSwapWords}
                   onResetReorder={handleResetReorder}
                   onDragStartBankWord={handleDragStartBankWord}
                   onDragStartSentenceWord={handleDragStartSentenceWord}

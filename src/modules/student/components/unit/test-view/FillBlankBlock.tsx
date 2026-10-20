@@ -44,7 +44,11 @@ export default function FillBlankBlock({ blockId, questions, text, answer, answe
                         value={answers[qId] || ''}
                         onChange={(e) => onAnswer(qId, e.target.value)}
                         disabled={isReviewMode}
-                        className={`w-24 sm:w-28 border-b-2 bg-white px-1.5 py-0.5 rounded-t text-center font-bold text-xs focus:outline-none transition-colors ${
+                        autoCapitalize="none"
+                        autoCorrect="off"
+                        spellCheck={false}
+                        autoComplete="off"
+                        className={`w-24 sm:w-28 border-b-2 bg-white px-1.5 py-1 sm:py-0.5 rounded-t text-center font-bold text-base sm:text-xs focus:outline-none transition-colors ${
                           showCorrect
                             ? 'border-green-500 text-green-700 bg-green-50'
                             : showIncorrect

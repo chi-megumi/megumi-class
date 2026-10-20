@@ -1,3 +1,4 @@
+import { useRef } from 'react'
 import { useFlashcardStore, useFilteredIds } from '../stores/useFlashcardStore'
 import { categoryBadgeLabels } from '../data/vocabData'
 import { useSpeech } from '../hooks/useSpeech'
@@ -9,8 +10,15 @@ export function Flashcard3D() {
   const currentId = useFlashcardStore((s) => s.currentId)
   const isFlipped = useFlashcardStore((s) => s.isFlipped)
   const flipCard = useFlashcardStore((s) => s.flipCard)
+  const nextCard = useFlashcardStore((s) => s.nextCard)
+  const prevCard = useFlashcardStore((s) => s.prevCard)
   const starredSet = useFlashcardStore((s) => s.starredSet)
   const toggleStar = useFlashcardStore((s) => s.toggleStar)
+
+  // Touch swipe refs
+  const touchStartXRef = useRef<number | null>(null)
+  const touchStartYRef = useRef<number | null>(null)
+  const hasSwipedRef = useRef(false)
 
   // Subscribe to filtered result with shallow equality — no tearing, no infinite loop
   const filtered = useFilteredIds()
@@ -21,6 +29,42 @@ export function Flashcard3D() {
 
   const item = isEmpty || !currentId ? null : vocabItems.find((i) => i.id === currentId) || null
   const isStarred = item && starredSet.includes(item.id)
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (e.touches.length === 1) {
+      touchStartXRef.current = e.touches[0].clientX
+      touchStartYRef.current = e.touches[0].clientY
+      hasSwipedRef.current = false
+    }
+  }
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (touchStartXRef.current === null || touchStartYRef.current === null) return
+    const touchEndX = e.changedTouches[0].clientX
+    const touchEndY = e.changedTouches[0].clientY
+    const deltaX = touchEndX - touchStartXRef.current
+    const deltaY = touchEndY - touchStartYRef.current
+
+    // Horizontal swipe threshold: 40px and horizontal movement exceeds vertical
+    if (Math.abs(deltaX) > 40 && Math.abs(deltaX) > Math.abs(deltaY) * 1.3) {
+      hasSwipedRef.current = true
+      if (deltaX < 0) {
+        nextCard()
+      } else {
+        prevCard()
+      }
+    }
+    touchStartXRef.current = null
+    touchStartYRef.current = null
+  }
+
+  const handleCardClick = () => {
+    if (hasSwipedRef.current) {
+      hasSwipedRef.current = false
+      return
+    }
+    flipCard()
+  }
 
   const handleSpeak = (e: React.MouseEvent) => {
     e.stopPropagation()
@@ -94,7 +138,12 @@ export function Flashcard3D() {
   const badgeLabel = categoryBadgeLabels[item.category?.slug || ''] || item.category?.name || 'Từ vựng'
 
   return (
-    <div className="flashcard-wrapper" onClick={flipCard}>
+    <div
+      className="flashcard-wrapper select-none"
+      onClick={handleCardClick}
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
+    >
       <div className={`flashcard ${isFlipped ? 'flipped' : ''}`} id="main-card">
         {/* FRONT FACE */}
         <div className="card-face card-front">
@@ -132,7 +181,7 @@ export function Flashcard3D() {
 
           <div className="card-bottom-hint">
             <span>
-              👆 Nhấn vào thẻ hoặc phím <kbd className="kbd">Space</kbd> để lật xem giải thích
+              👆 Chạm vào thẻ để lật <span className="hidden sm:inline">hoặc phím <kbd className="kbd">Space</kbd></span> • Vuốt 👈 👉 để chuyển thẻ
             </span>
           </div>
         </div>

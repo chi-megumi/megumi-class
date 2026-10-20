@@ -22,7 +22,15 @@ export const VocabVault: React.FC<VocabVaultProps> = ({
   ).length
 
   const handlePrint = () => {
-    window.print()
+    try {
+      if (typeof window !== 'undefined' && typeof window.print === 'function') {
+        window.print()
+      } else {
+        alert('Trình duyệt hiện tại không hỗ trợ in trực tiếp. Vui lòng mở trang bằng Chrome hoặc Safari để in/lưu PDF.')
+      }
+    } catch {
+      alert('Không thể kích hoạt tính năng in trên trình duyệt này. Vui lòng mở bằng Chrome hoặc Safari.')
+    }
   }
 
   return (

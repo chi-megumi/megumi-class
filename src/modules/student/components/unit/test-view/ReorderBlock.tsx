@@ -1,5 +1,5 @@
-import React from 'react'
-import { CheckCircle2, X, RotateCcw } from 'lucide-react'
+import React, { useState } from 'react'
+import { CheckCircle2, X, RotateCcw, ChevronLeft, ChevronRight } from 'lucide-react'
 import type { TestQuestion } from '~/modules/teacher/types'
 import type { TestResultPayload } from '@/actions/analytics/types'
 import { normalizeSentence } from './constants'
@@ -15,6 +15,8 @@ type ReorderBlockProps = {
   dragOverReorderPos: number | null
   onSelectWord: (questionId: string, wordIdx: number, words: string[]) => void
   onRemoveWord: (questionId: string, positionInSentence: number, words: string[]) => void
+  onMoveWord?: (questionId: string, fromPos: number, toPos: number, words: string[]) => void
+  onSwapWords?: (questionId: string, posA: number, posB: number, words: string[]) => void
   onResetReorder: (questionId: string) => void
   onDragStartBankWord: (e: React.DragEvent, questionId: string, wordIdx: number) => void
   onDragStartSentenceWord: (e: React.DragEvent, questionId: string, wordIdx: number, sentencePos: number) => void
@@ -28,10 +30,25 @@ export default function ReorderBlock({
   questions, answers, isReviewMode, result,
   shuffledWordsMap, reorderSelections,
   dragOverReorderZone, dragOverReorderPos,
-  onSelectWord, onRemoveWord, onResetReorder,
+  onSelectWord, onRemoveWord, onMoveWord, onSwapWords, onResetReorder,
   onDragStartBankWord, onDragStartSentenceWord, onDropOnSentenceSlot,
   onDragOverZone, onDragLeaveZone, onDragOverPos,
 }: ReorderBlockProps) {
+  const [activeSwapPos, setActiveSwapPos] = useState<Record<string, number | null>>({})
+
+  const handleChipClick = (questionId: string, pos: number, words: string[]) => {
+    if (isReviewMode) return
+    const currentActive = activeSwapPos[questionId]
+    if (currentActive === undefined || currentActive === null) {
+      setActiveSwapPos((prev) => ({ ...prev, [questionId]: pos }))
+    } else if (currentActive === pos) {
+      setActiveSwapPos((prev) => ({ ...prev, [questionId]: null }))
+    } else {
+      onSwapWords?.(questionId, currentActive, pos, words)
+      setActiveSwapPos((prev) => ({ ...prev, [questionId]: null }))
+    }
+  }
+
   return (
     <div className="space-y-4">
       {(questions || []).map((q: TestQuestion, qIdx: number) => {
@@ -43,6 +60,7 @@ export default function ReorderBlock({
         const isCorrect = normalizeSentence(studentSentence) === normalizeSentence(correctSentence)
         const showCorrect = isReviewMode && hasDetail && isCorrect
         const showIncorrect = isReviewMode && hasDetail && !isCorrect
+        const isSwapping = activeSwapPos[q.id] !== null && activeSwapPos[q.id] !== undefined
 
         return (
           <div 
@@ -68,7 +86,13 @@ export default function ReorderBlock({
                     {q.text || 'Sắp xếp các từ sau thành câu hoàn chỉnh:'}
                   </p>
                   <p className="text-[10px] text-gray-400 mt-0.5">
-                    Kéo thả từ lên ô câu, hoặc chạm từng từ theo thứ tự để ghép.
+                    {isSwapping ? (
+                      <span className="text-amber-600 font-bold animate-pulse">
+                        Đang chọn từ: hãy chạm vào từ khác để đổi chỗ, hoặc bấm ‹ › để dịch chuyển!
+                      </span>
+                    ) : (
+                      'Kéo thả từ hoặc chạm từng từ để ghép. Nhấn vào từ để hoán đổi chỗ hoặc bấm ‹ › để chỉnh.'
+                    )}
                   </p>
                 </div>
               </div>
@@ -76,7 +100,10 @@ export default function ReorderBlock({
               {!isReviewMode && selectedIndices.length > 0 && (
                 <button
                   type="button"
-                  onClick={() => onResetReorder(q.id)}
+                  onClick={() => {
+                    setActiveSwapPos((prev) => ({ ...prev, [q.id]: null }))
+                    onResetReorder(q.id)
+                  }}
                   className="flex items-center gap-1 text-[10px] font-semibold text-gray-500 hover:text-red-500 hover:bg-red-50 px-1.5 py-0.5 rounded border border-gray-200 transition-colors shrink-0"
                   title="Xóa làm lại câu này"
                 >
@@ -128,30 +155,84 @@ export default function ReorderBlock({
                   {dragOverReorderZone === q.id ? 'Thả từ vào đây...' : 'Kéo thả các từ vào đây hoặc chạm từ bên dưới...'}
                 </span>
               ) : (
-                selectedIndices.map((wordIdx, pos) => (
-                  <div
-                    key={`${wordIdx}-${pos}`}
-                    draggable={true}
-                    onDragStart={(e) => onDragStartSentenceWord(e, q.id, wordIdx, pos)}
-                    onDragOver={(e) => {
-                      e.preventDefault()
-                      e.stopPropagation()
-                      onDragOverPos(pos)
-                    }}
-                    onDrop={(e) => {
-                      e.stopPropagation()
-                      onDropOnSentenceSlot(e, q.id, words, pos)
-                    }}
-                    onClick={() => onRemoveWord(q.id, pos, words)}
-                    className={`px-2 py-0.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-md text-[11px] shadow-2xs transition-all flex items-center gap-1 cursor-grab active:cursor-grabbing group/chip select-none ${
-                      dragOverReorderPos === pos ? 'ring-1 ring-amber-300 scale-105' : ''
-                    }`}
-                    title="Kéo để đổi vị trí, hoặc chạm để trả về kho từ"
-                  >
-                    <span>{words[wordIdx]}</span>
-                    <X size={11} className="opacity-70 group-hover/chip:opacity-100 shrink-0" />
-                  </div>
-                ))
+                selectedIndices.map((wordIdx, pos) => {
+                  const isSelectedForSwap = activeSwapPos[q.id] === pos
+                  return (
+                    <div
+                      key={`${wordIdx}-${pos}`}
+                      draggable={true}
+                      onDragStart={(e) => onDragStartSentenceWord(e, q.id, wordIdx, pos)}
+                      onDragOver={(e) => {
+                        e.preventDefault()
+                        e.stopPropagation()
+                        onDragOverPos(pos)
+                      }}
+                      onDrop={(e) => {
+                        e.stopPropagation()
+                        onDropOnSentenceSlot(e, q.id, words, pos)
+                      }}
+                      onClick={() => handleChipClick(q.id, pos, words)}
+                      className={`px-1.5 sm:px-2 py-0.5 text-white font-bold rounded-md text-[11px] shadow-2xs transition-all flex items-center gap-1 cursor-grab active:cursor-grabbing select-none ${
+                        isSelectedForSwap
+                          ? 'bg-amber-600 ring-2 ring-amber-300 scale-105 shadow-md'
+                          : dragOverReorderPos === pos
+                            ? 'bg-indigo-600 ring-1 ring-amber-300 scale-105'
+                            : 'bg-indigo-600 hover:bg-indigo-700'
+                      }`}
+                      title="Kéo hoặc chạm để hoán đổi vị trí từ"
+                    >
+                      {/* Move left button for touch */}
+                      {!isReviewMode && pos > 0 && onMoveWord && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            onMoveWord(q.id, pos, pos - 1, words)
+                            if (activeSwapPos[q.id] !== null) setActiveSwapPos((prev) => ({ ...prev, [q.id]: null }))
+                          }}
+                          className="p-0.5 hover:bg-indigo-800 active:bg-indigo-900 rounded text-indigo-200 hover:text-white transition-colors"
+                          title="Chuyển sang trái"
+                        >
+                          <ChevronLeft size={11} />
+                        </button>
+                      )}
+
+                      <span className="px-0.5">{words[wordIdx]}</span>
+
+                      {/* Move right button for touch */}
+                      {!isReviewMode && pos < selectedIndices.length - 1 && onMoveWord && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            onMoveWord(q.id, pos, pos + 1, words)
+                            if (activeSwapPos[q.id] !== null) setActiveSwapPos((prev) => ({ ...prev, [q.id]: null }))
+                          }}
+                          className="p-0.5 hover:bg-indigo-800 active:bg-indigo-900 rounded text-indigo-200 hover:text-white transition-colors"
+                          title="Chuyển sang phải"
+                        >
+                          <ChevronRight size={11} />
+                        </button>
+                      )}
+
+                      {/* Remove button */}
+                      {!isReviewMode && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            onRemoveWord(q.id, pos, words)
+                            if (activeSwapPos[q.id] === pos) setActiveSwapPos((prev) => ({ ...prev, [q.id]: null }))
+                          }}
+                          className="p-0.5 hover:bg-red-500/80 active:bg-red-600 rounded text-white/70 hover:text-white transition-colors ml-0.5"
+                          title="Gỡ từ này về kho"
+                        >
+                          <X size={11} className="shrink-0" />
+                        </button>
+                      )}
+                    </div>
+                  )
+                })
               )}
             </div>
 

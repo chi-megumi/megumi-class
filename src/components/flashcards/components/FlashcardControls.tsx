@@ -56,7 +56,7 @@ export function FlashcardControls() {
 
         <Button variant="primary" size="md" onClick={flipCard} disabled={isEmptyCards}>
           <span className="flex items-center gap-1.5">
-            <RotateCw size={16} /> Lật Thẻ (Space)
+            <RotateCw size={16} /> Lật Thẻ <span className="hidden sm:inline">(Space)</span>
           </span>
         </Button>
 
@@ -90,7 +90,7 @@ export function FlashcardControls() {
         <span style={{ color: '#94a3b8' }}> (Tổng bộ: {total})</span>
       </div>
 
-      <div className="keyboard-hint">
+      <div className="keyboard-hint hidden md:flex">
         <span className="flex items-center gap-1">
           <Keyboard size={14} /> Phím tắt:
         </span>
