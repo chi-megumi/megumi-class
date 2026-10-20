@@ -8,6 +8,7 @@ import bcrypt from 'bcryptjs'
 import { loginSchema, registerSchema, forgotPasswordSchema, resetPasswordSchema } from '@/common/schemas'
 import { sendResetPasswordOtpEmail } from '@/common/libs/mail'
 import { z } from 'zod'
+import { cache } from 'react'
 
 const resetWithEmailSchema = resetPasswordSchema.and(
   z.object({
@@ -33,6 +34,8 @@ export async function login(data: z.infer<typeof loginSchema>) {
 
     const token = await signToken({
       userId: user.id,
+      email: user.email,
+      name: user.name,
       role: user.userType,
       systemRole: user.systemRole,
     })
@@ -90,6 +93,8 @@ export async function register(data: z.infer<typeof registerSchema>) {
 
     const token = await signToken({
       userId: user.id,
+      email: user.email,
+      name: user.name,
       role: user.userType,
       systemRole: user.systemRole,
     })
@@ -124,6 +129,19 @@ export async function logout() {
   return { success: true }
 }
 
+const getCachedUser = cache(async (userId: string) => {
+  return prisma.user.findUnique({
+    where: { id: userId },
+    select: {
+      id: true,
+      email: true,
+      name: true,
+      userType: true,
+      systemRole: true,
+    },
+  })
+})
+
 export async function getMe() {
   try {
     const cookieStore = await cookies()
@@ -133,19 +151,38 @@ export async function getMe() {
     const payload = await verifyToken(token)
     if (!payload || !payload.userId) return null
 
-    const user = await prisma.user.findUnique({
-      where: { id: payload.userId as string },
+    const user = await getCachedUser(payload.userId as string).catch((err) => {
+      console.error('getCachedUser failed:', err)
+      return null
     })
-    if (!user) return null
 
-    return {
-      id: user.id,
-      email: user.email,
-      name: user.name,
-      role: user.userType,
-      systemRole: user.systemRole,
+    if (user) {
+      return {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role: user.userType,
+        systemRole: user.systemRole,
+      }
     }
-  } catch {
+
+    // Resilient fallback to verified JWT payload if database temporarily errors/times out
+    if (payload.userId && payload.role) {
+      return {
+        id: payload.userId as string,
+        email: (payload.email as string) || '',
+        name: (payload.name as string) || '',
+        role: payload.role as string,
+        systemRole: (payload.systemRole as string) || 'client',
+      }
+    }
+
+    return null
+  } catch (err: unknown) {
+    if ((err as { digest?: string })?.digest === 'DYNAMIC_SERVER_USAGE') {
+      throw err
+    }
+    console.error('getMe error:', err)
     return null
   }
 }
