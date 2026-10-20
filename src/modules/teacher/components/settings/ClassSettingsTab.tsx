@@ -1,10 +1,8 @@
 'use client'
 
-import { useUserStore } from '~/providers/UserProvider'
 import { ClassData } from '../../types'
 import GeneralSettingsCard from './GeneralSettingsCard'
 import InviteSettingsCard from './InviteSettingsCard'
-import AdminUserControlsCard from './AdminUserControlsCard'
 import DangerZoneCard from './DangerZoneCard'
 
 type ClassSettingsTabProps = {
@@ -18,9 +16,6 @@ export default function ClassSettingsTab({
   onClassUpdated,
   onCodeRegenerated,
 }: ClassSettingsTabProps) {
-  const currentUser = useUserStore((state) => state.user)
-  const isAdmin = currentUser?.systemRole === 'admin'
-
   return (
     <div className="space-y-8 animate-in slide-in-from-bottom-4 duration-500">
       {/* 1. General Settings */}
@@ -33,11 +28,9 @@ export default function ClassSettingsTab({
         onCodeRegenerated={onCodeRegenerated}
       />
 
-      {/* 3. System Admin Controls (Only rendered if current user is an Admin) */}
-      {isAdmin && <AdminUserControlsCard classData={classData} />}
-
-      {/* 4. Danger Zone */}
+      {/* 3. Danger Zone */}
       <DangerZoneCard classData={classData} />
     </div>
   )
 }
+

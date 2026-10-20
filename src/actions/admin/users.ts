@@ -62,6 +62,7 @@ export async function adminSetUserTypeAction({
       select: { id: true, name: true, userType: true },
     })
 
+    revalidatePath('/admin')
     revalidatePath('/teacher')
     revalidatePath('/')
 
@@ -154,3 +155,95 @@ export async function adminGetTeachersListAction(): Promise<ActionResult<AdminUs
     return { success: false, error: errorMsg, data: [] }
   }
 }
+
+export type AdminUserRoleFilter = 'all' | 'teacher' | 'student' | 'admin'
+
+export type AdminUserStats = {
+  total: number
+  teachers: number
+  students: number
+  admins: number
+}
+
+export type AdminGetUsersResult = {
+  users: AdminUserItem[]
+  stats: AdminUserStats
+}
+
+export async function adminGetUsersAction({
+  query = '',
+  role = 'all',
+  limit = 50,
+}: {
+  query?: string
+  role?: AdminUserRoleFilter
+  limit?: number
+} = {}): Promise<ActionResult<AdminGetUsersResult>> {
+  try {
+    await verifyAdmin()
+
+    const trimmed = query.trim()
+    const whereClause: Record<string, unknown> = {}
+
+    if (trimmed) {
+      whereClause.OR = [
+        { name: { contains: trimmed, mode: 'insensitive' as const } },
+        { email: { contains: trimmed, mode: 'insensitive' as const } },
+      ]
+    }
+
+    if (role === 'teacher') {
+      whereClause.userType = 'teacher'
+    } else if (role === 'student') {
+      whereClause.userType = 'student'
+    } else if (role === 'admin') {
+      whereClause.systemRole = 'admin'
+    }
+
+    const [users, total, teachers, students, admins] = await Promise.all([
+      prisma.user.findMany({
+        where: whereClause,
+        take: Math.min(limit, 100),
+        orderBy: { createdAt: 'desc' },
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          avatarUrl: true,
+          userType: true,
+          systemRole: true,
+          createdAt: true,
+        },
+      }),
+      prisma.user.count(),
+      prisma.user.count({ where: { userType: 'teacher' } }),
+      prisma.user.count({ where: { userType: 'student' } }),
+      prisma.user.count({ where: { systemRole: 'admin' } }),
+    ])
+
+    return {
+      success: true,
+      data: {
+        users,
+        stats: {
+          total,
+          teachers,
+          students,
+          admins,
+        },
+      },
+    }
+  } catch (err: unknown) {
+    const errorMsg =
+      err instanceof Error ? err.message : 'Có lỗi xảy ra khi tải danh sách người dùng'
+    return {
+      success: false,
+      error: errorMsg,
+      data: {
+        users: [],
+        stats: { total: 0, teachers: 0, students: 0, admins: 0 },
+      },
+    }
+  }
+}
+

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Tabs from '~/components/tabs'
-import { BookOpen, ChevronDown, ChevronRight, Folder, PlusCircle, Settings } from 'lucide-react'
+import { BookOpen, ChevronDown, ChevronRight, Folder, PlusCircle, Settings, ShieldCheck } from 'lucide-react'
 import Link from 'next/link'
 import { useUserStore } from '~/providers/UserProvider'
 import { getTeacherClasses, getStudentClasses } from '~/actions/class'
@@ -17,14 +17,19 @@ interface MenuTabsProps {
 }
 
 const MenuTabs = ({ onNavigate }: MenuTabsProps = {}) => {
-  const [activeSidebar, setActiveSidebar] = useState('class')
+  const pathname = usePathname()
+  const isTeacherOrAdminPath = pathname.startsWith('/admin') || pathname.startsWith('/teacher')
+  const [selectedSidebar, setSelectedSidebar] = useState<'class' | 'teacher' | null>(null)
+  const activeSidebar = selectedSidebar ?? (isTeacherOrAdminPath ? 'teacher' : 'class')
+
   const [expandedClasses, setExpandedClasses] = useState<Record<string, boolean>>({})
   const user = useUserStore((s) => s.user)
   const isTeacher = user?.role === 'teacher' || user?.role === 'TEACHER'
+  const isAdmin = user?.systemRole === 'admin' || user?.role === 'admin'
+  const canSeeTeacherTab = isTeacher || isAdmin
 
   const [classes, setClasses] = useState<ClassData[]>([])
   const [loading, setLoading] = useState(true)
-  const pathname = usePathname()
 
   // Extract classId and unitId from pathname if they exist
   // e.g., /student/classes/123/units/456 or /teacher/classes/123
@@ -80,7 +85,7 @@ const MenuTabs = ({ onNavigate }: MenuTabsProps = {}) => {
             label: '👩‍🎓 Lớp học',
             value: 'class',
           },
-          ...(isTeacher
+          ...(canSeeTeacherTab
             ? [
                 {
                   label: '👩‍🏫 Giáo viên',
@@ -91,7 +96,7 @@ const MenuTabs = ({ onNavigate }: MenuTabsProps = {}) => {
         ]}
         classNames={{ root: 'mb-3' }}
         active={activeSidebar}
-        onChange={setActiveSidebar}
+        onChange={(val) => setSelectedSidebar(val as 'class' | 'teacher')}
       />
 
       <>
@@ -178,7 +183,7 @@ const MenuTabs = ({ onNavigate }: MenuTabsProps = {}) => {
       </>
       <>
         {activeSidebar === 'teacher' && (
-          <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar mt-2">
+          <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar mt-2 space-y-2">
             <Link
               href="/teacher/classes/create"
               onClick={() => onNavigate?.()}
@@ -191,6 +196,42 @@ const MenuTabs = ({ onNavigate }: MenuTabsProps = {}) => {
                 Tạo lớp học mới
               </span>
             </Link>
+
+            {isAdmin && (
+              <Link
+                href="/admin"
+                onClick={() => onNavigate?.()}
+                className={`flex items-center gap-3 py-3 px-3 rounded-xl cursor-pointer transition-all duration-300 border group ${
+                  pathname.startsWith('/admin')
+                    ? 'bg-purple-50/90 border-purple-300 shadow-[0_2px_12px_rgba(147,51,234,0.15)] text-purple-700'
+                    : 'bg-white/60 hover:bg-white border-[#E5D9F2] hover:border-purple-300 shadow-[0_2px_10px_rgba(147,51,234,0.05)] hover:shadow-[0_4px_15px_rgba(147,51,234,0.12)]'
+                }`}
+              >
+                <div
+                  className={`p-1.5 rounded-lg transition-all duration-300 ${
+                    pathname.startsWith('/admin')
+                      ? 'bg-purple-600 text-white shadow-sm shadow-purple-500/30'
+                      : 'bg-purple-100 text-purple-600 group-hover:bg-purple-600 group-hover:text-white group-hover:scale-110'
+                  }`}
+                >
+                  <ShieldCheck size={18} />
+                </div>
+                <div className="flex flex-col min-w-0">
+                  <span
+                    className={`font-semibold text-sm transition-colors truncate ${
+                      pathname.startsWith('/admin')
+                        ? 'text-purple-700 font-bold'
+                        : 'text-gray-700 group-hover:text-purple-700'
+                    }`}
+                  >
+                    Quản trị hệ thống
+                  </span>
+                  <span className="text-[10px] text-purple-600 font-bold tracking-wide uppercase">
+                    Admin
+                  </span>
+                </div>
+              </Link>
+            )}
           </div>
         )}
       </>
