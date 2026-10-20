@@ -7,6 +7,7 @@ import Link from 'next/link'
 import { useUserStore } from '~/providers/UserProvider'
 import { getTeacherClasses, getStudentClasses } from '~/actions/class'
 import { usePathname } from 'next/navigation'
+import ClassesSkeleton from './loading/ClassesSkeleton'
 
 // Type inference from Prisma output or simple type
 type ClassData = Awaited<ReturnType<typeof getTeacherClasses>>[0]
@@ -97,7 +98,7 @@ const MenuTabs = ({ onNavigate }: MenuTabsProps = {}) => {
         {activeSidebar === 'class' && (
           <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
             {loading ? (
-              <div className="text-center text-sm text-gray-500 py-4">Đang tải...</div>
+              <ClassesSkeleton count={5} />
             ) : classes.length === 0 ? (
               <div className="text-center text-sm text-gray-500 py-4">Chưa có lớp học nào</div>
             ) : (

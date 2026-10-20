@@ -5,6 +5,7 @@ import Image from 'next/image'
 import { Award, Clock, Calendar } from 'lucide-react'
 import { formatDateTime } from '@/modules/teacher/utils/date'
 import type { Submission } from './types'
+import { SubmissionsLeaderboardSkeleton } from './loading/TestResultsSkeleton'
 
 type SubmissionsLeaderboardProps = {
   submissions: Submission[]
@@ -31,7 +32,7 @@ export default function SubmissionsLeaderboard({
       </div>
 
       {isLoading ? (
-        <div className="text-center py-10 text-gray-400">Đang tải bảng xếp hạng...</div>
+        <SubmissionsLeaderboardSkeleton count={5} />
       ) : error ? (
         <div className="text-center py-10 text-red-500">{error}</div>
       ) : submissions.length === 0 ? (

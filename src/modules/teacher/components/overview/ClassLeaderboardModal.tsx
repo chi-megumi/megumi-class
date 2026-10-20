@@ -12,6 +12,7 @@ import {
 } from 'lucide-react'
 import { getClassLeaderboard } from '@/actions/analytics/class-analytics'
 import Portal from '@/components/common/Portal'
+import LeaderboardModalSkeleton from './loading/LeaderboardModalSkeleton'
 
 type LeaderboardStudent = {
   rank: number
@@ -119,7 +120,7 @@ export default function ClassLeaderboardModal({
         {/* Content */}
         <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar">
           {isLoading ? (
-            <div className="text-center py-24 text-gray-400">Đang tổng hợp thành tích cả lớp...</div>
+            <LeaderboardModalSkeleton />
           ) : error ? (
             <div className="text-center py-20 text-red-500">{error}</div>
           ) : !data || data.leaderboard.length === 0 ? (

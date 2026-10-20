@@ -3,6 +3,7 @@
 import { UserPlus, Search, X, CheckCircle2, Loader2 } from 'lucide-react'
 import { StudentData } from '../../types'
 import Portal from '@/components/common/Portal'
+import AddStudentSearchSkeleton from './loading/AddStudentSearchSkeleton'
 
 type AddStudentModalProps = {
   setShowAddModal: (show: boolean) => void
@@ -68,8 +69,10 @@ const AddStudentModal = ({
             </button>
           </div>
 
-          {/* Search Results */}
-          {searchResults.length > 0 && (
+          {/* Search Results / Loading Skeleton */}
+          {searching ? (
+            <AddStudentSearchSkeleton count={3} />
+          ) : searchResults.length > 0 ? (
             <div className="border border-gray-100 rounded-2xl overflow-hidden shadow-inner bg-gray-50 max-h-60 overflow-y-auto custom-scrollbar">
               {searchResults.map((student) => {
                 const isSelected = selectedToAdd.some((s) => s.id === student.id)
@@ -105,7 +108,7 @@ const AddStudentModal = ({
                 )
               })}
             </div>
-          )}
+          ) : null}
 
           {/* Selected List Tags */}
           {selectedToAdd.length > 0 && (

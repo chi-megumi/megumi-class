@@ -14,6 +14,7 @@ import {
 import { getStudentExamHistory } from '@/actions/analytics/class-analytics'
 import { MatchingPair, TestBlock, TestQuestion } from '../../types'
 import Portal from '@/components/common/Portal'
+import StudentExamProgressSkeleton from './loading/StudentExamProgressSkeleton'
 
 type StudentExamHistoryItem = {
   examId: string
@@ -125,7 +126,7 @@ export default function StudentExamProgressModal({
         {/* Content */}
         <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar">
           {isLoading ? (
-            <div className="text-center py-20 text-gray-400">Đang tải lịch sử thi cử...</div>
+            <StudentExamProgressSkeleton />
           ) : error ? (
             <div className="text-center py-20 text-red-500">{error}</div>
           ) : !data ? (

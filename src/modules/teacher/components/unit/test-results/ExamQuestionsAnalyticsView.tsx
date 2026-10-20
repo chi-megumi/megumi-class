@@ -6,6 +6,7 @@ import ExamAnalyticsStatCards from './ExamAnalyticsStatCards'
 import HardQuestionsAlert from './HardQuestionsAlert'
 import QuestionStatCard from './QuestionStatCard'
 import type { QuestionAnalytics, DifficultyFilter } from './types'
+import { QuestionAnalyticsSkeleton } from './loading/TestResultsSkeleton'
 
 type ExamQuestionsAnalyticsViewProps = {
   analytics: QuestionAnalytics | null
@@ -19,11 +20,7 @@ export default function ExamQuestionsAnalyticsView({
   const [filterDifficulty, setFilterDifficulty] = useState<DifficultyFilter>('all')
 
   if (isLoading) {
-    return (
-      <div className="flex-1 overflow-auto p-6 flex items-center justify-center text-gray-400">
-        Đang phân tích dữ liệu câu hỏi...
-      </div>
-    )
+    return <QuestionAnalyticsSkeleton />
   }
 
   if (!analytics || analytics.totalSubmissions === 0) {

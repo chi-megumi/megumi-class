@@ -5,6 +5,7 @@ import { ShieldCheck, Users, Search, Loader2 } from 'lucide-react'
 import { adminSearchUsersAction, adminSetUserTypeAction } from '~/actions/admin/users'
 import { AdminUserControlsCardProps, AdminUserItem, SettingsFeedback } from './types'
 import AdminUserRow from './AdminUserRow'
+import AdminUserSearchSkeleton from './loading/AdminUserSearchSkeleton'
 
 export default function AdminUserControlsCard({
   classData,
@@ -229,9 +230,8 @@ export default function AdminUserControlsCard({
           </form>
 
           {isSearching ? (
-            <div className="flex items-center justify-center py-8 text-purple-600 gap-2">
-              <Loader2 size={20} className="animate-spin" />
-              <span className="text-sm">Đang tìm người dùng...</span>
+            <div className="py-2">
+              <AdminUserSearchSkeleton count={3} />
             </div>
           ) : searchResults.length > 0 ? (
             <div className="space-y-2.5 max-h-[360px] overflow-y-auto custom-scrollbar pr-1">

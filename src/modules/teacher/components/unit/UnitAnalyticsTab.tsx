@@ -12,6 +12,7 @@ import ExamAnalyticsView from './analytics/ExamAnalyticsView'
 import { useFallbackStudents } from './analytics/useFallbackStudents'
 import type { ExamData, StudentExamDetail } from '@/modules/teacher/types'
 import type { AnalyticsSubTab, UnitAnalyticsTabProps, VocabStatItem } from './analytics/types'
+import UnitAnalyticsSkeleton from './analytics/loading/UnitAnalyticsSkeleton'
 
 const EMPTY_VOCAB_STATS: VocabStatItem[] = []
 
@@ -148,27 +149,33 @@ export default function UnitAnalyticsTab({
 
       {/* Main Content Area */}
       <div className="flex-1 overflow-y-auto custom-scrollbar px-6 py-4">
-        {subTab === 'vocab' && (
-          <VocabAnalyticsView
-            vocabStats={vocabStats}
-            onSpeak={speak}
-            isSpeaking={isSpeaking}
-          />
-        )}
+        {loading ? (
+          <UnitAnalyticsSkeleton />
+        ) : (
+          <>
+            {subTab === 'vocab' && (
+              <VocabAnalyticsView
+                vocabStats={vocabStats}
+                onSpeak={speak}
+                isSpeaking={isSpeaking}
+              />
+            )}
 
-        {subTab === 'students' && (
-          <StudentAnalyticsView
-            students={students}
-            examCount={unit.exams?.length || 0}
-          />
-        )}
+            {subTab === 'students' && (
+              <StudentAnalyticsView
+                students={students}
+                examCount={unit.exams?.length || 0}
+              />
+            )}
 
-        {subTab === 'exams' && (
-          <ExamAnalyticsView
-            exams={unit.exams || []}
-            totalStudents={totalStudents}
-            onViewExamResults={onViewExamResults}
-          />
+            {subTab === 'exams' && (
+              <ExamAnalyticsView
+                exams={unit.exams || []}
+                totalStudents={totalStudents}
+                onViewExamResults={onViewExamResults}
+              />
+            )}
+          </>
         )}
       </div>
     </div>
