@@ -182,3 +182,11 @@ export type StudentAnalyticsData = {
   }
   exams?: StudentExamDetail[]
 }
+
+export type CreateClassFormValues = {
+  name: string
+  description?: string
+  inviteCode?: string
+  units: { name: string }[]
+  studentIds?: string[]
+}

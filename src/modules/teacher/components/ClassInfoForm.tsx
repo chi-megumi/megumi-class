@@ -1,10 +1,9 @@
 import { useState, useEffect, useRef } from 'react'
 import { ImagePlus, Users, Search, X, Check, Loader2, GraduationCap } from 'lucide-react'
 import { useFormContext } from 'react-hook-form'
-import { CreateClassFormValues } from '~/app/teacher/classes/create/page'
 import { searchStudents } from '~/actions/student'
+import { StudentData, CreateClassFormValues } from '../types'
 
-import { StudentData } from '../types'
 
 const ClassInfoForm = () => {
   const {

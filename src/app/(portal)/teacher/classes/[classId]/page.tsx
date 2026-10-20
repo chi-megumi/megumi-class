@@ -16,8 +16,10 @@ export default async function ClassManagementPage({ params }: PageProps) {
   }
 
   return (
-    <div className="w-full max-w-[1200px] mx-auto min-h-screen py-8 relative px-4">
-      <ClassDashboardClient classData={classData as unknown as import('~/modules/teacher/types').ClassData} />
+    <div className="w-full max-w-[1200px] mx-auto min-h-screen py-8 relative lg:px-4">
+      <ClassDashboardClient
+        classData={classData as unknown as import('~/modules/teacher/types').ClassData}
+      />
     </div>
   )
 }

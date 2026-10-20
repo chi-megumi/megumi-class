@@ -2,7 +2,8 @@
 
 import { BookOpen, Plus, Trash2 } from 'lucide-react'
 import { useFieldArray, useFormContext } from 'react-hook-form'
-import { CreateClassFormValues } from '~/app/teacher/classes/create/page'
+import { CreateClassFormValues } from '../../types'
+
 
 const UnitList = () => {
   const {
