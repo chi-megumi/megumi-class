@@ -7,6 +7,7 @@ import useAuthStore from '~/common/stores/authStore'
 
 import { useUserStore } from '~/providers/UserProvider'
 import Link from 'next/link'
+import UserGreetingBadge from './UserGreetingBadge'
 
 const AppHeader = () => {
   const authModalStatus = useAuthStore((s) => s.authModalStatus)
@@ -43,10 +44,7 @@ const AppHeader = () => {
           <div className="app-header__cta">
             <div className="app-header__actions">
               {isLogined ? (
-                <div className="text-sm font-semibold text-slate-600 px-3 py-1 bg-slate-100 rounded-full border border-slate-200 shadow-sm flex items-center gap-2 max-w-[120px] md:max-w-none overflow-hidden text-ellipsis whitespace-nowrap">
-                  <span>👋</span> <span className="hidden sm:inline">Xin chào,</span>{' '}
-                  {user?.name || 'Bạn'}
-                </div>
+                <UserGreetingBadge />
               ) : (
                 <>
                   <Button variant="primary" size="sm" onClick={showLogin}>

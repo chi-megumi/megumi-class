@@ -17,6 +17,7 @@ export interface UserActions {
   setUser: (user: User | null) => void
   setLoading: (loading: boolean) => void
   clearUser: () => void
+  updateName: (name: string) => void
 }
 
 export type UserStore = UserState & UserActions
@@ -32,5 +33,9 @@ export const createUserStore = (initState: UserState = defaultInitState) => {
     setUser: (user) => set({ user, loading: false }),
     setLoading: (loading) => set({ loading }),
     clearUser: () => set({ user: null, loading: false }),
+    updateName: (name: string) =>
+      set((state) => ({
+        user: state.user ? { ...state.user, name } : null,
+      })),
   }))
 }

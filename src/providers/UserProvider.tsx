@@ -1,6 +1,6 @@
 'use client'
 
-import { createContext, useContext, useState } from 'react'
+import { createContext, useContext, useState, useEffect } from 'react'
 import { useStore } from 'zustand'
 import { createUserStore, User, UserStore } from '~/common/stores/userStore'
 
@@ -16,6 +16,10 @@ export default function UserProvider({
   children: React.ReactNode
 }) {
   const [store] = useState(() => createUserStore({ user, loading: false }))
+
+  useEffect(() => {
+    store.getState().setUser(user)
+  }, [user, store])
 
   return <UserStoreContext.Provider value={store}>{children}</UserStoreContext.Provider>
 }

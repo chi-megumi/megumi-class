@@ -9,6 +9,7 @@ import { loginSchema, registerSchema, forgotPasswordSchema, resetPasswordSchema 
 import { sendResetPasswordOtpEmail } from '@/common/libs/mail'
 import { z } from 'zod'
 import { cache } from 'react'
+import { revalidatePath } from 'next/cache'
 
 const resetWithEmailSchema = resetPasswordSchema.and(
   z.object({
@@ -300,5 +301,65 @@ export async function resetPasswordWithOtp(data: {
     }
     console.error('resetPasswordWithOtp error:', err)
     return { error: 'Có lỗi xảy ra khi đặt lại mật khẩu. Vui lòng thử lại.' }
+  }
+}
+
+export async function updateUserName(newName: string) {
+  try {
+    const trimmed = (newName || '').trim()
+    if (!trimmed) {
+      return { error: 'Tên không được để trống' }
+    }
+    if (trimmed.length > 50) {
+      return { error: 'Tên không được vượt quá 50 ký tự' }
+    }
+
+    const cookieStore = await cookies()
+    const token = cookieStore.get('token')?.value
+    if (!token) {
+      return { error: 'Bạn chưa đăng nhập' }
+    }
+
+    const payload = await verifyToken(token)
+    if (!payload || !payload.userId) {
+      return { error: 'Phiên đăng nhập không hợp lệ' }
+    }
+
+    const updatedUser = await prisma.user.update({
+      where: { id: payload.userId as string },
+      data: { name: trimmed },
+    })
+
+    const newToken = await signToken({
+      userId: updatedUser.id,
+      email: updatedUser.email,
+      name: updatedUser.name,
+      role: updatedUser.userType,
+      systemRole: updatedUser.systemRole,
+    })
+
+    cookieStore.set('token', newToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 60 * 60 * 24 * 7,
+      path: '/',
+    })
+
+    revalidatePath('/', 'layout')
+
+    return {
+      success: true,
+      user: {
+        id: updatedUser.id,
+        email: updatedUser.email,
+        name: updatedUser.name,
+        role: updatedUser.userType,
+        systemRole: updatedUser.systemRole,
+      },
+    }
+  } catch (err: unknown) {
+    console.error('updateUserName error:', err)
+    return { error: 'Có lỗi xảy ra khi cập nhật tên. Vui lòng thử lại.' }
   }
 }
