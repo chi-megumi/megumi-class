@@ -17,6 +17,7 @@ import {
   Zap,
 } from 'lucide-react'
 import { ClassData, ExamData } from '@/modules/teacher/types'
+import { sortUnits } from '@/modules/teacher/utils/unitSort'
 import GamePlayerModal from '@/modules/student/components/unit/GamePlayerModal'
 import { startTest } from '@/actions/analytics/exam-session'
 import type { TestResultPayload } from '@/actions/analytics/types'
@@ -413,7 +414,7 @@ export default function StudentClassDashboardClient({
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {classData.units.map((unit, index) => (
+            {sortUnits(classData.units).map((unit, index) => (
               <Link
                 key={unit.id}
                 href={`/student/classes/${classId}/units/${unit.id}`}

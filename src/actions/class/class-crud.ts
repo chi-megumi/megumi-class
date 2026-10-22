@@ -33,6 +33,7 @@ export async function createClassAction(data: CreateClassInput) {
             title: unit.name,
             sortOrder: index,
             isPublished: true,
+            createdAt: new Date(Date.now() + index * 1000),
           })),
       },
       students: {
@@ -57,12 +58,14 @@ export async function getTeacherClasses() {
     where: { teacherId: user.id },
     include: {
       units: {
-        orderBy: { createdAt: 'asc' },
+        orderBy: [{ createdAt: 'asc' }, { sortOrder: 'asc' }, { id: 'asc' }],
         select: {
           id: true,
           title: true,
           classId: true,
           isPublished: true,
+          createdAt: true,
+          sortOrder: true,
           exams: true,
         },
       },
@@ -86,12 +89,14 @@ export async function getStudentClasses() {
         include: {
           units: {
             where: { isPublished: true },
-            orderBy: { createdAt: 'asc' },
+            orderBy: [{ createdAt: 'asc' }, { sortOrder: 'asc' }, { id: 'asc' }],
             select: {
               id: true,
               title: true,
               classId: true,
               isPublished: true,
+              createdAt: true,
+              sortOrder: true,
               exams: {
                 where: { isPublished: true, isEnabled: true },
               },
@@ -203,7 +208,7 @@ export async function getTeacherClassDetails(classId: string) {
         },
       },
       units: {
-        orderBy: { createdAt: 'asc' },
+        orderBy: [{ createdAt: 'asc' }, { sortOrder: 'asc' }, { id: 'asc' }],
         include: {
           vocabItems: {
             orderBy: { sortOrder: 'asc' },
@@ -248,7 +253,7 @@ export async function getStudentClassDetails(classId: string) {
       where: classWhere,
       include: {
         units: {
-          orderBy: { createdAt: 'asc' },
+          orderBy: [{ createdAt: 'asc' }, { sortOrder: 'asc' }, { id: 'asc' }],
           include: { exams: true },
         },
         exams: {
@@ -280,7 +285,7 @@ export async function getStudentClassDetails(classId: string) {
     include: {
       units: {
         where: { isPublished: true },
-        orderBy: { createdAt: 'asc' },
+        orderBy: [{ createdAt: 'asc' }, { sortOrder: 'asc' }, { id: 'asc' }],
       },
       exams: {
         where: { isPublished: true, isEnabled: true, unitId: null },

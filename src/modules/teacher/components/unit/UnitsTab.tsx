@@ -1,7 +1,8 @@
 'use client'
 
-import { BookOpen, PlusCircle, ChevronDown, ChevronRight, Edit3, Trash2, Eye, EyeOff, Pencil } from 'lucide-react'
+import { BookOpen, PlusCircle, ChevronDown, ChevronRight, Edit3, Trash2, Eye, EyeOff, Pencil, Loader2 } from 'lucide-react'
 import { UnitData } from '../../types'
+import { sortUnits } from '../../utils/unitSort'
 
 type UnitsTabProps = {
   units: UnitData[]
@@ -12,6 +13,7 @@ type UnitsTabProps = {
   handleDeleteUnit: (unitId: string) => Promise<void>
   handleToggleVisibility: (unitId: string, currentStatus: boolean) => void
   onEditUnitInfo: (unit: UnitData) => void
+  updatingUnitId?: string | null
 }
 
 const UnitsTab = ({
@@ -23,7 +25,10 @@ const UnitsTab = ({
   handleDeleteUnit,
   handleToggleVisibility,
   onEditUnitInfo,
+  updatingUnitId,
 }: UnitsTabProps) => {
+  const sortedUnits = sortUnits(units)
+
   return (
     <div className="space-y-6 animate-in slide-in-from-bottom-4 duration-500">
       <div className="flex justify-between items-center">
@@ -31,7 +36,7 @@ const UnitsTab = ({
           <span className="bg-[#6A5EEB]/10 p-1.5 rounded-lg text-[#6A5EEB]">
             <BookOpen size={18} />
           </span>
-          Danh sách bài học ({units.length})
+          Danh sách bài học ({sortedUnits.length})
         </h3>
         <button
           onClick={() => setShowCreateUnitModal(true)}
@@ -42,13 +47,13 @@ const UnitsTab = ({
         </button>
       </div>
 
-      {units.length === 0 ? (
+      {sortedUnits.length === 0 ? (
         <div className="text-center py-12 border-2 border-dashed border-gray-100 rounded-2xl text-gray-400">
           Lớp này chưa có bài học nào
         </div>
       ) : (
         <div className="space-y-3">
-          {units.map((unit) => (
+          {sortedUnits.map((unit) => (
             <div
               key={unit.id}
               className="bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm"
@@ -79,7 +84,7 @@ const UnitsTab = ({
                   <span className="text-xs font-semibold text-indigo-600 bg-indigo-50 px-2 py-1 rounded-lg border border-indigo-100">
                     {unit.vocabItems?.length || 0} từ
                   </span>
-                  <span className={`text-xs font-semibold px-2 py-1 rounded-lg border ${unit.isPublished ? 'text-green-600 bg-green-50 border-green-100' : 'text-gray-500 bg-gray-100 border-gray-200'}`}>
+                  <span className={`text-xs font-semibold px-2 py-1 rounded-lg border transition-all ${unit.isPublished ? 'text-green-600 bg-green-50 border-green-100' : 'text-gray-500 bg-gray-100 border-gray-200'}`}>
                     {unit.isPublished ? 'Đang hiện' : 'Đang ẩn'}
                   </span>
                   {expandedUnits[unit.id] ? (
@@ -98,13 +103,27 @@ const UnitsTab = ({
                   <div className="flex gap-2">
                     <button
                       onClick={() => handleToggleVisibility(unit.id, !!unit.isPublished)}
-                      className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-xl transition-colors shadow-sm ${
+                      disabled={updatingUnitId === unit.id}
+                      className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-xl transition-all shadow-sm disabled:opacity-60 disabled:cursor-not-allowed ${
                         unit.isPublished
                           ? 'bg-amber-100 text-amber-700 hover:bg-amber-200'
                           : 'bg-green-100 text-green-700 hover:bg-green-200'
                       }`}
                     >
-                      {unit.isPublished ? <><EyeOff size={14} /> Ẩn bài học</> : <><Eye size={14} /> Hiện bài học</>}
+                      {updatingUnitId === unit.id ? (
+                        <>
+                          <Loader2 size={14} className="animate-spin" />
+                          <span>Đang lưu...</span>
+                        </>
+                      ) : unit.isPublished ? (
+                        <>
+                          <EyeOff size={14} /> Ẩn bài học
+                        </>
+                      ) : (
+                        <>
+                          <Eye size={14} /> Hiện bài học
+                        </>
+                      )}
                     </button>
                     <button
                       onClick={() => handleOpenEditVocab(unit)}

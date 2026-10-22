@@ -16,16 +16,33 @@ export async function createUnit(classId: string, title: string, description?: s
 
   if (!targetClass) throw new Error('Unauthorized')
 
-  await prisma.unit.create({
+  const lastUnit = await prisma.unit.findFirst({
+    where: { classId },
+    orderBy: { sortOrder: 'desc' },
+    select: { sortOrder: true },
+  })
+  const nextSortOrder = (lastUnit?.sortOrder ?? -1) + 1
+
+  const newUnit = await prisma.unit.create({
     data: {
       classId,
       title: title.trim(),
       description: description?.trim() || '',
+      sortOrder: nextSortOrder,
+    },
+    include: {
+      vocabItems: {
+        orderBy: { sortOrder: 'asc' },
+      },
+      studentProgress: true,
+      exams: {
+        orderBy: { createdAt: 'asc' },
+      },
     },
   })
 
   revalidatePath(`/teacher/classes/${classId}`)
-  return { success: true }
+  return { success: true, unit: newUnit }
 }
 
 export async function updateUnitInfo(unitId: string, title: string, description?: string) {
@@ -39,7 +56,7 @@ export async function updateUnitInfo(unitId: string, title: string, description?
 
   if (!unit || unit.class.teacherId !== user.id) throw new Error('Unauthorized')
 
-  await prisma.unit.update({
+  const updatedUnit = await prisma.unit.update({
     where: { id: unitId },
     data: {
       title: title.trim(),
@@ -48,7 +65,7 @@ export async function updateUnitInfo(unitId: string, title: string, description?
   })
 
   revalidatePath(`/teacher/classes/${unit.classId}`)
-  return { success: true }
+  return { success: true, unit: updatedUnit }
 }
 
 export async function deleteUnit(unitId: string) {
@@ -81,7 +98,7 @@ export async function updateUnitSettings(unitId: string, settings: UnitSettingsI
 
   if (!unit || unit.class.teacherId !== user.id) throw new Error('Unauthorized')
 
-  await prisma.unit.update({
+  const updatedUnit = await prisma.unit.update({
     where: { id: unitId },
     data: settings,
   })
@@ -89,7 +106,7 @@ export async function updateUnitSettings(unitId: string, settings: UnitSettingsI
   revalidatePath(`/teacher/classes/${unit.classId}`)
   revalidatePath(`/student/classes/${unit.classId}`)
   revalidatePath(`/student/classes/${unit.classId}/units/${unitId}`)
-  return { success: true }
+  return { success: true, unit: updatedUnit }
 }
 
 export async function updateUnitVocab(unitId: string, vocabItems: UnitVocabItemInput[]) {

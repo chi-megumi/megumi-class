@@ -31,6 +31,7 @@ import CreateUnitModal from './unit/CreateUnitModal'
 import EditUnitModal from './unit/EditUnitModal'
 import ClassSettingsTab from './settings/ClassSettingsTab'
 import { StudentData, EnrollmentData, UnitData, ClassData, VocabItemData } from '../types'
+import { sortUnits } from '../utils/unitSort'
 
 type ClassDashboardClientProps = {
   classData: ClassData
@@ -48,9 +49,20 @@ const ClassDashboardClient = ({ classData }: ClassDashboardClientProps) => {
     inviteCode: classData.inviteCode,
   })
 
+  // Local state for units to allow immediate UI updates and maintain creation order
+  const [prevClassUnits, setPrevClassUnits] = useState(classData.units)
+  const [units, setUnits] = useState<UnitData[]>(() => sortUnits(classData.units || []))
+  const [updatingUnitId, setUpdatingUnitId] = useState<string | null>(null)
+
+  if (classData.units !== prevClassUnits) {
+    setPrevClassUnits(classData.units)
+    setUnits(sortUnits(classData.units || []))
+  }
+
   const currentClassData: ClassData = {
     ...classData,
     ...classMeta,
+    units,
   }
 
   // Add Students state
@@ -154,7 +166,10 @@ const ClassDashboardClient = ({ classData }: ClassDashboardClientProps) => {
     if (!newUnitTitle.trim()) return
     setCreatingUnit(true)
     try {
-      await createUnit(classData.id, newUnitTitle, newUnitDesc)
+      const res = await createUnit(classData.id, newUnitTitle, newUnitDesc)
+      if (res?.success && res.unit) {
+        setUnits((prev) => sortUnits([...prev, res.unit as unknown as UnitData]))
+      }
       setShowCreateUnitModal(false)
       setNewUnitTitle('')
       setNewUnitDesc('')
@@ -168,7 +183,14 @@ const ClassDashboardClient = ({ classData }: ClassDashboardClientProps) => {
 
   const handleUpdateUnitInfo = async (unitId: string, title: string, desc: string) => {
     try {
-      await updateUnitInfo(unitId, title, desc)
+      const res = await updateUnitInfo(unitId, title, desc)
+      if (res?.success) {
+        setUnits((prev) =>
+          prev.map((u) =>
+            u.id === unitId ? { ...u, title: title.trim(), description: desc?.trim() || '' } : u
+          )
+        )
+      }
       setShowEditUnitModal(false)
       setEditingUnitInfo(null)
       router.refresh()
@@ -187,6 +209,11 @@ const ClassDashboardClient = ({ classData }: ClassDashboardClientProps) => {
     setSavingVocab(true)
     try {
       await updateUnitVocab(editingUnit.id, editVocabList)
+      setUnits((prev) =>
+        prev.map((u) =>
+          u.id === editingUnit.id ? { ...u, vocabItems: editVocabList } : u
+        )
+      )
       setEditingUnit(null)
       router.refresh()
     } catch {
@@ -199,7 +226,10 @@ const ClassDashboardClient = ({ classData }: ClassDashboardClientProps) => {
   const handleDeleteUnit = async (unitId: string) => {
     if (!confirm('Xóa bài học này sẽ xóa toàn bộ từ vựng bên trong. Bạn chắc chứ?')) return
     try {
-      await deleteUnit(unitId)
+      const res = await deleteUnit(unitId)
+      if (res?.success) {
+        setUnits((prev) => prev.filter((u) => u.id !== unitId))
+      }
       router.refresh()
     } catch {
       alert('Lỗi khi xóa bài học')
@@ -211,11 +241,20 @@ const ClassDashboardClient = ({ classData }: ClassDashboardClientProps) => {
   }
 
   const handleToggleVisibility = async (unitId: string, currentStatus: boolean) => {
+    const nextStatus = !currentStatus
+    setUpdatingUnitId(unitId)
     try {
-      await updateUnitSettings(unitId, { isPublished: !currentStatus })
+      const res = await updateUnitSettings(unitId, { isPublished: nextStatus })
+      if (res?.success) {
+        setUnits((prev) =>
+          prev.map((u) => (u.id === unitId ? { ...u, isPublished: nextStatus } : u))
+        )
+      }
       router.refresh()
     } catch {
       alert('Lỗi khi cập nhật trạng thái hiển thị')
+    } finally {
+      setUpdatingUnitId(null)
     }
   }
 
@@ -296,14 +335,14 @@ const ClassDashboardClient = ({ classData }: ClassDashboardClientProps) => {
       <div className="bg-white/70 backdrop-blur-md rounded-3xl p-6 md:p-8 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-white/50 min-h-[400px]">
         {/* OVERVIEW TAB */}
         {activeTab === 'overview' && (
-          <OverviewTab classData={classData} activeStudents={activeStudents} />
+          <OverviewTab classData={currentClassData} activeStudents={activeStudents} />
         )}
 
         {/* STUDENTS TAB */}
         {activeTab === 'students' && (
           <StudentsTab
             classId={classData.id}
-            classData={classData}
+            classData={currentClassData}
             pendingStudents={pendingStudents}
             activeStudents={activeStudents}
             loadingEnrollmentId={loadingEnrollmentId}
@@ -316,13 +355,14 @@ const ClassDashboardClient = ({ classData }: ClassDashboardClientProps) => {
         {/* UNITS & VOCAB TAB */}
         {activeTab === 'units' && (
           <UnitsTab
-            units={classData.units}
+            units={units}
             setShowCreateUnitModal={setShowCreateUnitModal}
             expandedUnits={expandedUnits}
             toggleUnit={toggleUnit}
             handleOpenEditVocab={handleOpenEditVocab}
             handleDeleteUnit={handleDeleteUnit}
             handleToggleVisibility={handleToggleVisibility}
+            updatingUnitId={updatingUnitId}
             onEditUnitInfo={(unit) => {
               setEditingUnitInfo(unit)
               setShowEditUnitModal(true)

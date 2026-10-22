@@ -168,7 +168,7 @@ export async function getStudentExamHistory(
         orderBy: { createdAt: 'desc' },
       },
       units: {
-        orderBy: { createdAt: 'asc' },
+        orderBy: [{ createdAt: 'asc' }, { sortOrder: 'asc' }, { id: 'asc' }],
         include: {
           exams: {
             where: { isPublished: true },

@@ -105,6 +105,9 @@ export type UnitData = {
   isFlashcardEnabled: boolean
   isQuizEnabled: boolean
   isMatchEnabled: boolean
+  sortOrder?: number
+  createdAt?: Date | string
+  updatedAt?: Date | string
   exams?: ExamData[]
   vocabItems?: VocabItemData[]
   studentProgress?: UserUnitProgress[]
