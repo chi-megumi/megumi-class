@@ -13,6 +13,7 @@ import {
   Save,
 } from 'lucide-react'
 import type { VocabItemData } from '@/modules/teacher/types'
+import ValidatedNumberInput from '@/components/common/ValidatedNumberInput'
 
 type TestBuilderHeaderProps = {
   testTitle: string
@@ -89,13 +90,13 @@ export default function TestBuilderHeader({
         {/* Duration Badge */}
         <div className="flex items-center gap-1.5 text-gray-600 bg-gray-50 px-2.5 py-1.5 rounded-xl border border-gray-200 shrink-0 text-xs font-semibold shadow-2xs">
           <Clock size={14} className="text-gray-400 shrink-0" />
-          <span className="hidden sm:inline text-gray-500 font-medium">Thời gian:</span>
-          <input
-            type="number"
+          <ValidatedNumberInput
             min={1}
+            max={180}
             value={testDuration}
-            onChange={(e) => onDurationChange(Number(e.target.value))}
-            className="w-9 bg-white border border-gray-200 rounded px-1 font-bold text-gray-800 focus:outline-none focus:border-indigo-400 text-center"
+            onChange={onDurationChange}
+            className="w-10 bg-white border border-gray-200 rounded px-1 py-0.5 font-bold text-gray-800 focus:outline-none focus:border-indigo-400 text-center"
+            ariaLabel="Thời gian kiểm tra"
           />
           <span className="text-gray-500 font-medium">phút</span>
         </div>

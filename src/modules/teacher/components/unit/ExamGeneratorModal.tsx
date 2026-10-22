@@ -5,6 +5,7 @@ import { Sparkles, X, Clock, Check, AlertCircle, Layers, BookOpen, CheckSquare, 
 import { VocabItemData } from '../../types'
 import { generateExamFromVocab, QuestionTypeOption, GeneratedExamResult, distributeQuestionCounts } from '../../utils/examGenerator'
 import Portal from '@/components/common/Portal'
+import ValidatedNumberInput from '@/components/common/ValidatedNumberInput'
 
 export interface UnitVocabSummary {
   id: string
@@ -105,14 +106,14 @@ export default function ExamGeneratorModal({
   if (!isOpen) return null
 
   const handleTotalQuestionsChange = (newTotal: number) => {
-    const val = Math.max(1, newTotal)
+    const val = Math.max(1, Math.min(100, isNaN(newTotal) ? 1 : newTotal))
     setNumQuestions(val)
     const newCounts = distributeQuestionCounts(val, selectedTypes)
     setTypeCounts(newCounts)
   }
 
   const handleUpdateTypeCount = (typeId: QuestionTypeOption, newCount: number) => {
-    const parsed = isNaN(newCount) ? 2 : newCount
+    const parsed = isNaN(newCount) ? 1 : newCount
     const safeCount = Math.max(1, Math.min(100, parsed))
     const updated = { ...typeCounts, [typeId]: safeCount }
     setTypeCounts(updated)
@@ -343,13 +344,13 @@ export default function ExamGeneratorModal({
                   Số lượng câu hỏi
                 </label>
                 <div className="flex items-center gap-2 mb-2">
-                  <input
-                    type="number"
+                  <ValidatedNumberInput
                     min={1}
                     max={100}
                     value={numQuestions}
-                    onChange={(e) => handleTotalQuestionsChange(Number(e.target.value))}
-                    className="w-20 px-3 py-2 rounded-xl border border-gray-200 focus:border-indigo-500 focus:outline-none font-bold text-center text-gray-800 text-sm"
+                    onChange={handleTotalQuestionsChange}
+                    className="w-20 px-3 py-2 rounded-xl border border-gray-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 focus:outline-none font-bold text-center text-gray-800 text-sm transition-all"
+                    ariaLabel="Số lượng câu hỏi"
                   />
                   <span className="text-sm font-medium text-gray-500">câu</span>
                 </div>
@@ -377,13 +378,13 @@ export default function ExamGeneratorModal({
                   <Clock size={16} className="text-gray-400" /> Thời gian làm bài
                 </label>
                 <div className="flex items-center gap-2 mb-2">
-                  <input
-                    type="number"
-                    min={5}
+                  <ValidatedNumberInput
+                    min={1}
                     max={180}
                     value={duration}
-                    onChange={(e) => setDuration(Number(e.target.value))}
-                    className="w-20 px-3 py-2 rounded-xl border border-gray-200 focus:border-indigo-500 focus:outline-none font-bold text-center text-gray-800 text-sm"
+                    onChange={(d) => setDuration(d)}
+                    className="w-20 px-3 py-2 rounded-xl border border-gray-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 focus:outline-none font-bold text-center text-gray-800 text-sm transition-all"
+                    ariaLabel="Thời gian làm bài"
                   />
                   <span className="text-sm font-medium text-gray-500">phút</span>
                 </div>
@@ -472,29 +473,30 @@ export default function ExamGeneratorModal({
                       >
                         <button
                           type="button"
-                          onClick={() => handleUpdateTypeCount(item.id, count - 2)}
-                          disabled={count <= 2}
+                          onClick={() => handleUpdateTypeCount(item.id, count - 1)}
+                          disabled={count <= 1}
                           className="w-7 h-7 rounded-lg bg-gray-100 hover:bg-indigo-100 disabled:opacity-30 disabled:hover:bg-gray-100 text-gray-700 hover:text-indigo-700 flex items-center justify-center font-bold text-sm transition-colors"
-                          title="Giảm 2 câu (ưu tiên số chẵn)"
+                          title="Giảm 1 câu"
                         >
                           <Minus size={13} />
                         </button>
                         <div className="flex items-center gap-1 px-1">
-                          <input
-                            type="number"
+                          <ValidatedNumberInput
                             min={1}
                             max={100}
                             value={count}
-                            onChange={(e) => handleUpdateTypeCount(item.id, Number(e.target.value))}
-                            className="w-9 text-center font-bold text-indigo-900 text-sm focus:outline-none bg-transparent"
+                            onChange={(val) => handleUpdateTypeCount(item.id, val)}
+                            className="w-10 text-center font-bold text-indigo-900 text-sm focus:outline-none bg-indigo-50/50 hover:bg-indigo-50 focus:bg-white rounded-lg border border-transparent focus:border-indigo-300 transition-all py-0.5"
+                            ariaLabel={`Số câu cho ${item.label}`}
                           />
                           <span className="text-xs font-semibold text-gray-400">câu</span>
                         </div>
                         <button
                           type="button"
-                          onClick={() => handleUpdateTypeCount(item.id, count + 2)}
-                          className="w-7 h-7 rounded-lg bg-gray-100 hover:bg-indigo-100 text-gray-700 hover:text-indigo-700 flex items-center justify-center font-bold text-sm transition-colors"
-                          title="Tăng 2 câu (ưu tiên số chẵn)"
+                          onClick={() => handleUpdateTypeCount(item.id, count + 1)}
+                          disabled={count >= 100}
+                          className="w-7 h-7 rounded-lg bg-gray-100 hover:bg-indigo-100 disabled:opacity-30 disabled:hover:bg-gray-100 text-gray-700 hover:text-indigo-700 flex items-center justify-center font-bold text-sm transition-colors"
+                          title="Tăng 1 câu"
                         >
                           <Plus size={13} />
                         </button>
