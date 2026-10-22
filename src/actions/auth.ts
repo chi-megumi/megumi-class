@@ -138,6 +138,7 @@ const getCachedUser = cache(async (userId: string) => {
       name: true,
       userType: true,
       systemRole: true,
+      isActive: true,
     },
   })
 })
@@ -156,28 +157,17 @@ export async function getMe() {
       return null
     })
 
-    if (user) {
-      return {
-        id: user.id,
-        email: user.email,
-        name: user.name,
-        role: user.userType,
-        systemRole: user.systemRole,
-      }
+    if (!user || !user.isActive) {
+      return null
     }
 
-    // Resilient fallback to verified JWT payload if database temporarily errors/times out
-    if (payload.userId && payload.role) {
-      return {
-        id: payload.userId as string,
-        email: (payload.email as string) || '',
-        name: (payload.name as string) || '',
-        role: payload.role as string,
-        systemRole: (payload.systemRole as string) || 'client',
-      }
+    return {
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      role: user.userType,
+      systemRole: user.systemRole,
     }
-
-    return null
   } catch (err: unknown) {
     if ((err as { digest?: string })?.digest === 'DYNAMIC_SERVER_USAGE') {
       throw err
