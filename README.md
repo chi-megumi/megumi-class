@@ -21,6 +21,7 @@
 ---
 
 ## 📖 Mục Lục
+
 - [Giới Thiệu Tổng Quan](#-giới-thiệu-tổng-quan)
 - [Điểm Nổi Bật & Phương Pháp Giảng Dạy](#-điểm-nổi-bật--phương-pháp-giảng-dạy)
 - [Hình Ảnh Giao Diện Thực Tế](#-hình-ảnh-giao-diện-thực-tế)
@@ -41,6 +42,7 @@
 **Megumi Class** (`megumi-eng-next`) là ứng dụng web giáo dục toàn diện, kết hợp giữa website giới thiệu lớp học cao cấp và nền tảng học tập số hóa (LMS & Interactive Learning Platform). Dự án được thiết kế chuyên biệt cho các khóa đào tạo **Tiếng Anh** và **Tiếng Trung Quốc** theo định hướng phản xạ tự nhiên và ứng dụng thực tiễn.
 
 Hệ thống được sáng lập và bảo chứng chất lượng bởi **Cô Đoàn Quỳnh Chi**:
+
 - 🎓 **Cử nhân Biên — Phiên dịch** Trường Đại học Ngoại ngữ — Đại học Đà Nẵng (Học bổng Sinh viên Xuất sắc).
 - 🏆 **Chứng chỉ HSK 5 đạt 273/300** & chứng chỉ **HSKK Cao cấp** (phát âm chuẩn bản xứ, diễn đạt sắc sảo).
 - 📜 **Chứng chỉ Tiếng Anh Quốc tế IELTS C1** (giao tiếp học thuật & tư duy ngôn ngữ bản xứ).
@@ -65,10 +67,10 @@ Megumi Class áp dụng mô hình **Quy trình 4 Bước Đột Phá Khả Năng
 
 Giao diện trang chủ được xây dựng với phong cách thiết kế hiện đại, gam màu tươi sáng, typography chỉn chu và hiệu ứng polaroid sinh động.
 
-| Trang Chủ & Thông Điệp Đầu Tiên | Hồ Sơ Giảng Viên Cô Đoàn Quỳnh Chi |
-| :---: | :---: |
-| ![Hero Banner](docs/screenshots/hero-banner.png) | ![Teacher Profile](docs/screenshots/landing-teacher.png) |
-| *Hero banner truyền cảm hứng cùng các lớp kèm chất lượng cao* | *Bằng cấp chuyên môn, kinh nghiệm thực chiến & cam kết đầu ra* |
+|                Trang Chủ & Thông Điệp Đầu Tiên                |               Hồ Sơ Giảng Viên Cô Đoàn Quỳnh Chi               |
+| :-----------------------------------------------------------: | :------------------------------------------------------------: |
+|       ![Hero Banner](docs/screenshots/hero-banner.png)        |    ![Teacher Profile](docs/screenshots/landing-teacher.png)    |
+| _Hero banner truyền cảm hứng cùng các lớp kèm chất lượng cao_ | _Bằng cấp chuyên môn, kinh nghiệm thực chiến & cam kết đầu ra_ |
 
 ---
 
@@ -76,12 +78,13 @@ Giao diện trang chủ được xây dựng với phong cách thiết kế hi�
 
 Nền tảng Flashcard 3D hỗ trợ học viên chủ động ôn tập từ vựng, tra cứu phát âm, xem ví dụ thực tế và phân loại từ theo chủ đề.
 
-| Mặt Trước: Từ Vựng, Phát Âm & Emoji | Mặt Sau: Nghĩa Tiếng Việt, Collocation & Ví Dụ |
-| :---: | :---: |
-| ![Flashcard Front](docs/screenshots/flashcards.png) | ![Flashcard Back](docs/screenshots/flashcard-flipped.png) |
-| *Hiển thị từ, phiên âm IPA, từ loại, emoji minh họa và phát âm audio* | *Giải thích nghĩa chi tiết, bí quyết kết hợp từ và câu ví dụ highlight* |
+|                  Mặt Trước: Từ Vựng, Phát Âm & Emoji                  |             Mặt Sau: Nghĩa Tiếng Việt, Collocation & Ví Dụ              |
+| :-------------------------------------------------------------------: | :---------------------------------------------------------------------: |
+|          ![Flashcard Front](docs/screenshots/flashcards.png)          |        ![Flashcard Back](docs/screenshots/flashcard-flipped.png)        |
+| _Hiển thị từ, phiên âm IPA, từ loại, emoji minh họa và phát âm audio_ | _Giải thích nghĩa chi tiết, bí quyết kết hợp từ và câu ví dụ highlight_ |
 
 > **Phím tắt nhanh**:
+>
 > - <kbd>Space</kbd>: Lật thẻ (Flip Card 3D)
 > - <kbd>→</kbd> / <kbd>←</kbd>: Chuyển từ kế tiếp / trước đó
 > - <kbd>S</kbd>: Nghe phát âm chuẩn bản ngữ
@@ -93,19 +96,19 @@ Nền tảng Flashcard 3D hỗ trợ học viên chủ động ôn tập từ v�
 
 Học viên củng cố kiến thức và rèn luyện phản xạ thông qua các mini-game và chế độ kiểm tra tương tác:
 
-| Đố Vui Trắc Nghiệm (Interactive Quiz) | Trò Chơi Ghép Thẻ Tính Giờ (Match Game) |
-| :---: | :---: |
-| ![Quiz Mode](docs/screenshots/quiz-interactive.png) | ![Match Game](docs/screenshots/match-game-playing.png) |
-| *Chế độ tính điểm (Scored) hoặc bất tận (Endless) với 4 phương án* | *Nối từ vựng với nghĩa tiếng Việt tương ứng theo thời gian thực* |
+|               Đố Vui Trắc Nghiệm (Interactive Quiz)                |             Trò Chơi Ghép Thẻ Tính Giờ (Match Game)              |
+| :----------------------------------------------------------------: | :--------------------------------------------------------------: |
+|        ![Quiz Mode](docs/screenshots/quiz-interactive.png)         |      ![Match Game](docs/screenshots/match-game-playing.png)      |
+| _Chế độ tính điểm (Scored) hoặc bất tận (Endless) với 4 phương án_ | _Nối từ vựng với nghĩa tiếng Việt tương ứng theo thời gian thực_ |
 
 ---
 
 ### 4. Cảm Nhận Học Viên & Đăng Ký Học Thử
 
-| Quy Trình 4 Bước Đột Phá Phản Xạ | Đánh Giá & Cảm Nhận 5 Sao Từ Học Viên |
-| :---: | :---: |
+|             Quy Trình 4 Bước Đột Phá Phản Xạ             |           Đánh Giá & Cảm Nhận 5 Sao Từ Học Viên            |
+| :------------------------------------------------------: | :--------------------------------------------------------: |
 | ![Methodology](docs/screenshots/landing-methodology.png) | ![Testimonials](docs/screenshots/landing-testimonials.png) |
-| *Phương pháp 4 bước khoa học chuẩn hóa đầu ra* | *Hơn 1,200+ học viên đạt mục tiêu HSK & IELTS* |
+|      _Phương pháp 4 bước khoa học chuẩn hóa đầu ra_      |       _Hơn 1,200+ học viên đạt mục tiêu HSK & IELTS_       |
 
 <p align="center">
   <img src="docs/screenshots/landing-consultation.png" alt="Form Đăng Ký Tư Vấn & Học Thử" width="90%" style="border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.08);" />
@@ -118,23 +121,27 @@ Học viên củng cố kiến thức và rèn luyện phản xạ thông qua c�
 ## 🛡️ Hệ Thống Phân Quyền & Tính Năng
 
 ### 🌸 Dành Cho Khách Vãng Lai & Người Học Thử (`Public`)
+
 - Khám phá thông tin các khóa học Song ngữ Anh — Trung (HSK 1 - 5, HSKK, Giao tiếp, IELTS Foundation).
 - Trải nghiệm trực tiếp bộ Flashcards thông minh kèm âm thanh chuẩn bản ngữ.
 - Đăng ký tư vấn kiểm tra năng lực và học thử 01 buổi miễn phí.
 
 ### 🎒 Dành Cho Học Viên (`Student Portal`)
+
 - **Quản lý Lớp Học**: Tham gia lớp học qua Mã mời (Invite Code).
 - **Học Từ Vựng Theo Unit**: Truy cập các bộ thẻ từ vựng độc quyền do giáo viên biên soạn.
 - **Tiến Độ Học Tập**: Theo dõi phần trăm ghi nhớ (Mastery Progress), danh sách từ vựng yêu thích (Starred items), lịch sử luyện tập.
 - **Bài Kiểm Tra (Exams)**: Làm bài thi trắc nghiệm có giới hạn thời gian, xem kết quả và lời giải chi tiết.
 
 ### 🎓 Dành Cho Giáo Viên (`Teacher Portal`)
+
 - **Quản Lý Lớp Học**: Tạo lớp, cấp mã mời học viên tham gia, duyệt danh sách lớp.
 - **Biên Soạn Nội Dung Học**: Quản lý Unit, thêm mới từ vựng/chữ Hán (IPA, ngữ nghĩa, ví dụ, tip ghi nhớ).
 - **Soạn Đề Thi Trực Tuyến**: Cấu hình bài kiểm tra (thời lượng, chế độ làm lại, kích hoạt hiển thị).
 - **Báo Cáo Tiến Độ**: Theo dõi chi tiết điểm số, số lần luyện tập của từng học viên.
 
 ### ⚙️ Dành Cho Quản Trị Viên (`Admin Portal`)
+
 - **Quản Lý Người Dùng**: Danh sách tài khoản, phân quyền hệ thống (`admin`, `teacher`, `student`), kích hoạt / khóa tài khoản.
 - **Quản Lý Đăng Ký Tư Vấn**: Tiếp nhận, phân loại và cập nhật trạng thái học viên đăng ký (`pending`, `contacted`, `enrolled`).
 - **Thống Kê Tổng Quan**: Số lượng tài khoản, lớp học và lượt đăng ký mới.
@@ -210,23 +217,28 @@ megumi-eng-next/
 ## 🛠️ Hướng Dẫn Cài Đặt & Khởi Chạy
 
 ### Yêu Cầu Môi Trường
+
 - **Node.js**: Phiên bản 20.x trở lên (khuyến nghị 22.x hoặc 23.x)
 - **npm** / **pnpm** / **yarn**
 - **Docker** (nếu muốn chạy PostgreSQL local) hoặc kết nối PostgreSQL bên ngoài
 
 ### 1. Clone Kho Mã Nguồn
+
 ```bash
 git clone https://github.com/Mannj-nef/megumi-class.git
 cd megumi-eng-next
 ```
 
 ### 2. Cài Đặt Dependencies
+
 ```bash
 npm install
 ```
 
 ### 3. Cấu Hình Biến Môi Trường
+
 Tạo file `.env` (hoặc sao chép từ mẫu):
+
 ```env
 # Database URL (PostgreSQL)
 DATABASE_URL="postgresql://postgres:postgres@localhost:5432/megumi_db?schema=public"
@@ -240,12 +252,14 @@ RESEND_API_KEY="re_..."
 EMAIL_FROM="Megumi Class <support@megumiclass.edu.vn>"
 ```
 
-*(Tùy chọn) Khởi chạy PostgreSQL cục bộ qua Docker Compose:*
+_(Tùy chọn) Khởi chạy PostgreSQL cục bộ qua Docker Compose:_
+
 ```bash
 docker compose up -d
 ```
 
 ### 4. Đồng Bộ Cơ Sở Dữ Liệu
+
 ```bash
 # Đẩy schema vào Database
 npx prisma db push
@@ -258,6 +272,7 @@ npx prisma generate
 ```
 
 ### 5. Khởi Chạy Môi Trường Phát Triển
+
 ```bash
 npm run dev
 ```
@@ -268,13 +283,13 @@ Mở trình duyệt và truy cập: **[http://localhost:3000](http://localhost:3
 
 ## 📜 Các Lệnh Script Tiện Ích
 
-| Lệnh | Mục Đích |
-| :--- | :--- |
-| `npm run dev` | Khởi chạy máy chủ phát triển Next.js |
-| `npm run build` | Đóng gói sản phẩm tối ưu cho Production |
-| `npm run start` | Khởi chạy ứng dụng production sau khi build |
-| `npm run lint` | Kiểm tra quy chuẩn mã nguồn với ESLint |
-| `npm run format` | Định dạng lại mã nguồn tự động với Prettier |
+| Lệnh                | Mục Đích                                              |
+| :------------------ | :---------------------------------------------------- |
+| `npm run dev`       | Khởi chạy máy chủ phát triển Next.js                  |
+| `npm run build`     | Đóng gói sản phẩm tối ưu cho Production               |
+| `npm run start`     | Khởi chạy ứng dụng production sau khi build           |
+| `npm run lint`      | Kiểm tra quy chuẩn mã nguồn với ESLint                |
+| `npm run format`    | Định dạng lại mã nguồn tự động với Prettier           |
 | `npx prisma studio` | Giao diện trực quan xem và chỉnh sửa dữ liệu Database |
 
 ---
@@ -290,5 +305,5 @@ Mở trình duyệt và truy cập: **[http://localhost:3000](http://localhost:3
 ---
 
 <p align="center">
-  Made with ❤️ by <strong>Megumi Class Team</strong> • © 2026 Megumi Class. All rights reserved.
+  Made with ❤️ by <strong>Mạnh Quân</strong> • © 2026 Megumi Class. All rights reserved.
 </p>
