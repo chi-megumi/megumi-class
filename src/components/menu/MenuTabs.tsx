@@ -8,6 +8,7 @@ import { useUserStore } from '~/providers/UserProvider'
 import { getTeacherClasses, getStudentClasses } from '~/actions/class'
 import { usePathname } from 'next/navigation'
 import ClassesSkeleton from './loading/ClassesSkeleton'
+import { sortUnits } from '~/modules/teacher/utils/unitSort'
 
 // Type inference from Prisma output or simple type
 type ClassData = Awaited<ReturnType<typeof getTeacherClasses>>[0]
@@ -29,8 +30,10 @@ const MenuTabs = ({ onNavigate, initialClasses }: MenuTabsProps = {}) => {
   const isAdmin = user?.systemRole === 'admin' || user?.role === 'admin'
   const canSeeTeacherTab = isTeacher || isAdmin
 
-  const [classes, setClasses] = useState<ClassData[]>(initialClasses ?? [])
+  const [fetchedClasses, setFetchedClasses] = useState<ClassData[] | null>(null)
   const [loading, setLoading] = useState(initialClasses === undefined)
+
+  const classes = initialClasses ?? fetchedClasses ?? []
 
   // Extract classId and unitId from pathname if they exist
   // e.g., /student/classes/123/units/456 or /teacher/classes/123
@@ -41,8 +44,6 @@ const MenuTabs = ({ onNavigate, initialClasses }: MenuTabsProps = {}) => {
 
   useEffect(() => {
     if (initialClasses !== undefined) {
-      setClasses(initialClasses)
-      setLoading(false)
       return
     }
 
@@ -52,7 +53,7 @@ const MenuTabs = ({ onNavigate, initialClasses }: MenuTabsProps = {}) => {
       try {
         const data = isTeacher ? await getTeacherClasses() : await getStudentClasses()
         if (isMounted) {
-          setClasses(data)
+          setFetchedClasses(data)
         }
       } catch (err) {
         console.error('Failed to load classes', err)
@@ -114,76 +115,121 @@ const MenuTabs = ({ onNavigate, initialClasses }: MenuTabsProps = {}) => {
             ) : classes.length === 0 ? (
               <div className="text-center text-sm text-gray-500 py-4">Chưa có lớp học nào</div>
             ) : (
-              classes.map((cls) => (
-                <div key={cls.id} className="mb-2">
-                  {/* Cấp Cha (Lớp học) */}
-                  <div
-                    onClick={() => toggleClass(cls.id)}
-                    className={[
-                      'flex items-center justify-between py-2 px-2 hover:bg-white rounded-xl cursor-pointer transition-all border border-transparent hover:border-gray-100 ',
-                      isClassExpanded(cls.id) && 'bg-white',
-                    ]
-                      .filter(Boolean)
-                      .join(' ')}
-                  >
-                    <span
-                      className="font-medium text-gray-800 text-sm truncate max-w-30 flex items-center gap-1.5"
-                      title={cls.name}
-                    >
-                      <Folder size={15} className="text-indigo-500 shrink-0" />
-                      <span className="truncate">{cls.name}</span>
-                    </span>
-                    <div className="flex items-center gap-1">
-                      {isTeacher && (
-                        <Link
-                          href={`/teacher/classes/${cls.id}`}
-                          className="min-w-8 min-h-8 p-1.5 flex items-center justify-center hover:bg-indigo-50 rounded-lg text-gray-400 hover:text-indigo-600 transition-colors"
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            onNavigate?.()
-                          }}
-                          title="Quản lý lớp học"
-                        >
-                          <Settings size={15} />
-                        </Link>
-                      )}
-                      {isClassExpanded(cls.id) ? (
-                        <ChevronDown size={18} className="text-gray-400" />
-                      ) : (
-                        <ChevronRight size={18} className="text-gray-400" />
-                      )}
-                    </div>
-                  </div>
+              classes.map((cls) => {
+                const isClassActive = activeClassId === cls.id && !activeUnitId
+                const isExpanded = isClassExpanded(cls.id)
+                const publishedUnits = sortUnits(
+                  (cls.units || []).filter((unit) => unit.isPublished)
+                )
 
-                  {/* Cấp Con (Units) - Chỉ hiển thị khi được mở rộng */}
-                  {isClassExpanded(cls.id) && (
-                    <div className="mt-2 ml-5 flex flex-col gap-1 border-l-2 border-[#E5D9F2] pl-3 py-1 animate-in slide-in-from-top-2 fade-in duration-200">
-                      {cls.units
-                        .filter(unit => unit.isPublished)
-                        .map((unit) => {
-                        const isActiveUnit = activeUnitId === unit.id
-                        return (
+                return (
+                  <div key={cls.id} className="mb-2">
+                    {/* Cấp Cha (Lớp học) */}
+                    <div
+                      className={[
+                        'group flex items-center justify-between py-1 px-2 rounded-xl transition-all border border-transparent hover:bg-white hover:border-gray-100',
+                        (isExpanded || isClassActive) && 'bg-white',
+                        isClassActive && 'border-indigo-100 shadow-xs',
+                      ]
+                        .filter(Boolean)
+                        .join(' ')}
+                    >
+                      <Link
+                        href={`/student/classes/${cls.id}`}
+                        onClick={() => {
+                          setExpandedClasses((prev) => ({ ...prev, [cls.id]: true }))
+                          onNavigate?.()
+                        }}
+                        className={[
+                          'flex items-center gap-2 flex-1 min-w-0 py-1.5 px-1 rounded-lg text-sm transition-colors',
+                          isClassActive
+                            ? 'font-bold text-indigo-600'
+                            : 'font-medium text-gray-700 hover:text-indigo-600',
+                        ].join(' ')}
+                        title={cls.name}
+                      >
+                        <Folder
+                          size={16}
+                          className={
+                            isClassActive ? 'text-indigo-600 shrink-0' : 'text-indigo-500 shrink-0'
+                          }
+                        />
+                        <span className="truncate">{cls.name}</span>
+                      </Link>
+
+                      <div className="flex items-center gap-0.5 shrink-0 ml-1">
+                        {isTeacher && (
                           <Link
-                            key={unit.id}
-                            href={`/student/classes/${cls.id}/units/${unit.id}`}
-                            onClick={() => onNavigate?.()}
-                            className={[
-                              'flex items-center gap-2 p-2.5 text-sm cursor-pointer rounded-xl transition-all font-medium',
-                              isActiveUnit 
-                                ? 'bg-indigo-50 text-indigo-700 shadow-sm border border-indigo-100/50' 
-                                : 'text-gray-600 hover:text-indigo-600 hover:bg-white'
-                            ].join(' ')}
-                            title={unit.title}
+                            href={`/teacher/classes/${cls.id}`}
+                            className="min-w-7 min-h-7 p-1 flex items-center justify-center hover:bg-indigo-50 rounded-lg text-gray-400 hover:text-indigo-600 transition-colors"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              onNavigate?.()
+                            }}
+                            title="Quản lý lớp học"
                           >
-                            <BookOpen size={16} className={isActiveUnit ? "text-indigo-500 shrink-0" : "opacity-70 shrink-0"} />
-                            <span className="truncate">{unit.title}</span>
+                            <Settings size={15} />
                           </Link>
-                        )
-                      })}
+                        )}
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.preventDefault()
+                            e.stopPropagation()
+                            toggleClass(cls.id)
+                          }}
+                          className="min-w-7 min-h-7 p-1 flex items-center justify-center hover:bg-indigo-50 rounded-lg text-gray-400 hover:text-indigo-600 transition-colors cursor-pointer"
+                          title={isExpanded ? 'Thu gọn bài học' : 'Mở rộng bài học'}
+                          aria-label={isExpanded ? 'Thu gọn bài học' : 'Mở rộng bài học'}
+                        >
+                          {isExpanded ? (
+                            <ChevronDown size={17} className="transition-transform duration-200" />
+                          ) : (
+                            <ChevronRight size={17} className="transition-transform duration-200" />
+                          )}
+                        </button>
+                      </div>
                     </div>
-                  )}
-                </div>
-              ))
+
+                    {/* Cấp Con (Units) - Chỉ hiển thị khi được mở rộng */}
+                    {isExpanded && (
+                      <div className="mt-2 ml-5 flex flex-col gap-1 border-l-2 border-[#E5D9F2] pl-3 py-1 animate-in slide-in-from-top-2 fade-in duration-200">
+                        {publishedUnits.length === 0 ? (
+                          <span className="text-xs text-gray-400 py-1 pl-1 italic">
+                            Chưa có bài học
+                          </span>
+                        ) : (
+                          publishedUnits.map((unit) => {
+                            const isActiveUnit = activeUnitId === unit.id
+                            return (
+                              <Link
+                                key={unit.id}
+                                href={`/student/classes/${cls.id}/units/${unit.id}`}
+                                onClick={() => onNavigate?.()}
+                                className={[
+                                  'flex items-center gap-2 p-2.5 text-sm cursor-pointer rounded-xl transition-all font-medium',
+                                  isActiveUnit
+                                    ? 'bg-indigo-50 text-indigo-700 shadow-sm border border-indigo-100/50'
+                                    : 'text-gray-600 hover:text-indigo-600 hover:bg-white',
+                                ].join(' ')}
+                                title={unit.title}
+                              >
+                                <BookOpen
+                                  size={16}
+                                  className={
+                                    isActiveUnit ? 'text-indigo-500 shrink-0' : 'opacity-70 shrink-0'
+                                  }
+                                />
+                                <span className="truncate">{unit.title}</span>
+                              </Link>
+                            )
+                          })
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )
+              })
             )}
           </div>
         )}

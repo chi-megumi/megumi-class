@@ -253,11 +253,12 @@ export async function getStudentClassDetails(classId: string) {
       where: classWhere,
       include: {
         units: {
+          where: { isPublished: true },
           orderBy: [{ createdAt: 'asc' }, { sortOrder: 'asc' }, { id: 'asc' }],
-          include: { exams: true },
+          include: { exams: { where: { isPublished: true, isEnabled: true } } },
         },
         exams: {
-          where: { unitId: null },
+          where: { isPublished: true, isEnabled: true, unitId: null },
           orderBy: { createdAt: 'desc' },
           include: {
             results: {

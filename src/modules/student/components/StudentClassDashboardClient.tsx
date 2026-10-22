@@ -87,6 +87,7 @@ export default function StudentClassDashboardClient({
 
   // Published and enabled class-level exams
   const publishedClassExams = (classData.exams || []).filter((t) => t.isEnabled && t.isPublished)
+  const publishedUnits = (classData.units || []).filter((u) => u.isPublished)
 
   const getExamResult = (test: ExamData): TestResultPayload | undefined => {
     if (!test) return undefined
@@ -220,7 +221,7 @@ export default function StudentClassDashboardClient({
           )}
           <div className="flex flex-wrap items-center gap-3">
             <div className="px-4 py-2 bg-white/15 backdrop-blur-md rounded-xl text-sm font-semibold border border-white/20 flex items-center gap-1.5">
-              <BookOpen size={16} /> {classData.units.length} bài học
+              <BookOpen size={16} /> {publishedUnits.length} bài học
             </div>
             {publishedClassExams.length > 0 && (
               <div className="px-4 py-2 bg-white/25 backdrop-blur-md rounded-xl text-sm font-bold border border-white/30 text-yellow-200 flex items-center gap-1.5">
@@ -407,14 +408,14 @@ export default function StudentClassDashboardClient({
           Lộ trình học tập (Units)
         </h2>
 
-        {classData.units.length === 0 ? (
+        {publishedUnits.length === 0 ? (
           <div className="text-center py-16 text-gray-500 bg-gray-50 rounded-2xl border border-dashed border-gray-200">
             <p className="text-lg font-medium">Giáo viên chưa mở bài học nào.</p>
             <p className="text-sm text-gray-400 mt-1">Hãy quay lại sau nhé!</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {sortUnits(classData.units).map((unit, index) => (
+            {sortUnits(publishedUnits).map((unit, index) => (
               <Link
                 key={unit.id}
                 href={`/student/classes/${classId}/units/${unit.id}`}
