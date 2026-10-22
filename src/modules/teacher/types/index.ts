@@ -8,9 +8,11 @@ export type VocabItemData = {
   ipa?: string | null
   pos?: string | null
   emoji?: string | null
+  image?: string | null
   example?: string | null
   exampleVi?: string | null
   tip?: string | null
+  pendingFile?: File | null
 }
 
 export type StudentData = {

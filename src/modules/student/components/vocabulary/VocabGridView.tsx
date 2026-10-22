@@ -7,6 +7,7 @@ export const VocabGridView: React.FC<VocabGridViewProps> = ({
   masteredSet,
   toggleMasteredById,
   speak,
+  onPreviewImage,
 }) => {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 print:grid-cols-3 gap-4">
@@ -19,6 +20,7 @@ export const VocabGridView: React.FC<VocabGridViewProps> = ({
             isMastered={isMastered}
             onToggleMastered={() => toggleMasteredById(item.id)}
             onSpeak={() => speak(item.word)}
+            onPreviewImage={onPreviewImage}
           />
         )
       })}

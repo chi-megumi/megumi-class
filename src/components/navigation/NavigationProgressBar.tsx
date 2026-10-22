@@ -74,7 +74,7 @@ function ProgressBarInner() {
         setProgress(0)
         hideTimerRef.current = null
         completeTimerRef.current = null
-      }, 350)
+      }, 150)
     }, 0)
   }, [])
 
@@ -167,14 +167,14 @@ function ProgressBarInner() {
       className="pointer-events-none fixed left-0 right-0 top-0 z-[9999] h-[3px]"
       style={{
         opacity: isVisible ? 1 : 0,
-        transition: 'opacity 300ms ease-out',
+        transition: 'opacity 150ms ease-out',
       }}
     >
       <div
         className="h-full bg-gradient-to-r from-[#6A5EEB] via-[#8B5CF6] to-[#EC4899] shadow-[0_0_12px_rgba(106,94,235,0.7)]"
         style={{
           width: `${progress}%`,
-          transition: progress === 100 ? 'width 200ms ease-out' : 'width 250ms ease-in-out',
+          transition: progress === 100 ? 'width 100ms ease-out' : 'width 200ms ease-in-out',
         }}
       />
     </div>

@@ -14,8 +14,10 @@ export type UnitVocabItemInput = {
   ipa?: string | null
   pos?: string | null
   emoji?: string | null
+  image?: string | null
   example?: string | null
   exampleVi?: string | null
+  tip?: string | null
 }
 
 export type UnitSettingsInput = {

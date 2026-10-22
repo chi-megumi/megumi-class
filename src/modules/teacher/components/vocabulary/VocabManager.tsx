@@ -1,9 +1,10 @@
 'use client'
 
 import { useState } from 'react'
-import { Trash2, Code, AlignLeft, Type, Edit2, Lightbulb, BookOpen } from 'lucide-react'
+import { Trash2, Code, AlignLeft, Type, Edit2, Lightbulb, BookOpen, Image as ImageIcon, X } from 'lucide-react'
 
 import { VocabItemData } from '../../types'
+import { getMediaUrl } from '~/common/utils/media'
 import JsonImport from '@/modules/teacher/components/vocabulary/JsonImport'
 import TextImport from './TextImport'
 import ManualImport from './ManualImport'
@@ -18,6 +19,9 @@ const VocabManager = ({ vocabList, onChange }: VocabManagerProps) => {
 
   // Edit State
   const [editingItem, setEditingItem] = useState<VocabItemData | null>(null)
+
+  // Quick View Image State
+  const [previewItem, setPreviewItem] = useState<VocabItemData | null>(null)
 
   // JSON Import State
   const [jsonInput, setJsonInput] = useState('')
@@ -71,6 +75,7 @@ const VocabManager = ({ vocabList, onChange }: VocabManagerProps) => {
           ipa: item.ipa || '',
           pos: item.pos || '',
           emoji: item.emoji || '',
+          image: item.image || '',
           example: item.example || '',
           exampleVi: item.exampleVi || '',
           tip: item.tip || '',
@@ -198,7 +203,7 @@ const VocabManager = ({ vocabList, onChange }: VocabManagerProps) => {
                       {item.emoji || '📝'}
                     </div>
                     <div>
-                      <div className="flex items-center gap-2 mb-1">
+                      <div className="flex items-center gap-2 mb-1 flex-wrap">
                         <h4 className="font-bold text-gray-800 text-lg leading-none">
                           {item.word}
                         </h4>
@@ -206,6 +211,21 @@ const VocabManager = ({ vocabList, onChange }: VocabManagerProps) => {
                           <span className="text-[10px] uppercase font-bold text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded">
                             {item.pos}
                           </span>
+                        )}
+                        {item.image && (
+                          <button
+                            type="button"
+                            onClick={() => setPreviewItem(item)}
+                            className={`inline-flex items-center gap-1 text-[11px] font-medium border px-2 py-0.5 rounded-full transition-all cursor-pointer shadow-2xs hover:scale-105 ${
+                              item.pendingFile
+                                ? 'text-amber-700 bg-amber-50 hover:bg-amber-100 border-amber-200/80'
+                                : 'text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border-emerald-200/80'
+                            }`}
+                            title={item.pendingFile ? 'Xem ảnh preview (Chờ lưu)' : 'Xem ảnh minh họa kích thước chuẩn'}
+                          >
+                            <ImageIcon size={11} />
+                            <span>{item.pendingFile ? 'Ảnh mới (chờ lưu)' : 'Xem ảnh'}</span>
+                          </button>
                         )}
                       </div>
                       <p className="text-indigo-600 font-medium text-sm">{item.vi}</p>
@@ -255,6 +275,60 @@ const VocabManager = ({ vocabList, onChange }: VocabManagerProps) => {
                 )}
               </div>
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* QUICK VIEW IMAGE MODAL */}
+      {previewItem && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200"
+          onClick={() => setPreviewItem(null)}
+        >
+          <div
+            className="bg-white rounded-3xl p-6 max-w-md w-full shadow-2xl border border-gray-100 animate-in zoom-in-95 duration-200"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
+                  <span>{previewItem.emoji || '🖼️'}</span>
+                  <span>{previewItem.word}</span>
+                </h3>
+                <p className="text-xs text-gray-500">{previewItem.vi}</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setPreviewItem(null)}
+                className="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-500 hover:text-gray-700 transition-all cursor-pointer"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="relative aspect-square w-full rounded-2xl overflow-hidden bg-gray-50 border border-gray-200 shadow-inner flex items-center justify-center">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={getMediaUrl(previewItem.image)}
+                alt={previewItem.word}
+                className="w-full h-full object-contain"
+              />
+            </div>
+
+            <div className="mt-4 pt-3 border-t border-gray-100 flex items-center justify-between text-xs text-gray-400">
+              <span className="font-mono truncate max-w-[240px]" title={previewItem.image || ''}>
+                {previewItem.pendingFile ? (previewItem.pendingFile.name || 'Ảnh mới chọn') : previewItem.image}
+              </span>
+              {previewItem.pendingFile ? (
+                <span className="text-amber-600 font-medium bg-amber-50 px-2 py-0.5 rounded">
+                  Chờ tải lên khi lưu
+                </span>
+              ) : (
+                <span className="text-emerald-600 font-medium bg-emerald-50 px-2 py-0.5 rounded">
+                  Đã lưu trên Cloud
+                </span>
+              )}
+            </div>
           </div>
         </div>
       )}

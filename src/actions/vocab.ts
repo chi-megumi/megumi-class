@@ -32,7 +32,6 @@ const mockedVocabItems: VocabItem[] = oldVocabData.map((item, index) => {
 })
 
 export async function getVocabItems(): Promise<VocabItem[]> {
-  // Simulate DB delay
-  await new Promise((resolve) => setTimeout(resolve, 500))
   return mockedVocabItems
 }
+

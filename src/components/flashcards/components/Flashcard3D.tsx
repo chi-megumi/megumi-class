@@ -1,8 +1,9 @@
-import { useRef } from 'react'
+import { useRef, useState } from 'react'
 import { useFlashcardStore, useFilteredIds } from '../stores/useFlashcardStore'
 import { categoryBadgeLabels } from '../data/vocabData'
 import { useSpeech } from '../hooks/useSpeech'
-import { Volume2, Star } from 'lucide-react'
+import { Volume2, Star, Image as ImageIcon, X } from 'lucide-react'
+import { getMediaUrl } from '~/common/utils/media'
 
 export function Flashcard3D() {
   const vocabItems = useFlashcardStore((s) => s.vocabItems)
@@ -29,6 +30,13 @@ export function Flashcard3D() {
 
   const item = isEmpty || !currentId ? null : vocabItems.find((i) => i.id === currentId) || null
   const isStarred = item && starredSet.includes(item.id)
+
+  // Image display states (ẩn mặc định, chỉ hiển thị on-demand khi học sinh bấm xem)
+  const [expandedCardId, setExpandedCardId] = useState<string | null>(null)
+  const [expandedBackCardId, setExpandedBackCardId] = useState<string | null>(null)
+
+  const showImage = !!currentId && expandedCardId === currentId
+  const showBackImage = !!currentId && expandedBackCardId === currentId
 
   const handleTouchStart = (e: React.TouchEvent) => {
     if (e.touches.length === 1) {
@@ -171,12 +179,59 @@ export function Flashcard3D() {
           </div>
 
           <div className="card-center">
-            <div className="card-emoji-illustration">{item.emoji}</div>
+            {item.image && showImage ? (
+              <div
+                className="relative inline-block my-1 animate-in zoom-in-95 duration-200"
+                onClick={(e) => e.stopPropagation()}
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={getMediaUrl(item.image)}
+                  alt={item.word}
+                  className="w-28 h-28 sm:w-32 sm:h-32 object-contain rounded-2xl bg-white/95 border border-indigo-100 shadow-md p-1 mx-auto"
+                  loading="lazy"
+                />
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    setExpandedCardId(null)
+                  }}
+                  className="absolute -top-1.5 -right-1.5 w-6 h-6 rounded-full bg-gray-800 text-white flex items-center justify-center text-xs hover:bg-black transition-all shadow-sm cursor-pointer"
+                  title="Ẩn ảnh minh họa"
+                >
+                  <X size={12} />
+                </button>
+              </div>
+            ) : (
+              <div className="card-emoji-illustration">{item.emoji}</div>
+            )}
+
             <div className="card-word">{item.word}</div>
             <div className="card-ipa-group">
               <span className="card-ipa">{item.ipa}</span>
               <span className="card-pos-badge">{item.pos}</span>
             </div>
+
+            {item.image && (
+              <div className="mt-2.5" onClick={(e) => e.stopPropagation()}>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    setExpandedCardId(showImage ? null : item.id)
+                  }}
+                  className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium transition-all cursor-pointer ${
+                    showImage
+                      ? 'bg-indigo-100 text-[#6A5EEB] hover:bg-indigo-200'
+                      : 'bg-white/90 hover:bg-white text-gray-600 border border-indigo-100 shadow-2xs hover:border-[#6A5EEB] hover:text-[#6A5EEB]'
+                  }`}
+                >
+                  <ImageIcon size={13} />
+                  <span>{showImage ? 'Ẩn ảnh minh họa' : 'Xem ảnh minh họa'}</span>
+                </button>
+              </div>
+            )}
           </div>
 
           <div className="card-bottom-hint">
@@ -212,6 +267,45 @@ export function Flashcard3D() {
           <div className="card-center">
             <div className="meaning-vi">{item.vi}</div>
             <div className="collocation-tip">{item.tip}</div>
+
+            {item.image && (
+              <div className="my-2" onClick={(e) => e.stopPropagation()}>
+                {showBackImage ? (
+                  <div className="inline-block relative animate-in zoom-in-95 duration-200">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={getMediaUrl(item.image)}
+                      alt={item.word}
+                      className="w-20 h-20 sm:w-24 sm:h-24 object-contain rounded-xl bg-white border border-pink-200 shadow-xs p-1 mx-auto"
+                      loading="lazy"
+                    />
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setExpandedBackCardId(null)
+                      }}
+                      className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-gray-800 text-white flex items-center justify-center text-[10px] hover:bg-black transition-all shadow-xs cursor-pointer"
+                      title="Đóng ảnh"
+                    >
+                      <X size={10} />
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setExpandedBackCardId(item.id)
+                    }}
+                    className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-white/80 hover:bg-white text-gray-500 border border-gray-200 shadow-2xs hover:text-pink-600 cursor-pointer transition-all"
+                  >
+                    <ImageIcon size={11} />
+                    <span>Xem ảnh minh họa</span>
+                  </button>
+                )}
+              </div>
+            )}
 
             {item.example && (
               <div className="example-box">

@@ -14,9 +14,10 @@ type ClassData = Awaited<ReturnType<typeof getTeacherClasses>>[0]
 
 interface MenuTabsProps {
   onNavigate?: () => void
+  initialClasses?: ClassData[]
 }
 
-const MenuTabs = ({ onNavigate }: MenuTabsProps = {}) => {
+const MenuTabs = ({ onNavigate, initialClasses }: MenuTabsProps = {}) => {
   const pathname = usePathname()
   const isTeacherOrAdminPath = pathname.startsWith('/admin') || pathname.startsWith('/teacher')
   const [selectedSidebar, setSelectedSidebar] = useState<'class' | 'teacher' | null>(null)
@@ -28,8 +29,8 @@ const MenuTabs = ({ onNavigate }: MenuTabsProps = {}) => {
   const isAdmin = user?.systemRole === 'admin' || user?.role === 'admin'
   const canSeeTeacherTab = isTeacher || isAdmin
 
-  const [classes, setClasses] = useState<ClassData[]>([])
-  const [loading, setLoading] = useState(true)
+  const [classes, setClasses] = useState<ClassData[]>(initialClasses ?? [])
+  const [loading, setLoading] = useState(initialClasses === undefined)
 
   // Extract classId and unitId from pathname if they exist
   // e.g., /student/classes/123/units/456 or /teacher/classes/123
@@ -39,6 +40,12 @@ const MenuTabs = ({ onNavigate }: MenuTabsProps = {}) => {
   const activeUnitId = activeUnitIdMatch ? activeUnitIdMatch[1] : null
 
   useEffect(() => {
+    if (initialClasses !== undefined) {
+      setClasses(initialClasses)
+      setLoading(false)
+      return
+    }
+
     let isMounted = true
 
     const fetchClasses = async () => {
@@ -61,7 +68,7 @@ const MenuTabs = ({ onNavigate }: MenuTabsProps = {}) => {
     return () => {
       isMounted = false
     }
-  }, [isTeacher])
+  }, [isTeacher, initialClasses])
 
   const isClassExpanded = (classId: string) => {
     return expandedClasses[classId] ?? (classId === activeClassId)

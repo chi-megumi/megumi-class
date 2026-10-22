@@ -9,11 +9,16 @@ import { ArrowRight, KeyRound, Loader2 } from 'lucide-react'
 import { useUserStore } from '~/providers/UserProvider'
 import { requestJoinClass } from '~/actions/class'
 
+import { getTeacherClasses } from '~/actions/class'
+
+type ClassData = Awaited<ReturnType<typeof getTeacherClasses>>[0]
+
 export interface SideBarProps {
   position?: 'left' | 'right'
+  initialClasses?: ClassData[]
 }
 
-const SideBar: React.FC<SideBarProps> = ({ position = 'left' }) => {
+const SideBar: React.FC<SideBarProps> = ({ position = 'left', initialClasses }) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const isRight = position === 'right'
   const user = useUserStore((s) => s.user)
@@ -80,7 +85,7 @@ const SideBar: React.FC<SideBarProps> = ({ position = 'left' }) => {
             .join(' ')}
         >
           <div>
-            <MenuTabs onNavigate={closeSidebar} />
+            <MenuTabs onNavigate={closeSidebar} initialClasses={initialClasses} />
           </div>
 
           <div className="mt-auto">

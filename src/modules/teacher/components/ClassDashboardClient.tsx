@@ -207,17 +207,75 @@ const ClassDashboardClient = ({ classData }: ClassDashboardClientProps) => {
   const handleSaveVocab = async () => {
     if (!editingUnit) return
     setSavingVocab(true)
+    const newlyUploadedPaths: string[] = []
+
     try {
-      await updateUnitVocab(editingUnit.id, editVocabList)
+      // 1. Tải lên các file ảnh mới được chọn (Deferred Upload)
+      const preparedList = await Promise.all(
+        editVocabList.map(async (item) => {
+          if (item.pendingFile) {
+            const formData = new FormData()
+            formData.append('file', item.pendingFile)
+
+            const res = await fetch('/api/upload/vocab-image', {
+              method: 'POST',
+              body: formData,
+            })
+
+            const json = await res.json()
+            if (!res.ok || !json.success) {
+              throw new Error(json.error || `Lỗi tải ảnh cho từ "${item.word}"`)
+            }
+
+            newlyUploadedPaths.push(json.path)
+            return {
+              ...item,
+              image: json.path,
+              pendingFile: undefined,
+            }
+          }
+          return item
+        })
+      )
+
+      // 2. Chuyển đổi dữ liệu chuẩn gửi cho server action
+      const vocabInputData = preparedList.map((item) => ({
+        word: item.word,
+        vi: item.vi,
+        ipa: item.ipa || null,
+        pos: item.pos || null,
+        emoji: item.emoji || null,
+        image: item.image || null,
+        example: item.example || null,
+        exampleVi: item.exampleVi || null,
+        tip: item.tip || null,
+      }))
+
+      // 3. Lưu vào Database qua Server Action
+      await updateUnitVocab(editingUnit.id, vocabInputData)
+
+      // 4. Cập nhật state cục bộ
       setUnits((prev) =>
         prev.map((u) =>
-          u.id === editingUnit.id ? { ...u, vocabItems: editVocabList } : u
+          u.id === editingUnit.id ? { ...u, vocabItems: preparedList } : u
         )
       )
       setEditingUnit(null)
       router.refresh()
-    } catch {
-      alert('Có lỗi xảy ra khi lưu')
+    } catch (error: unknown) {
+      console.error('Lỗi khi lưu từ vựng:', error)
+
+      // Nếu có lỗi sau khi đã upload một số ảnh lên store, tự động xóa các ảnh đó khỏi store để không để lại rác
+      if (newlyUploadedPaths.length > 0) {
+        fetch('/api/upload/vocab-image', {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ paths: newlyUploadedPaths }),
+        }).catch((cleanupErr) => console.warn('Lỗi dọn dẹp ảnh tạm:', cleanupErr))
+      }
+
+      const msg = error instanceof Error ? error.message : 'Có lỗi xảy ra khi lưu từ vựng'
+      alert(msg)
     } finally {
       setSavingVocab(false)
     }

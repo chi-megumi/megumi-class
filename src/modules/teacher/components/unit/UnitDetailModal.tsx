@@ -97,7 +97,7 @@ const UnitDetailModalInner = ({
                 className="px-6 py-2.5 bg-[#6A5EEB] hover:bg-[#5b51d8] text-white font-medium rounded-xl transition-colors disabled:opacity-50 flex items-center gap-2 shadow-sm"
               >
                 {savingVocab && <Loader2 size={16} className="animate-spin" />}
-                Lưu thay đổi
+                {savingVocab ? 'Đang lưu...' : 'Lưu thay đổi'}
               </button>
             </div>
           </div>

@@ -1,12 +1,14 @@
 import React from 'react'
-import { Check, Volume2 } from 'lucide-react'
+import { Check, Volume2, Maximize2 } from 'lucide-react'
 import { VocabGridCardProps } from './types'
+import { getMediaUrl } from '~/common/utils/media'
 
 export const VocabGridCard: React.FC<VocabGridCardProps> = ({
   item,
   isMastered,
   onToggleMastered,
   onSpeak,
+  onPreviewImage,
 }) => {
   return (
     <div
@@ -17,6 +19,26 @@ export const VocabGridCard: React.FC<VocabGridCardProps> = ({
       }`}
     >
       <div>
+        {/* Vocab Image Banner (if exists) */}
+        {item.image && (
+          <div
+            onClick={() => onPreviewImage?.(item)}
+            className="relative w-full h-36 rounded-xl overflow-hidden bg-gray-50 border border-gray-100 mb-3 group/gridimg cursor-pointer hover:border-indigo-300 hover:shadow-xs transition-all flex items-center justify-center"
+            title="Bấm để xem ảnh phóng to"
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={getMediaUrl(item.image)}
+              alt={item.word}
+              className="w-full h-full object-contain p-2 group-hover/gridimg:scale-105 transition-transform"
+              loading="lazy"
+            />
+            <div className="absolute top-2 right-2 bg-black/50 text-white p-1 rounded-md opacity-0 group-hover/gridimg:opacity-100 transition-opacity">
+              <Maximize2 size={12} />
+            </div>
+          </div>
+        )}
+
         {/* Top Header: Word, POS badge, Audio button */}
         <div className="flex items-start justify-between gap-2 mb-1.5">
           <div className="min-w-0 flex-1">

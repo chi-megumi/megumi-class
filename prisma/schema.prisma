@@ -44,6 +44,7 @@ model Class {
   units       Unit[]
   exams       Exam[]
 
+  @@index([teacherId])
   @@map("classes")
 }
 
@@ -58,6 +59,7 @@ model ClassEnrollment {
   student   User     @relation(fields: [studentId], references: [id], onDelete: Cascade)
 
   @@unique([classId, studentId])
+  @@index([studentId])
   @@map("class_enrollments")
 }
 
@@ -80,6 +82,7 @@ model Unit {
   studentProgress  UserUnitProgress[]
   exams            Exam[]
 
+  @@index([classId])
   @@map("units")
 }
 
@@ -102,6 +105,8 @@ model Exam {
   unit        Unit?    @relation(fields: [unitId], references: [id], onDelete: Cascade)
   results     ExamResult[]
 
+  @@index([classId])
+  @@index([unitId])
   @@map("exams")
 }
 
@@ -118,6 +123,7 @@ model ExamResult {
   student     User     @relation(fields: [studentId], references: [id], onDelete: Cascade)
 
   @@unique([examId, studentId])
+  @@index([studentId])
   @@map("exam_results")
 }
 
@@ -128,6 +134,7 @@ model VocabItem {
   ipa         String?  @db.VarChar(255)
   pos         String?  @db.VarChar(50) // 'n', 'v', 'adj', 'v phr', 'n phr', 'adj phr'
   vi          String   @db.Text
+  image       String?  @db.VarChar(500)
   emoji       String?  @db.VarChar(10)
   tip         String?  @db.Text
   example     String?  @db.Text

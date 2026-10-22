@@ -13,6 +13,7 @@ export interface VocabItem {
   ipa: string | null
   pos: string | null
   vi: string
+  image?: string | null
   emoji: string | null
   tip: string | null
   example: string | null

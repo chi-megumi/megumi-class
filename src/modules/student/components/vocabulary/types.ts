@@ -23,6 +23,7 @@ export interface VocabListViewProps {
   masteredSet: string[]
   toggleMasteredById: (id: string) => void
   speak: (word: string) => void
+  onPreviewImage?: (item: VocabItemData) => void
 }
 
 export interface VocabListItemProps {
@@ -30,6 +31,7 @@ export interface VocabListItemProps {
   isMastered: boolean
   onToggleMastered: () => void
   onSpeak: () => void
+  onPreviewImage?: (item: VocabItemData) => void
 }
 
 export interface VocabGridViewProps {
@@ -37,6 +39,7 @@ export interface VocabGridViewProps {
   masteredSet: string[]
   toggleMasteredById: (id: string) => void
   speak: (word: string) => void
+  onPreviewImage?: (item: VocabItemData) => void
 }
 
 export interface VocabGridCardProps {
@@ -44,6 +47,7 @@ export interface VocabGridCardProps {
   isMastered: boolean
   onToggleMastered: () => void
   onSpeak: () => void
+  onPreviewImage?: (item: VocabItemData) => void
 }
 
 export interface VocabEmptyStateProps {

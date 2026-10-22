@@ -2,10 +2,21 @@ import AppHeader from '~/components/header/AppHeader'
 import SideBar from '~/components/menu/Sidebar'
 import '~/common/styles/components/MainLayout.scss'
 import { getMe } from '~/actions/auth'
+import { getTeacherClasses, getStudentClasses } from '~/actions/class'
 import UserProvider from '~/providers/UserProvider'
 
 export default async function PortalLayout({ children }: { children: React.ReactNode }) {
   const user = await getMe()
+
+  let initialClasses: Awaited<ReturnType<typeof getTeacherClasses>> = []
+  if (user) {
+    const isTeacher = user.role === 'teacher' || user.role === 'TEACHER'
+    try {
+      initialClasses = isTeacher ? await getTeacherClasses() : await getStudentClasses()
+    } catch {
+      initialClasses = []
+    }
+  }
 
   return (
     <UserProvider user={user}>
@@ -16,7 +27,7 @@ export default async function PortalLayout({ children }: { children: React.React
       >
         {user && (
           <div className="print:hidden">
-            <SideBar position="left" />
+            <SideBar position="left" initialClasses={initialClasses} />
           </div>
         )}
 

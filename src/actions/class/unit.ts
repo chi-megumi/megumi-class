@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { getMe } from '../auth'
 import { prisma } from '~/common/libs/prisma'
+import { deleteVocabImages } from '~/common/libs/supabase-storage'
 import type { UnitSettingsInput, UnitVocabItemInput } from './types'
 import { sanitizeExams } from './exam-utils'
 
@@ -79,9 +80,22 @@ export async function deleteUnit(unitId: string) {
 
   if (!unit || unit.class.teacherId !== user.id) throw new Error('Unauthorized')
 
+  // Lấy các ảnh thuộc unit chuẩn bị xóa để giải phóng dung lượng kho lưu trữ
+  const existingVocabs = await prisma.vocabItem.findMany({
+    where: { unitId, image: { not: null } },
+    select: { image: true },
+  })
+  const imagesToDelete = existingVocabs.map((v) => v.image).filter(Boolean) as string[]
+
   await prisma.unit.delete({
     where: { id: unitId },
   })
+
+  if (imagesToDelete.length > 0) {
+    deleteVocabImages(imagesToDelete).catch((err) =>
+      console.warn('Lỗi dọn dẹp ảnh Supabase khi xóa Unit:', err),
+    )
+  }
 
   revalidatePath(`/teacher/classes/${unit.classId}`)
   return { success: true }
@@ -120,6 +134,15 @@ export async function updateUnitVocab(unitId: string, vocabItems: UnitVocabItemI
 
   if (!unit || unit.class.teacherId !== user.id) throw new Error('Unauthorized')
 
+  // Lấy danh sách ảnh hiện tại để dọn dẹp các ảnh bị xóa/thay thế
+  const existingVocabs = await prisma.vocabItem.findMany({
+    where: { unitId, image: { not: null } },
+    select: { image: true },
+  })
+  const oldImageSet = new Set(existingVocabs.map((v) => v.image).filter(Boolean) as string[])
+  const newImageSet = new Set(vocabItems.map((v) => v.image).filter(Boolean) as string[])
+  const imagesToDelete = Array.from(oldImageSet).filter((img) => !newImageSet.has(img))
+
   // Transaction: Delete existing vocabs in unit, then create new ones
   await prisma.$transaction([
     prisma.vocabItem.deleteMany({
@@ -133,12 +156,21 @@ export async function updateUnitVocab(unitId: string, vocabItems: UnitVocabItemI
         ipa: item.ipa || null,
         pos: item.pos || null,
         emoji: item.emoji || null,
+        image: item.image || null,
         example: item.example || null,
         exampleVi: item.exampleVi || null,
+        tip: item.tip || null,
         sortOrder: index,
       })),
     }),
   ])
+
+  // Dọn dẹp ảnh cũ khỏi storage nếu có
+  if (imagesToDelete.length > 0) {
+    deleteVocabImages(imagesToDelete).catch((err) =>
+      console.warn('Lỗi dọn dẹp ảnh Supabase khi cập nhật từ vựng:', err),
+    )
+  }
 
   revalidatePath(`/teacher/classes/${unit.classId}`)
   return { success: true }

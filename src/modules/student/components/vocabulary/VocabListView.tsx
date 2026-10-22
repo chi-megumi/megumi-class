@@ -7,6 +7,7 @@ export const VocabListView: React.FC<VocabListViewProps> = ({
   masteredSet,
   toggleMasteredById,
   speak,
+  onPreviewImage,
 }) => {
   return (
     <div className="bg-white border border-gray-100 rounded-3xl overflow-hidden shadow-sm divide-y divide-gray-50 print:border-gray-200 print:shadow-none">
@@ -19,6 +20,7 @@ export const VocabListView: React.FC<VocabListViewProps> = ({
             isMastered={isMastered}
             onToggleMastered={() => toggleMasteredById(item.id)}
             onSpeak={() => speak(item.word)}
+            onPreviewImage={onPreviewImage}
           />
         )
       })}

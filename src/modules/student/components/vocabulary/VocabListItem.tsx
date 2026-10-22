@@ -1,16 +1,18 @@
 import React from 'react'
-import { Check, Volume2 } from 'lucide-react'
+import { Check, Volume2, Maximize2 } from 'lucide-react'
 import { VocabListItemProps } from './types'
+import { getMediaUrl } from '~/common/utils/media'
 
 export const VocabListItem: React.FC<VocabListItemProps> = ({
   item,
   isMastered,
   onToggleMastered,
   onSpeak,
+  onPreviewImage,
 }) => {
   return (
     <div
-      className={`p-3 md:p-4.5 flex flex-col md:flex-row md:items-center gap-4 transition-all group break-inside-avoid ${
+      className={`p-3 md:p-4.5 flex flex-col md:flex-row md:items-center gap-3.5 transition-all group break-inside-avoid ${
         isMastered
           ? 'bg-emerald-50/40 border-l-4 border-l-emerald-500'
           : 'bg-white border-l-4 border-l-transparent hover:bg-indigo-50/30'
@@ -35,6 +37,30 @@ export const VocabListItem: React.FC<VocabListItemProps> = ({
           )}
         </button>
       </div>
+
+      {/* Vocab Image Thumbnail (if exists) */}
+      {item.image && (
+        <button
+          type="button"
+          onClick={() => onPreviewImage?.(item)}
+          className="relative shrink-0 w-14 h-14 md:w-16 md:h-16 rounded-xl overflow-hidden border border-gray-200/90 bg-gray-50 hover:border-indigo-400 hover:shadow-md transition-all group/thumb cursor-pointer self-start md:self-center"
+          title="Nhấn để xem ảnh phóng to"
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={getMediaUrl(item.image)}
+            alt={item.word}
+            className="w-full h-full object-cover group-hover/thumb:scale-105 transition-transform"
+            loading="lazy"
+          />
+          <div className="absolute inset-0 bg-black/0 group-hover/thumb:bg-black/20 transition-colors flex items-center justify-center">
+            <Maximize2
+              size={14}
+              className="text-white opacity-0 group-hover/thumb:opacity-100 drop-shadow-md transition-opacity"
+            />
+          </div>
+        </button>
+      )}
 
       {/* Word Info */}
       <div className="flex-1 min-w-0">

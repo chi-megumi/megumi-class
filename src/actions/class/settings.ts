@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { getMe } from '../auth'
 import { prisma } from '~/common/libs/prisma'
+import { deleteVocabImages } from '~/common/libs/supabase-storage'
 
 type ActionResult<T = unknown> = {
   success: boolean
@@ -134,9 +135,25 @@ export async function deleteClassAction(
       return { success: false, error: 'Tên xác nhận không khớp với tên lớp học' }
     }
 
+    // Lấy các ảnh từ vựng thuộc lớp chuẩn bị xóa để giải phóng dung lượng kho lưu trữ
+    const existingVocabs = await prisma.vocabItem.findMany({
+      where: {
+        unit: { classId },
+        image: { not: null },
+      },
+      select: { image: true },
+    })
+    const imagesToDelete = existingVocabs.map((v) => v.image).filter(Boolean) as string[]
+
     await prisma.class.delete({
       where: { id: classId },
     })
+
+    if (imagesToDelete.length > 0) {
+      deleteVocabImages(imagesToDelete).catch((err) =>
+        console.warn('Lỗi dọn dẹp ảnh Supabase khi xóa Class:', err),
+      )
+    }
 
     revalidatePath('/teacher')
     return { success: true, message: 'Đã xóa lớp học thành công' }
