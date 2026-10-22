@@ -61,60 +61,163 @@ export default function MultipleChoiceEditor({
                     : 'text-gray-800 border-gray-100 focus:border-indigo-400'
                 }`}
               />
-              <div className="grid grid-cols-1 gap-3">
-                {['A', 'B', 'C', 'D'].map((opt, oIdx) => (
-                  <div
-                    key={opt}
-                    className={`flex items-center gap-3 bg-white rounded-xl p-2.5 border focus-within:shadow-sm transition-all ${
-                      q.correctIndex === oIdx
-                        ? isMiniChallenge
-                          ? 'border-orange-400 bg-orange-50'
-                          : 'border-green-300 bg-green-50/30'
-                        : isMiniChallenge
-                          ? 'border-orange-100 hover:border-orange-300 focus-within:border-orange-400'
-                          : 'border-gray-100 focus-within:border-indigo-300'
-                    }`}
-                  >
-                    <input
-                      type="radio"
-                      name={`correct-${q.id}`}
-                      checked={q.correctIndex === oIdx}
-                      onChange={() => {
-                        const newQs = [...questions]
-                        newQs[qIndex].correctIndex = oIdx
-                        onUpdateContent({ ...block.content, questions: newQs })
-                      }}
-                      className={`w-5 h-5 ${
-                        isMiniChallenge
-                          ? 'text-orange-500 focus:ring-orange-500'
-                          : 'text-indigo-600 focus:ring-indigo-500'
-                      }`}
-                    />
-                    <span
-                      className={`font-bold w-5 ${
-                        isMiniChallenge ? 'text-orange-400' : 'text-gray-500'
-                      }`}
-                    >
-                      {opt}.
-                    </span>
-                    <input
-                      type="text"
-                      value={q.options?.[oIdx] || ''}
-                      onChange={(e) => {
-                        const newQs = [...questions]
-                        if (newQs[qIndex].options) {
-                          newQs[qIndex].options[oIdx] = e.target.value
-                        }
-                        onUpdateContent({ ...block.content, questions: newQs })
-                      }}
-                      placeholder={`Lựa chọn ${opt}`}
-                      className={`flex-1 bg-transparent focus:outline-none ${
-                        isMiniChallenge ? 'text-orange-800' : 'text-gray-700'
-                      }`}
-                    />
+              {/* Options Mode & Presets */}
+              {(() => {
+                const curOptions =
+                  Array.isArray(q.options) && q.options.length > 0
+                    ? q.options
+                    : ['', '', '', '']
+                const isTwoOptions = curOptions.length <= 2
+                const displayedLetters = isTwoOptions ? ['A', 'B'] : ['A', 'B', 'C', 'D']
+
+                return (
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between flex-wrap gap-2 text-xs pt-1">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-gray-400 font-medium text-[11px]">Số đáp án:</span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const newQs = [...questions]
+                            const baseOpts = newQs[qIndex].options || []
+                            newQs[qIndex].options = [
+                              baseOpts[0] || '',
+                              baseOpts[1] || '',
+                              baseOpts[2] || '',
+                              baseOpts[3] || '',
+                            ]
+                            onUpdateContent({ ...block.content, questions: newQs })
+                          }}
+                          className={`px-2 py-0.5 rounded text-[11px] font-semibold transition-all ${
+                            !isTwoOptions
+                              ? isMiniChallenge
+                                ? 'bg-orange-600 text-white shadow-xs'
+                                : 'bg-indigo-600 text-white shadow-xs'
+                              : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                          }`}
+                        >
+                          4 đáp án (A-D)
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const newQs = [...questions]
+                            const baseOpts = newQs[qIndex].options || []
+                            newQs[qIndex].options = [baseOpts[0] || '', baseOpts[1] || '']
+                            if ((newQs[qIndex].correctIndex ?? 0) >= 2) {
+                              newQs[qIndex].correctIndex = 0
+                            }
+                            onUpdateContent({ ...block.content, questions: newQs })
+                          }}
+                          className={`px-2 py-0.5 rounded text-[11px] font-semibold transition-all ${
+                            isTwoOptions
+                              ? isMiniChallenge
+                                ? 'bg-orange-600 text-white shadow-xs'
+                                : 'bg-indigo-600 text-white shadow-xs'
+                              : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                          }`}
+                        >
+                          2 đáp án (A, B)
+                        </button>
+                      </div>
+
+                      <div className="flex items-center gap-1">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const newQs = [...questions]
+                            newQs[qIndex].options = ['True', 'False']
+                            if ((newQs[qIndex].correctIndex ?? 0) >= 2) {
+                              newQs[qIndex].correctIndex = 0
+                            }
+                            onUpdateContent({ ...block.content, questions: newQs })
+                          }}
+                          className="px-2 py-0.5 rounded text-[11px] font-medium bg-amber-50 text-amber-700 hover:bg-amber-100 border border-amber-200 transition-colors"
+                          title="Điền nhanh True / False"
+                        >
+                          ⚡ True / False
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const newQs = [...questions]
+                            newQs[qIndex].options = ['Đúng', 'Sai']
+                            if ((newQs[qIndex].correctIndex ?? 0) >= 2) {
+                              newQs[qIndex].correctIndex = 0
+                            }
+                            onUpdateContent({ ...block.content, questions: newQs })
+                          }}
+                          className="px-2 py-0.5 rounded text-[11px] font-medium bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 transition-colors"
+                          title="Điền nhanh Đúng / Sai"
+                        >
+                          ⚡ Đúng / Sai
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 gap-2.5">
+                      {displayedLetters.map((opt, oIdx) => (
+                        <div
+                          key={opt}
+                          className={`flex items-center gap-3 bg-white rounded-xl p-2.5 border focus-within:shadow-sm transition-all ${
+                            q.correctIndex === oIdx
+                              ? isMiniChallenge
+                                ? 'border-orange-400 bg-orange-50'
+                                : 'border-green-300 bg-green-50/30'
+                              : isMiniChallenge
+                                ? 'border-orange-100 hover:border-orange-300 focus-within:border-orange-400'
+                                : 'border-gray-100 focus-within:border-indigo-300'
+                          }`}
+                        >
+                          <input
+                            type="radio"
+                            name={`correct-${q.id}`}
+                            checked={q.correctIndex === oIdx}
+                            onChange={() => {
+                              const newQs = [...questions]
+                              newQs[qIndex].correctIndex = oIdx
+                              onUpdateContent({ ...block.content, questions: newQs })
+                            }}
+                            className={`w-5 h-5 ${
+                              isMiniChallenge
+                                ? 'text-orange-500 focus:ring-orange-500'
+                                : 'text-indigo-600 focus:ring-indigo-500'
+                            }`}
+                          />
+                          <span
+                            className={`font-bold w-5 ${
+                              isMiniChallenge ? 'text-orange-400' : 'text-gray-500'
+                            }`}
+                          >
+                            {opt}.
+                          </span>
+                          <input
+                            type="text"
+                            value={q.options?.[oIdx] ?? ''}
+                            onChange={(e) => {
+                              const newQs = [...questions]
+                              const existingOptions = [
+                                ...(newQs[qIndex].options ||
+                                  (isTwoOptions ? ['', ''] : ['', '', '', ''])),
+                              ]
+                              while (existingOptions.length < displayedLetters.length) {
+                                existingOptions.push('')
+                              }
+                              existingOptions[oIdx] = e.target.value
+                              newQs[qIndex].options = existingOptions
+                              onUpdateContent({ ...block.content, questions: newQs })
+                            }}
+                            placeholder={`Lựa chọn ${opt}`}
+                            className={`flex-1 bg-transparent focus:outline-none ${
+                              isMiniChallenge ? 'text-orange-800' : 'text-gray-700'
+                            }`}
+                          />
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                ))}
-              </div>
+                )
+              })()}
             </div>
             {questions.length > 1 && (
               <button

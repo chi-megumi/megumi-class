@@ -69,6 +69,17 @@ export function sanitizeExams<T extends { content?: unknown }>(
         const pairs: MatchingPair[] = Array.isArray(block.content?.pairs)
           ? block.content.pairs
           : []
+
+        const existingRightMap = new Map<string, string>()
+        if (Array.isArray(block.content?.shuffledRight)) {
+          block.content.shuffledRight.forEach((r: { id: string; text: string }) => {
+            if (r.id && r.text) existingRightMap.set(r.id, r.text)
+          })
+        }
+        pairs.forEach((p) => {
+          if (p.id && p.right) existingRightMap.set(p.id, p.right)
+        })
+
         const sanitizedPairs: MatchingPair[] = pairs.map((p) => ({
           id: p.id,
           left: p.left,
@@ -76,7 +87,7 @@ export function sanitizeExams<T extends { content?: unknown }>(
         const shuffledRight = shuffleArray(
           pairs.map((p) => ({
             id: p.id,
-            text: p.right || '',
+            text: existingRightMap.get(p.id) || p.right || '',
           }))
         )
         return {

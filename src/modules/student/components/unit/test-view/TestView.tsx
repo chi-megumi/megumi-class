@@ -573,7 +573,15 @@ export default function TestView({ testData, unitId, onClose, initialResult, onT
 
               {block.type === 'matching' && (() => {
                 const pairs = block.content?.pairs || []
-                const rightItems = block.content?.shuffledRight || pairs.map(p => ({ id: p.id, text: p.right || '' }))
+                let rightItems = block.content?.shuffledRight
+                if (!rightItems || rightItems.length === 0) {
+                  rightItems = pairs.map((p) => ({ id: p.id, text: p.right || '' }))
+                } else {
+                  rightItems = rightItems.map((r) => ({
+                    id: r.id,
+                    text: r.text || pairs.find((p) => p.id === r.id)?.right || '',
+                  }))
+                }
 
                 return (
                   <MatchingBlock

@@ -13,6 +13,7 @@ import {
 } from 'lucide-react'
 import { getStudentExamHistory } from '@/actions/analytics/class-analytics'
 import { MatchingPair, TestBlock, TestQuestion } from '../../types'
+import { getActiveQuestionOptions } from '../../utils/questionUtils'
 import Portal from '@/components/common/Portal'
 import StudentExamProgressSkeleton from './loading/StudentExamProgressSkeleton'
 
@@ -283,13 +284,14 @@ export default function StudentExamProgressModal({
                                             {qIdx + 1}. {q.text}
                                           </p>
                                           <div className="grid grid-cols-1 gap-1.5 pl-3">
-                                            {(q.options || []).map((opt, oIdx) => {
+                                            {getActiveQuestionOptions(q.options).map((opt) => {
+                                              const oIdx = opt.index
                                               const isStudentChoice = studentAns === oIdx
                                               const isCorrectChoice = correctAns === oIdx
 
                                               return (
                                                 <div
-                                                  key={oIdx}
+                                                  key={opt.label}
                                                   className={`p-2 rounded-lg border flex items-center gap-2 ${
                                                     isCorrectChoice
                                                       ? 'bg-emerald-50 border-emerald-200 text-emerald-800 font-medium'
@@ -301,7 +303,8 @@ export default function StudentExamProgressModal({
                                                   <span className="w-4 h-4 rounded-full flex items-center justify-center text-[10px] border">
                                                     {isCorrectChoice ? '✓' : isStudentChoice ? '✗' : ''}
                                                   </span>
-                                                  <span>{opt}</span>
+                                                  <span className="font-bold text-gray-400 text-xs">{opt.label}.</span>
+                                                  <span>{opt.text}</span>
                                                 </div>
                                               )
                                             })}

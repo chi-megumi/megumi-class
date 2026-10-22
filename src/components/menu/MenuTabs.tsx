@@ -2,7 +2,15 @@
 
 import { useEffect, useState } from 'react'
 import Tabs from '~/components/tabs'
-import { BookOpen, ChevronDown, ChevronRight, Folder, PlusCircle, Settings, ShieldCheck } from 'lucide-react'
+import {
+  BookOpen,
+  ChevronDown,
+  ChevronRight,
+  Folder,
+  PlusCircle,
+  Settings,
+  ShieldCheck,
+} from 'lucide-react'
 import Link from 'next/link'
 import { useUserStore } from '~/providers/UserProvider'
 import { getTeacherClasses, getStudentClasses } from '~/actions/class'
@@ -21,7 +29,7 @@ interface MenuTabsProps {
 const MenuTabs = ({ onNavigate, initialClasses }: MenuTabsProps = {}) => {
   const pathname = usePathname()
   const isTeacherOrAdminPath = pathname.startsWith('/admin') || pathname.startsWith('/teacher')
-  const [selectedSidebar, setSelectedSidebar] = useState<'class' | 'teacher' | null>(null)
+  const [selectedSidebar, setSelectedSidebar] = useState<'class' | 'teacher' | null>('class')
   const activeSidebar = selectedSidebar ?? (isTeacherOrAdminPath ? 'teacher' : 'class')
 
   const [expandedClasses, setExpandedClasses] = useState<Record<string, boolean>>({})
@@ -72,12 +80,12 @@ const MenuTabs = ({ onNavigate, initialClasses }: MenuTabsProps = {}) => {
   }, [isTeacher, initialClasses])
 
   const isClassExpanded = (classId: string) => {
-    return expandedClasses[classId] ?? (classId === activeClassId)
+    return expandedClasses[classId] ?? classId === activeClassId
   }
 
   const toggleClass = (classId: string) => {
     setExpandedClasses((prev) => {
-      const current = prev[classId] ?? (classId === activeClassId)
+      const current = prev[classId] ?? classId === activeClassId
       return {
         ...prev,
         [classId]: !current,
@@ -119,7 +127,7 @@ const MenuTabs = ({ onNavigate, initialClasses }: MenuTabsProps = {}) => {
                 const isClassActive = activeClassId === cls.id && !activeUnitId
                 const isExpanded = isClassExpanded(cls.id)
                 const publishedUnits = sortUnits(
-                  (cls.units || []).filter((unit) => unit.isPublished)
+                  (cls.units || []).filter((unit) => unit.isPublished),
                 )
 
                 return (
@@ -217,7 +225,9 @@ const MenuTabs = ({ onNavigate, initialClasses }: MenuTabsProps = {}) => {
                                 <BookOpen
                                   size={16}
                                   className={
-                                    isActiveUnit ? 'text-indigo-500 shrink-0' : 'opacity-70 shrink-0'
+                                    isActiveUnit
+                                      ? 'text-indigo-500 shrink-0'
+                                      : 'opacity-70 shrink-0'
                                   }
                                 />
                                 <span className="truncate">{unit.title}</span>

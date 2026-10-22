@@ -26,6 +26,7 @@ export type TestBuilderModalProps = {
   vocabItems?: VocabItemData[]
   unitTitle?: string
   initialExam?: GeneratedExamResult
+  isReadOnly?: boolean
   onClose: () => void
   onSaveSuccess?: (newTests: ExamData[]) => void
 }

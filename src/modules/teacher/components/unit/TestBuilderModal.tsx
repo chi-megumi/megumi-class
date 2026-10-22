@@ -17,6 +17,7 @@ import type {
   ImportBlockData,
 } from './test-builder/types'
 import type { ExamData, TestBlock } from '@/modules/teacher/types'
+import { sanitizeMultipleChoiceOptions } from '@/modules/teacher/utils/questionUtils'
 
 export default function TestBuilderModal({
   unitId,
@@ -27,17 +28,20 @@ export default function TestBuilderModal({
   vocabItems,
   unitTitle,
   initialExam,
+  isReadOnly: isReadOnlyProp,
   onClose,
   onSaveSuccess,
 }: TestBuilderModalProps) {
-  const [isPreview, setIsPreview] = useState(false)
+  const existingTest = existingTests.find((t) => t.id === editingTestId)
+  const isReadOnly = isReadOnlyProp ?? existingTest?.isPublished ?? false
+
+  const [isPreview, setIsPreview] = useState(isReadOnly)
   const [isSaving, setIsSaving] = useState(false)
   const [isGeneratorOpen, setIsGeneratorOpen] = useState(false)
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true)
+  const [isSidebarOpen, setIsSidebarOpen] = useState(!isReadOnly)
   const [dragItemIndex, setDragItemIndex] = useState<number | null>(null)
   const [dragOverItemIndex, setDragOverItemIndex] = useState<number | null>(null)
 
-  const existingTest = existingTests.find((t) => t.id === editingTestId)
   const [testTitle, setTestTitle] = useState(
     initialExam?.title || existingTest?.title || 'Bài kiểm tra mới',
   )
@@ -108,8 +112,33 @@ export default function TestBuilderModal({
   }
 
   const handleSave = async () => {
+    if (isReadOnly) return
     try {
       setIsSaving(true)
+
+      const sanitizedBlocks = blocks.map((b) => {
+        if (b.type === 'multiple_choice' && b.content?.questions) {
+          return {
+            ...b,
+            content: {
+              ...b.content,
+              questions: b.content.questions.map((q) => {
+                const cleanedOpts = sanitizeMultipleChoiceOptions(q.options)
+                const maxIdx = Math.max(0, cleanedOpts.length - 1)
+                return {
+                  ...q,
+                  options: cleanedOpts,
+                  correctIndex:
+                    typeof q.correctIndex === 'number' && q.correctIndex <= maxIdx
+                      ? q.correctIndex
+                      : 0,
+                }
+              }),
+            },
+          }
+        }
+        return b
+      })
 
       let newTests = [...existingTests]
       const currentTest: ExamData = {
@@ -119,7 +148,7 @@ export default function TestBuilderModal({
         isEnabled: existingTest?.isEnabled ?? false,
         isPublished: existingTest?.isPublished ?? false,
         isRetakable: isRetakable,
-        content: blocks,
+        content: sanitizedBlocks,
         classId: classId || null,
         unitId: isClassExam ? null : unitId || null,
       }
@@ -285,8 +314,8 @@ export default function TestBuilderModal({
     <Portal>
       <div className="fixed inset-0 z-[100] flex bg-gray-900/50 backdrop-blur-sm animate-in fade-in duration-300">
         <div className="w-full h-full bg-[#f8f9fa] flex flex-col md:flex-row">
-          {/* SIDEBAR: TEMPLATES (Hidden in Preview or when Collapsed) */}
-          {!isPreview && isSidebarOpen && (
+          {/* SIDEBAR: TEMPLATES (Hidden in Preview, ReadOnly, or when Collapsed) */}
+          {!isReadOnly && !isPreview && isSidebarOpen && (
             <TestBuilderSidebar
               vocabItems={vocabItems}
               onOpenGenerator={() => setIsGeneratorOpen(true)}
@@ -308,15 +337,16 @@ export default function TestBuilderModal({
               isRetakable={isRetakable}
               onRetakableChange={setIsRetakable}
               isPreview={isPreview}
-              onTogglePreview={() => setIsPreview(!isPreview)}
+              onTogglePreview={() => !isReadOnly && setIsPreview(!isPreview)}
               isSidebarOpen={isSidebarOpen}
-              onOpenSidebar={() => setIsSidebarOpen(true)}
+              onOpenSidebar={() => !isReadOnly && setIsSidebarOpen(true)}
               isSaving={isSaving}
               onSave={handleSave}
               onClose={onClose}
               onOpenFullExamImport={() => setIsFullExamImportOpen(true)}
               onOpenGenerator={() => setIsGeneratorOpen(true)}
               vocabItems={vocabItems}
+              isReadOnly={isReadOnly}
             />
 
             {/* Canvas Area */}
@@ -349,7 +379,7 @@ export default function TestBuilderModal({
                   </div>
                 ) : (
                   blocks.map((block, index) => {
-                    if (isPreview) {
+                    if (isPreview || isReadOnly) {
                       return <TestBlockPreview key={block.id} block={block} index={index} />
                     }
 
@@ -379,7 +409,7 @@ export default function TestBuilderModal({
         </div>
 
         {/* Modal Generator */}
-        {isGeneratorOpen && vocabItems && (
+        {!isReadOnly && isGeneratorOpen && vocabItems && (
           <ExamGeneratorModal
             isOpen={isGeneratorOpen}
             onClose={() => setIsGeneratorOpen(false)}
@@ -394,7 +424,7 @@ export default function TestBuilderModal({
         )}
 
         {/* Modal Import Full Exam */}
-        {isFullExamImportOpen && (
+        {!isReadOnly && isFullExamImportOpen && (
           <ImportFullExamModal
             isOpen={isFullExamImportOpen}
             onClose={() => setIsFullExamImportOpen(false)}
@@ -408,7 +438,7 @@ export default function TestBuilderModal({
         )}
 
         {/* Modal Import JSON for Block */}
-        {importingBlock && (
+        {!isReadOnly && importingBlock && (
           <ImportBlockJsonModal
             isOpen={!!importingBlock}
             onClose={() => setImportingBlockId(null)}

@@ -11,6 +11,7 @@ import {
   Sparkles,
 } from 'lucide-react'
 import { TestBlock } from '../../types'
+import { sanitizeMultipleChoiceOptions } from '../../utils/questionUtils'
 import Portal from '@/components/common/Portal'
 
 interface ImportFullExamModalProps {
@@ -198,9 +199,11 @@ function validateFullExamJson(raw: string): ValidationResult {
           return {
             id: typeof q?.id === 'string' ? q.id : undefined,
             text: String(q?.text || '').trim(),
-            options: Array.isArray(q?.options)
-              ? q.options.map((o: unknown) => String(o ?? '').trim())
-              : ['', '', '', ''],
+            options: sanitizeMultipleChoiceOptions(
+              Array.isArray(q?.options)
+                ? q.options.map((o: unknown) => String(o ?? '').trim())
+                : ['', ''],
+            ),
             correctIndex: typeof q?.correctIndex === 'number' ? q.correctIndex : 0,
           }
         })

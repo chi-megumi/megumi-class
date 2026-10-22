@@ -3,6 +3,7 @@
 import {
   Plus,
   Edit2,
+  Eye,
   FileText,
   ToggleLeft,
   ToggleRight,
@@ -176,14 +177,22 @@ export default function UnitGamesTab({
                   </button>
                   <button
                     onClick={() => setEditingTestId(test.id)}
-                    disabled={test.isPublished}
-                    className={`flex-1 flex items-center justify-center gap-1 px-4 py-2 font-semibold rounded-xl transition-colors text-sm border ${
+                    className={`flex-1 flex items-center justify-center gap-1.5 px-4 py-2 font-semibold rounded-xl transition-colors text-sm border ${
                       test.isPublished
-                        ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'
+                        ? 'bg-amber-50 text-amber-700 hover:bg-amber-100 border-amber-200'
                         : 'bg-red-50 text-red-600 hover:bg-red-100 border-red-100'
                     }`}
+                    title={test.isPublished ? 'Xem lại cấu trúc đề thi (Chỉ đọc)' : 'Chỉnh sửa đề thi'}
                   >
-                    <Edit2 size={16} /> Sửa đề
+                    {test.isPublished ? (
+                      <>
+                        <Eye size={16} /> Xem đề
+                      </>
+                    ) : (
+                      <>
+                        <Edit2 size={16} /> Sửa đề
+                      </>
+                    )}
                   </button>
                 </div>
                 {!test.isPublished ? (

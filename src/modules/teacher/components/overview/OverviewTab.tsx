@@ -12,6 +12,7 @@ import {
   Activity,
   Sparkles,
   Edit2,
+  Eye,
   Globe,
   Trash2,
   ToggleLeft,
@@ -374,13 +375,12 @@ const OverviewTab = ({ classData, activeStudents }: OverviewTabProps) => {
                         </button>
                         <button
                           onClick={() => setEditingClassTestId(test.id)}
-                          disabled={test.isPublished}
                           className={`p-1.5 rounded-lg transition-colors ${
-                            test.isPublished ? 'text-white/30 cursor-not-allowed' : 'text-indigo-200 hover:text-white hover:bg-white/10'
+                            test.isPublished ? 'text-amber-300 hover:text-white hover:bg-white/10' : 'text-indigo-200 hover:text-white hover:bg-white/10'
                           }`}
-                          title={test.isPublished ? 'Đã public không thể sửa' : 'Sửa đề'}
+                          title={test.isPublished ? 'Xem đề (Chỉ đọc)' : 'Sửa đề'}
                         >
-                          <Edit2 size={14} />
+                          {test.isPublished ? <Eye size={14} /> : <Edit2 size={14} />}
                         </button>
                         <button
                           onClick={async () => {

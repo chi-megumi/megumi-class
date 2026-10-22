@@ -11,6 +11,7 @@ import {
   Sparkles,
 } from 'lucide-react'
 import { TestQuestion, MatchingPair } from '../../types'
+import { sanitizeMultipleChoiceOptions } from '../../utils/questionUtils'
 import Portal from '@/components/common/Portal'
 
 interface ImportBlockJsonModalProps {
@@ -241,11 +242,13 @@ function validateBlockJson(raw: string, blockType: string): ValidationOutput {
           }
         }
 
+        const rawOpts = item.options.map((opt: unknown) => String(opt ?? '').trim())
+        const cleanedOpts = sanitizeMultipleChoiceOptions(rawOpts)
         questions.push({
           id: typeof item.id === 'string' ? item.id : undefined,
           text: String(item.text).trim(),
-          options: item.options.map((opt: unknown) => String(opt ?? '').trim()),
-          correctIndex: correctIdx,
+          options: cleanedOpts,
+          correctIndex: Math.min(correctIdx, Math.max(0, cleanedOpts.length - 1)),
         })
       }
 

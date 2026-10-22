@@ -3,6 +3,7 @@
 import React from 'react'
 import { Check, X, CheckCircle2 } from 'lucide-react'
 import type { TestBlock, TestQuestion } from '@/modules/teacher/types'
+import { getActiveQuestionOptions } from '@/modules/teacher/utils/questionUtils'
 import type { Submission } from './types'
 
 type BlockAnswerReviewProps = {
@@ -40,13 +41,14 @@ export default function BlockAnswerReview({ block, index, submission }: BlockAns
                   {qIndex + 1}. {q.text}
                 </p>
                 <div className="grid grid-cols-1 gap-2 pl-4">
-                  {(q.options || []).map((opt, oIdx) => {
+                  {getActiveQuestionOptions(q.options).map((opt) => {
+                    const oIdx = opt.index
                     const isStudentChoice = studentAns === oIdx
                     const isCorrectChoice = correctAns === oIdx
 
                     return (
                       <div
-                        key={oIdx}
+                        key={opt.label}
                         className={`p-3 rounded-lg border flex items-center gap-2 ${
                           isCorrectChoice
                             ? 'bg-green-50 border-green-200 text-green-800'
@@ -70,7 +72,8 @@ export default function BlockAnswerReview({ block, index, submission }: BlockAns
                             <X size={11} strokeWidth={3} />
                           ) : null}
                         </div>
-                        <span>{opt}</span>
+                        <span className="font-bold text-gray-400 text-xs">{opt.label}.</span>
+                        <span>{opt.text}</span>
                       </div>
                     )
                   })}

@@ -40,11 +40,25 @@ export function shuffleRetakableExam(originalBlocks: TestBlock[]): TestBlock[] {
       blockIndices.forEach((bIdx) => {
         const block = clonedBlocks[bIdx]
         if (block.content?.pairs && Array.isArray(block.content.pairs)) {
+          // Preserve text from existing shuffledRight and/or p.right
+          const rightTextMap = new Map<string, string>()
+          if (Array.isArray(block.content.shuffledRight)) {
+            block.content.shuffledRight.forEach((r) => {
+              if (r.id && r.text) rightTextMap.set(r.id, r.text)
+            })
+          }
+          block.content.pairs.forEach((p) => {
+            if (p.id && p.right) rightTextMap.set(p.id, p.right)
+          })
+
           const shuffledPairs = shuffleArray(block.content.pairs)
           block.content.pairs = shuffledPairs
-          block.content.shuffledRight = shuffleArray(
-            shuffledPairs.map((p) => ({ id: p.id, text: p.right || '' }))
-          )
+
+          const rightCandidates = shuffledPairs.map((p) => ({
+            id: p.id,
+            text: rightTextMap.get(p.id) || p.right || '',
+          }))
+          block.content.shuffledRight = shuffleArray(rightCandidates)
         }
       })
       return

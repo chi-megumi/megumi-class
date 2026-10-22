@@ -32,6 +32,7 @@ type TestBuilderHeaderProps = {
   onOpenFullExamImport: () => void
   onOpenGenerator: () => void
   vocabItems?: VocabItemData[]
+  isReadOnly?: boolean
 }
 
 export default function TestBuilderHeader({
@@ -51,6 +52,7 @@ export default function TestBuilderHeader({
   onOpenFullExamImport,
   onOpenGenerator,
   vocabItems,
+  isReadOnly = false,
 }: TestBuilderHeaderProps) {
   return (
     <div className="min-h-16 bg-white border-b border-gray-200 px-3 sm:px-4 md:px-6 py-2.5 flex items-center justify-between gap-2.5 sm:gap-3 shrink-0 shadow-xs z-10">
@@ -64,7 +66,7 @@ export default function TestBuilderHeader({
           <X size={20} />
         </button>
 
-        {!isPreview && !isSidebarOpen && (
+        {!isReadOnly && !isPreview && !isSidebarOpen && (
           <button
             type="button"
             onClick={onOpenSidebar}
@@ -80,10 +82,16 @@ export default function TestBuilderHeader({
           <input
             type="text"
             value={testTitle}
+            disabled={isReadOnly}
+            readOnly={isReadOnly}
             onChange={(e) => onTitleChange(e.target.value)}
-            className="w-full text-sm md:text-base font-bold text-gray-800 bg-gray-50 hover:bg-gray-100/70 focus:bg-white border border-gray-200 hover:border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 focus:outline-none px-3 py-1.5 rounded-xl transition-all shadow-2xs truncate"
+            className={`w-full text-sm md:text-base font-bold px-3 py-1.5 rounded-xl transition-all shadow-2xs truncate ${
+              isReadOnly
+                ? 'bg-gray-100/80 text-gray-800 border border-gray-200 cursor-default'
+                : 'text-gray-800 bg-gray-50 hover:bg-gray-100/70 focus:bg-white border border-gray-200 hover:border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 focus:outline-none'
+            }`}
             placeholder="Nhập tên bài kiểm tra..."
-            title={testTitle}
+            title={isReadOnly ? 'Đề thi đã public (Chỉ xem)' : testTitle}
           />
         </div>
 
@@ -94,8 +102,11 @@ export default function TestBuilderHeader({
             min={1}
             max={180}
             value={testDuration}
+            disabled={isReadOnly}
             onChange={onDurationChange}
-            className="w-10 bg-white border border-gray-200 rounded px-1 py-0.5 font-bold text-gray-800 focus:outline-none focus:border-indigo-400 text-center"
+            className={`w-10 bg-white border border-gray-200 rounded px-1 py-0.5 font-bold text-gray-800 focus:outline-none focus:border-indigo-400 text-center ${
+              isReadOnly ? 'cursor-default opacity-80' : ''
+            }`}
             ariaLabel="Thời gian kiểm tra"
           />
           <span className="text-gray-500 font-medium">phút</span>
@@ -105,8 +116,11 @@ export default function TestBuilderHeader({
         <div className="flex items-center bg-gray-100 p-0.5 rounded-xl border border-gray-200 text-xs font-bold shrink-0">
           <button
             type="button"
-            onClick={() => onRetakableChange(false)}
+            disabled={isReadOnly}
+            onClick={() => !isReadOnly && onRetakableChange(false)}
             className={`flex items-center gap-1 px-2.5 py-1 rounded-lg transition-all whitespace-nowrap ${
+              isReadOnly ? 'cursor-default' : ''
+            } ${
               !isRetakable
                 ? 'bg-white text-indigo-700 shadow-2xs'
                 : 'text-gray-500 hover:text-gray-800'
@@ -118,8 +132,11 @@ export default function TestBuilderHeader({
           </button>
           <button
             type="button"
-            onClick={() => onRetakableChange(true)}
+            disabled={isReadOnly}
+            onClick={() => !isReadOnly && onRetakableChange(true)}
             className={`flex items-center gap-1 px-2.5 py-1 rounded-lg transition-all whitespace-nowrap ${
+              isReadOnly ? 'cursor-default' : ''
+            } ${
               isRetakable
                 ? 'bg-gradient-to-r from-emerald-500 to-teal-600 text-white shadow-2xs'
                 : 'text-gray-500 hover:text-gray-800'
@@ -134,49 +151,67 @@ export default function TestBuilderHeader({
 
       {/* Right action buttons */}
       <div className="flex items-center gap-2 shrink-0">
-        {!isPreview && (
-          <button
-            type="button"
-            onClick={onOpenFullExamImport}
-            className="px-3 py-1.5 bg-purple-50 hover:bg-purple-100 text-purple-700 font-bold rounded-xl border border-purple-200 shadow-2xs transition-all flex items-center gap-1.5 text-xs whitespace-nowrap shrink-0 hover:border-purple-300"
-            title="Import nhanh toàn bộ đề thi từ file JSON"
-          >
-            <FileCode2 size={15} />
-            <span className="hidden xl:inline">Import JSON</span>
-            <span className="xl:hidden">JSON</span>
-          </button>
+        {isReadOnly ? (
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-xs font-bold shadow-2xs">
+              <Lock size={13} className="text-amber-600" />
+              <span>Đã Public (Chỉ xem)</span>
+            </div>
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold rounded-xl transition-all text-xs border border-gray-200 active:scale-95"
+            >
+              Đóng
+            </button>
+          </div>
+        ) : (
+          <>
+            {!isPreview && (
+              <button
+                type="button"
+                onClick={onOpenFullExamImport}
+                className="px-3 py-1.5 bg-purple-50 hover:bg-purple-100 text-purple-700 font-bold rounded-xl border border-purple-200 shadow-2xs transition-all flex items-center gap-1.5 text-xs whitespace-nowrap shrink-0 hover:border-purple-300"
+                title="Import nhanh toàn bộ đề thi từ file JSON"
+              >
+                <FileCode2 size={15} />
+                <span className="hidden xl:inline">Import JSON</span>
+                <span className="xl:hidden">JSON</span>
+              </button>
+            )}
+
+            {vocabItems && vocabItems.length > 0 && !isPreview && (
+              <button
+                type="button"
+                onClick={onOpenGenerator}
+                className="px-3 py-1.5 bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 text-white font-bold rounded-xl shadow-2xs transition-all flex items-center gap-1.5 text-xs whitespace-nowrap shrink-0 hover:-translate-y-0.5 hover:shadow-xs"
+                title="Tự động sinh câu hỏi từ danh sách từ vựng của bài học"
+              >
+                <Sparkles size={15} className="text-amber-300" />
+                <span className="hidden xl:inline">Sinh Đề Từ Vựng</span>
+                <span className="xl:hidden">Sinh Đề AI</span>
+              </button>
+            )}
+
+            <button
+              onClick={onTogglePreview}
+              className="px-3.5 py-1.5 text-indigo-700 font-semibold bg-indigo-50 hover:bg-indigo-100 rounded-xl transition-colors text-xs flex items-center gap-1.5 whitespace-nowrap shrink-0 border border-indigo-100"
+              title={isPreview ? 'Quay lại chỉnh sửa đề thi' : 'Xem trước giao diện học sinh làm bài'}
+            >
+              <Eye size={15} />
+              <span>{isPreview ? 'Sửa đề' : 'Xem thử'}</span>
+            </button>
+
+            <button
+              onClick={onSave}
+              disabled={isSaving}
+              className="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-sm transition-all disabled:opacity-50 text-xs flex items-center gap-1.5 whitespace-nowrap shrink-0 active:scale-95"
+            >
+              <Save size={15} />
+              <span>{isSaving ? 'Đang lưu...' : 'Lưu Đề Thi'}</span>
+            </button>
+          </>
         )}
-
-        {vocabItems && vocabItems.length > 0 && !isPreview && (
-          <button
-            type="button"
-            onClick={onOpenGenerator}
-            className="px-3 py-1.5 bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 text-white font-bold rounded-xl shadow-2xs transition-all flex items-center gap-1.5 text-xs whitespace-nowrap shrink-0 hover:-translate-y-0.5 hover:shadow-xs"
-            title="Tự động sinh câu hỏi từ danh sách từ vựng của bài học"
-          >
-            <Sparkles size={15} className="text-amber-300" />
-            <span className="hidden xl:inline">Sinh Đề Từ Vựng</span>
-            <span className="xl:hidden">Sinh Đề AI</span>
-          </button>
-        )}
-
-        <button
-          onClick={onTogglePreview}
-          className="px-3.5 py-1.5 text-indigo-700 font-semibold bg-indigo-50 hover:bg-indigo-100 rounded-xl transition-colors text-xs flex items-center gap-1.5 whitespace-nowrap shrink-0 border border-indigo-100"
-          title={isPreview ? 'Quay lại chỉnh sửa đề thi' : 'Xem trước giao diện học sinh làm bài'}
-        >
-          <Eye size={15} />
-          <span>{isPreview ? 'Sửa đề' : 'Xem thử'}</span>
-        </button>
-
-        <button
-          onClick={onSave}
-          disabled={isSaving}
-          className="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-sm transition-all disabled:opacity-50 text-xs flex items-center gap-1.5 whitespace-nowrap shrink-0 active:scale-95"
-        >
-          <Save size={15} />
-          <span>{isSaving ? 'Đang lưu...' : 'Lưu Đề Thi'}</span>
-        </button>
       </div>
     </div>
   )

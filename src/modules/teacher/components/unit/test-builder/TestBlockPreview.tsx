@@ -2,6 +2,7 @@
 
 import React from 'react'
 import type { TestBlock, TestQuestion } from '@/modules/teacher/types'
+import { getActiveQuestionOptions } from '@/modules/teacher/utils/questionUtils'
 
 type TestBlockPreviewProps = {
   block: TestBlock
@@ -26,30 +27,49 @@ export default function TestBlockPreview({ block, index }: TestBlockPreviewProps
                 : 'grid-cols-1'
             }`}
           >
-            {block.content?.questions?.map((q: TestQuestion, qIndex: number) => (
-              <div key={q.id} className="flex gap-4 items-start">
-                <span className="font-bold text-lg text-indigo-600 shrink-0">{qIndex + 1}.</span>
-                <div className="flex-1 space-y-4">
-                  <p className="text-lg font-medium text-gray-800">{q.text || '...'}</p>
-                  <div className="grid grid-cols-1 gap-3">
-                    {['A', 'B', 'C', 'D'].map((opt, oIdx) => (
-                      <label
-                        key={opt}
-                        className="flex items-center gap-3 p-3 rounded-xl border border-gray-100 hover:border-indigo-300 hover:bg-indigo-50/30 cursor-pointer transition-colors"
-                      >
-                        <input
-                          type="radio"
-                          name={`preview-${q.id}`}
-                          className="w-5 h-5 text-indigo-600 focus:ring-indigo-500"
-                        />
-                        <span className="font-bold text-gray-500 w-5">{opt}.</span>
-                        <span className="text-gray-700">{q.options?.[oIdx] || '...'}</span>
-                      </label>
-                    ))}
+            {block.content?.questions?.map((q: TestQuestion, qIndex: number) => {
+              const displayOptions = getActiveQuestionOptions(q.options)
+              const isTwoOptions = displayOptions.length <= 2
+
+              return (
+                <div key={q.id} className="flex gap-4 items-start">
+                  <span className="font-bold text-lg text-indigo-600 shrink-0">{qIndex + 1}.</span>
+                  <div className="flex-1 space-y-4">
+                    <p className="text-lg font-medium text-gray-800">{q.text || '...'}</p>
+                    <div
+                      className={`grid gap-2.5 ${
+                        isTwoOptions ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1'
+                      }`}
+                    >
+                      {displayOptions.map((opt) => {
+                        const oIdx = opt.index
+                        const isCorrect = q.correctIndex === oIdx
+                        return (
+                          <div
+                            key={opt.label}
+                            className={`flex items-center gap-3 p-3 rounded-xl border transition-colors ${
+                              isCorrect
+                                ? 'border-emerald-300 bg-emerald-50/70 text-emerald-950 font-medium shadow-2xs'
+                                : 'border-gray-100 bg-white text-gray-700'
+                            }`}
+                          >
+                            <span className={`font-bold w-5 ${isCorrect ? 'text-emerald-700' : 'text-gray-500'}`}>
+                              {opt.label}.
+                            </span>
+                            <span className="flex-1">{opt.text || '...'}</span>
+                            {isCorrect && (
+                              <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100/90 px-2 py-0.5 rounded-md shrink-0">
+                                ✓ Đáp án đúng
+                              </span>
+                            )}
+                          </div>
+                        )
+                      })}
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              )
+            })}
           </div>
         )}
 
@@ -72,14 +92,18 @@ export default function TestBlockPreview({ block, index }: TestBlockPreviewProps
                         <React.Fragment key={i}>
                           {part}
                           {i < arr.length - 1 && (
-                            <input
-                              type="text"
-                              className="mx-2 w-32 border-b-2 border-indigo-200 focus:border-indigo-500 bg-transparent text-center font-bold text-indigo-600 focus:outline-none transition-colors"
-                            />
+                            <span className="mx-1 px-2.5 py-0.5 border-b-2 border-indigo-400 font-bold text-indigo-700 bg-indigo-50/70 rounded">
+                              {q.answer || '_____'}
+                            </span>
                           )}
                         </React.Fragment>
                       ))}
                   </p>
+                  {q.answer && (
+                    <div className="text-xs font-semibold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200 inline-flex items-center gap-1">
+                      <span>✓ Đáp án:</span> <b className="font-bold">{q.answer}</b>
+                    </div>
+                  )}
                 </div>
               </div>
             ))}
@@ -90,7 +114,7 @@ export default function TestBlockPreview({ block, index }: TestBlockPreviewProps
         {block.type === 'matching' && (
           <div className="space-y-4">
             <p className="text-sm text-gray-500 font-medium">
-              Học sinh sẽ ghép nối từng mục ở Cột A với đáp án tương ứng ở Cột B:
+              Các cặp ghép nối từ vựng (Cột A ↔ Cột B):
             </p>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-5 rounded-2xl bg-gray-50/70 border border-gray-200">
               <div className="space-y-2.5">
@@ -105,7 +129,7 @@ export default function TestBlockPreview({ block, index }: TestBlockPreviewProps
                     <span className="w-6 h-6 rounded-full bg-indigo-50 text-indigo-600 font-bold text-xs flex items-center justify-center shrink-0">
                       {pIdx + 1}
                     </span>
-                    <span className="font-medium text-gray-800">
+                    <span className="font-bold text-gray-800">
                       {p.left || `(Mục ${pIdx + 1})`}
                     </span>
                   </div>
@@ -123,7 +147,7 @@ export default function TestBlockPreview({ block, index }: TestBlockPreviewProps
                     <span className="w-6 h-6 rounded-full bg-purple-50 text-purple-600 font-bold text-xs flex items-center justify-center shrink-0">
                       {String.fromCharCode(65 + pIdx)}
                     </span>
-                    <span className="font-medium text-gray-700">
+                    <span className="font-semibold text-gray-700">
                       {p.right || `(Nghĩa ${pIdx + 1})`}
                     </span>
                   </div>
@@ -149,15 +173,20 @@ export default function TestBlockPreview({ block, index }: TestBlockPreviewProps
                       {q.text || 'Sắp xếp các từ sau thành câu hoàn chỉnh:'}
                     </span>
                   </div>
-                  <div className="p-4 bg-white rounded-xl border border-dashed border-gray-300 min-h-[50px] flex items-center text-gray-400 text-sm italic">
-                    (Vị trí học sinh ghép câu...)
-                  </div>
+                  {q.sentence && (
+                    <div className="p-3 bg-emerald-50/80 rounded-xl border border-emerald-200 text-emerald-900 text-sm font-semibold flex items-center gap-2">
+                      <span className="text-emerald-600 font-bold shrink-0 text-xs uppercase tracking-wider">
+                        ✓ Câu hoàn chỉnh:
+                      </span>
+                      <span>{q.sentence}</span>
+                    </div>
+                  )}
                   <div className="flex flex-wrap gap-2 pt-1">
                     {words.length > 0 ? (
                       words.map((w, wIdx) => (
                         <span
                           key={wIdx}
-                          className="px-3 py-1.5 bg-indigo-50 text-indigo-700 rounded-xl text-sm font-semibold border border-indigo-100 shadow-2xs"
+                          className="px-3 py-1.5 bg-white text-gray-700 rounded-xl text-xs font-semibold border border-gray-200 shadow-2xs"
                         >
                           {w}
                         </span>

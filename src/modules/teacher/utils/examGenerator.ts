@@ -346,6 +346,12 @@ export function generateExamFromVocab(
       title: 'Ghép nối từ vựng (Matching)',
       content: {
         pairs: matchingPairs,
+        shuffledRight: shuffle(
+          matchingPairs.map((p) => ({
+            id: p.id,
+            text: p.right || '',
+          }))
+        ),
       },
     })
   }
