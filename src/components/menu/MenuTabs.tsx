@@ -94,30 +94,30 @@ const MenuTabs = ({ onNavigate, initialClasses }: MenuTabsProps = {}) => {
   }
 
   return (
-    <div>
-      <Tabs
-        tabs={[
-          {
-            label: '👩‍🎓 Lớp học',
-            value: 'class',
-          },
-          ...(canSeeTeacherTab
-            ? [
-                {
-                  label: '👩‍🏫 Giáo viên',
-                  value: 'teacher',
-                },
-              ]
-            : []),
-        ]}
-        classNames={{ root: 'mb-3' }}
-        active={activeSidebar}
-        onChange={(val) => setSelectedSidebar(val as 'class' | 'teacher')}
-      />
+    <div className="flex-1 min-h-0 flex flex-col">
+      <div className="shrink-0 mb-3">
+        <Tabs
+          tabs={[
+            {
+              label: '👩‍🎓 Lớp học',
+              value: 'class',
+            },
+            ...(canSeeTeacherTab
+              ? [
+                  {
+                    label: '👩‍🏫 Giáo viên',
+                    value: 'teacher',
+                  },
+                ]
+              : []),
+          ]}
+          active={activeSidebar}
+          onChange={(val) => setSelectedSidebar(val as 'class' | 'teacher')}
+        />
+      </div>
 
-      <>
-        {activeSidebar === 'class' && (
-          <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
+      {activeSidebar === 'class' && (
+        <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden pr-1.5 custom-scrollbar pb-2">
             {loading ? (
               <ClassesSkeleton count={5} />
             ) : classes.length === 0 ? (
@@ -243,10 +243,9 @@ const MenuTabs = ({ onNavigate, initialClasses }: MenuTabsProps = {}) => {
             )}
           </div>
         )}
-      </>
-      <>
+
         {activeSidebar === 'teacher' && (
-          <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar mt-2 space-y-2">
+          <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden pr-1.5 custom-scrollbar mt-1 space-y-2 pb-2">
             <Link
               href="/teacher/classes/create"
               onClick={() => onNavigate?.()}
@@ -297,7 +296,6 @@ const MenuTabs = ({ onNavigate, initialClasses }: MenuTabsProps = {}) => {
             )}
           </div>
         )}
-      </>
     </div>
   )
 }

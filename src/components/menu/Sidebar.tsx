@@ -78,17 +78,17 @@ const SideBar: React.FC<SideBarProps> = ({ position = 'left', initialClasses }) 
       >
         <div
           className={[
-            'shadow-[0_4px_15px_rgba(99,102,241,0.2)] h-[calc(100vh-100px)] rounded-2xl p-4 flex flex-col backdrop-blur-md backdrop-saturate-180',
+            'shadow-[0_4px_15px_rgba(99,102,241,0.2)] h-[calc(100vh-100px)] max-h-[calc(100dvh-32px)] rounded-2xl p-4 flex flex-col backdrop-blur-md backdrop-saturate-180 overflow-hidden',
             isSidebarOpen ? 'bg-white' : '',
           ]
             .filter(Boolean)
             .join(' ')}
         >
-          <div>
+          <div className="flex-1 min-h-0 flex flex-col">
             <MenuTabs onNavigate={closeSidebar} initialClasses={initialClasses} />
           </div>
 
-          <div className="mt-auto">
+          <div className="mt-auto shrink-0 pt-2">
             {!isTeacher && (
               <div className="mb-4 p-3 bg-gradient-to-br from-indigo-50/80 to-purple-50/80 rounded-2xl border border-indigo-100/50 shadow-[0_2px_10px_rgba(99,102,241,0.05)] relative overflow-hidden group">
                 <div className="absolute top-0 right-0 w-20 h-20 bg-indigo-500/5 rounded-bl-full -z-0 group-hover:scale-150 transition-transform duration-500"></div>

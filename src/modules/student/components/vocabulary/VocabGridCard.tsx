@@ -43,9 +43,14 @@ export const VocabGridCard: React.FC<VocabGridCardProps> = ({
         <div className="flex items-start justify-between gap-2 mb-1.5">
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-lg font-bold text-gray-900 group-hover:text-indigo-600 transition-colors tracking-tight">
+              <button
+                type="button"
+                onClick={onSpeak}
+                className="text-lg font-bold text-gray-900 group-hover:text-indigo-600 hover:text-indigo-600 transition-colors tracking-tight text-left cursor-pointer focus:outline-none"
+                title="Nhấn để nghe phát âm"
+              >
                 {item.word}
-              </span>
+              </button>
               {item.pos && (
                 <span className="text-[11px] font-bold uppercase px-2 py-0.5 rounded-full bg-gray-100 text-gray-500">
                   {item.pos}
@@ -54,9 +59,14 @@ export const VocabGridCard: React.FC<VocabGridCardProps> = ({
             </div>
 
             {item.ipa && (
-              <div className="text-xs text-indigo-500 font-mono mt-0.5">
+              <button
+                type="button"
+                onClick={onSpeak}
+                className="text-xs text-indigo-500 font-mono mt-0.5 hover:text-indigo-700 hover:underline cursor-pointer focus:outline-none block text-left"
+                title="Nhấn để nghe phát âm"
+              >
                 /{item.ipa}/
-              </div>
+              </button>
             )}
           </div>
 

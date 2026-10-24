@@ -65,18 +65,28 @@ export const VocabListItem: React.FC<VocabListItemProps> = ({
       {/* Word Info */}
       <div className="flex-1 min-w-0">
         <div className="flex flex-wrap items-baseline gap-2.5 mb-1">
-          <span className="text-xl font-bold text-gray-900 tracking-tight">
+          <button
+            type="button"
+            onClick={onSpeak}
+            className="text-xl font-bold text-gray-900 tracking-tight hover:text-indigo-600 transition-colors cursor-pointer text-left focus:outline-none"
+            title="Nhấn để nghe phát âm"
+          >
             {item.word}
-          </span>
+          </button>
           {item.pos && (
             <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
               {item.pos}
             </span>
           )}
           {item.ipa && (
-            <span className="text-sm text-indigo-500 font-mono">
+            <button
+              type="button"
+              onClick={onSpeak}
+              className="text-sm text-indigo-500 font-mono hover:text-indigo-700 hover:underline cursor-pointer focus:outline-none"
+              title="Nhấn để nghe phát âm"
+            >
               /{item.ipa}/
-            </span>
+            </button>
           )}
         </div>
 
