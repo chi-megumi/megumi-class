@@ -62,6 +62,7 @@ export type TestBlock = {
     text?: string
     answer?: string
     sentence?: string
+    explanation?: string
     passages?: Array<{
       id: string
       title?: string

@@ -99,6 +99,8 @@ interface RawValidatedQuestion {
   answer?: string
   sentence?: string
   words?: string[]
+  explanation?: string
+  kind?: string
 }
 
 interface RawValidatedPair {
@@ -107,14 +109,28 @@ interface RawValidatedPair {
   right: string
 }
 
+interface RawValidatedPassage {
+  id?: string
+  title?: string
+  text: string
+  questions?: RawValidatedQuestion[]
+}
+
+interface RawValidatedBlockContent {
+  questions?: RawValidatedQuestion[]
+  pairs?: RawValidatedPair[]
+  text?: string
+  answer?: string
+  sentence?: string
+  explanation?: string
+  passages?: RawValidatedPassage[]
+}
+
 interface RawValidatedBlock {
   id?: string
   type: string
   title: string
-  content?: {
-    questions?: RawValidatedQuestion[]
-    pairs?: RawValidatedPair[]
-  }
+  content?: RawValidatedBlockContent
 }
 
 interface ValidationResult {
@@ -298,7 +314,7 @@ function validateFullExamJson(raw: string): ValidationResult {
             id: typeof b.id === 'string' ? b.id : undefined,
             type: 'reading',
             title,
-            content: b.content || {},
+            content: (b.content && typeof b.content === 'object' ? b.content : {}) as RawValidatedBlockContent,
           })
         }
       } else {
@@ -306,7 +322,7 @@ function validateFullExamJson(raw: string): ValidationResult {
           id: typeof b.id === 'string' ? b.id : undefined,
           type,
           title,
-          content: b.content || {},
+          content: (b.content && typeof b.content === 'object' ? b.content : {}) as RawValidatedBlockContent,
         })
       }
     }
@@ -375,32 +391,66 @@ export default function ImportFullExamModal({
           })),
         }
       } else if (b.type === 'reading') {
-        updatedContent = {
-          ...b.content,
-          text: b.content?.text,
-          passages: b.content?.passages?.map((p) => ({
-            ...p,
-            id: p.id || crypto.randomUUID(),
-            questions: p.questions?.map((q) => ({
-              ...q,
-              id: q.id || crypto.randomUUID(),
-            })),
-          })),
-          questions: b.content?.questions?.map((q) => ({
+        const passages = b.content?.passages?.map((p: RawValidatedPassage) => ({
+          ...p,
+          id: p.id || crypto.randomUUID(),
+          questions: (p.questions || []).map((q: RawValidatedQuestion) => ({
             ...q,
             id: q.id || crypto.randomUUID(),
           })),
+        }))
+        const questions = b.content?.questions?.map((q: RawValidatedQuestion) => ({
+          ...q,
+          id: q.id || crypto.randomUUID(),
+        }))
+        updatedContent = {
+          text: typeof b.content?.text === 'string' ? b.content.text : undefined,
+          ...(passages ? { passages } : {}),
+          ...(questions ? { questions } : {}),
         }
       } else if (b.content?.questions) {
         updatedContent = {
-          ...b.content,
-          questions: b.content.questions.map((q) => ({
+          questions: b.content.questions.map((q: RawValidatedQuestion) => ({
             ...q,
             id: q.id || crypto.randomUUID(),
           })),
         }
       } else {
-        updatedContent = { ...b.content }
+        const {
+          pairs: _p,
+          questions: _q,
+          passages: _passages,
+          ...restContent
+        } = b.content || {}
+        const pairs = Array.isArray(_p)
+          ? _p.map((p) => ({
+              ...p,
+              id: p.id || crypto.randomUUID(),
+            }))
+          : undefined
+        const questions = Array.isArray(_q)
+          ? _q.map((q) => ({
+              ...q,
+              id: q.id || crypto.randomUUID(),
+            }))
+          : undefined
+        const passages = Array.isArray(_passages)
+          ? _passages.map((p) => ({
+              ...p,
+              id: p.id || crypto.randomUUID(),
+              questions: (p.questions || []).map((q: RawValidatedQuestion) => ({
+                ...q,
+                id: q.id || crypto.randomUUID(),
+              })),
+            }))
+          : undefined
+
+        updatedContent = {
+          ...restContent,
+          ...(pairs ? { pairs } : {}),
+          ...(questions ? { questions } : {}),
+          ...(passages ? { passages } : {}),
+        }
       }
 
       return {
