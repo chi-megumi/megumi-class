@@ -5,7 +5,7 @@ import { formatDuration, scoreColor } from '@/components/flashcards/utils/score'
 
 import { useFlashcardStore } from '@/components/flashcards/stores/useFlashcardStore'
 
-function ScoredSummary() {
+function ScoredSummary({ onClose }: { onClose?: () => void }) {
   const sessionCorrect = useQuizStore((s) => s.sessionCorrect)
   const sessionTotal = useQuizStore((s) => s.sessionTotal)
   const startSession = useQuizStore((s) => s.startSession)
@@ -43,9 +43,20 @@ function ScoredSummary() {
             ? 'Khá tốt! Luyện thêm một chút nữa nhé 💪'
             : 'Cố lên! Ôn lại và thử lại nào 📖'}
       </div>
-      <button className="nav-btn flip-btn-main" onClick={() => startSession(vocabItems)}>
-        🔄 Chơi lại
-      </button>
+      <div className="flex flex-wrap items-center justify-center gap-3 mt-4">
+        <button className="nav-btn flip-btn-main" onClick={() => startSession(vocabItems)}>
+          🔄 Chơi lại
+        </button>
+        {onClose && (
+          <button
+            type="button"
+            className="nav-btn bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 px-6 py-2 rounded-xl font-bold transition-all shadow-xs cursor-pointer"
+            onClick={onClose}
+          >
+            Hoàn thành & Thoát
+          </button>
+        )}
+      </div>
     </div>
   )
 }

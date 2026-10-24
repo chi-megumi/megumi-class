@@ -28,16 +28,16 @@ export default function FillBlankEditor({
         {questions.map((q: TestQuestion, qIndex: number) => (
           <div
             key={q.id}
-            className={`flex gap-4 items-start p-5 rounded-2xl border relative group/q ${
+            className={`flex gap-4 items-start p-5 rounded-2xl border relative group/q transition-colors ${
               isMiniChallenge
-                ? 'bg-gradient-to-br from-orange-50/30 to-pink-50/30 border-orange-100 shadow-sm hover:shadow-md transition-shadow'
-                : 'bg-gray-50/50 border-gray-100 shadow-sm hover:border-gray-200 transition-all'
+                ? 'bg-gradient-to-br from-orange-50/30 to-pink-50/30 border-orange-100'
+                : 'bg-gray-50/50 border-gray-100 hover:border-gray-200'
             }`}
           >
             <div
               className={`font-bold text-lg mt-2 flex items-center justify-center shrink-0 ${
                 isMiniChallenge
-                  ? 'w-10 h-10 rounded-full bg-orange-100 text-orange-600 shadow-sm border border-orange-200'
+                  ? 'w-10 h-10 rounded-full bg-orange-100 text-orange-600 border border-orange-200'
                   : 'w-8 h-8 rounded-full bg-indigo-50 text-indigo-600'
               }`}
             >

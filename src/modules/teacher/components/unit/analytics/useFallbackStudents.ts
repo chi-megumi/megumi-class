@@ -18,7 +18,26 @@ export function useFallbackStudents(
     const publishedUnitExams = (unit.exams || []).filter((e: ExamData) => e.isPublished)
     const publishedClassExams = (classExams || []).filter((e: ExamData) => e.isPublished)
 
-    return activeStudents.map((enrollment) => {
+    const enrolledStudentIds = new Set(activeStudents.map((e) => e.student.id))
+    const nonEnrolledProgresses = (unit.studentProgress || []).filter(
+      (p: UserUnitProgress) => !enrolledStudentIds.has(p.userId)
+    )
+    const extraFallbackStudents = nonEnrolledProgresses.map((p: UserUnitProgress) => ({
+      id: `virtual-${p.userId}`,
+      classId: unit.classId || '',
+      studentId: p.userId,
+      joinedAt: new Date(0),
+      status: 'active' as const,
+      student: {
+        id: p.userId,
+        name: 'Tài khoản thử nghiệm',
+        email: '',
+        avatarUrl: null,
+      },
+    }))
+    const allStudents = [...activeStudents, ...extraFallbackStudents]
+
+    return allStudents.map((enrollment) => {
       const progress = unit.studentProgress?.find(
         (p: UserUnitProgress) => p.userId === enrollment.student.id,
       )
@@ -26,6 +45,10 @@ export function useFallbackStudents(
       const flashcardHistory = Array.isArray(history.flashcard) ? history.flashcard : []
       const quizHistory = Array.isArray(history.quiz) ? history.quiz : []
       const matchHistory = Array.isArray(history.match) ? history.match : []
+
+      const flashcardPlays = Math.max(progress?.flashcardPlayCount || 0, flashcardHistory.length)
+      const quizPlays = Math.max(progress?.quizPlayCount || 0, quizHistory.length)
+      const matchPlays = Math.max(progress?.matchPlayCount || 0, matchHistory.length)
 
       const allExams = [
         ...publishedUnitExams.map((exam: ExamData) => {
@@ -73,21 +96,21 @@ export function useFallbackStudents(
         masteryProgress: progress?.masteryProgress || 0,
         games: {
           flashcard: {
-            played: (progress?.flashcardPlayCount || 0) > 0,
+            played: flashcardPlays > 0 || flashcardHistory.length > 0,
             progress: progress?.masteryProgress || 0,
-            timesPlayed: progress?.flashcardPlayCount || 0,
+            timesPlayed: flashcardPlays,
             history: flashcardHistory as PracticeSessionEntry[],
           },
           quiz: {
-            played: (progress?.quizPlayCount || 0) > 0,
+            played: quizPlays > 0 || quizHistory.length > 0,
             score: progress?.bestQuizScore || 0,
-            timesPlayed: progress?.quizPlayCount || 0,
+            timesPlayed: quizPlays,
             history: quizHistory as PracticeSessionEntry[],
           },
           match: {
-            played: (progress?.matchPlayCount || 0) > 0,
+            played: matchPlays > 0 || matchHistory.length > 0,
             bestTime: progress?.bestMatchTime || null,
-            timesPlayed: progress?.matchPlayCount || 0,
+            timesPlayed: matchPlays,
             history: matchHistory as PracticeSessionEntry[],
           },
         },

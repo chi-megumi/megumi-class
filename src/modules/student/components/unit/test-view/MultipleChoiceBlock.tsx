@@ -13,7 +13,7 @@ type MultipleChoiceBlockProps = {
   onAnswer: (questionId: string, value: string | number) => void
 }
 
-export default function MultipleChoiceBlock({ questions, answers, isMiniChallenge, isReviewMode, result, onAnswer }: MultipleChoiceBlockProps) {
+function MultipleChoiceBlock({ questions, answers, isMiniChallenge, isReviewMode, result, onAnswer }: MultipleChoiceBlockProps) {
   return (
     <div className="space-y-3.5">
       {questions?.map((q: TestQuestion, qIndex: number) => {
@@ -21,7 +21,7 @@ export default function MultipleChoiceBlock({ questions, answers, isMiniChalleng
         const isTwoOptions = displayOptions.length <= 2
 
         return (
-          <div key={q.id} className="space-y-2">
+          <div key={q.id ? `${q.id}_${qIndex}` : `mc-${qIndex}`} className="space-y-2">
             <p className="text-xs sm:text-sm font-semibold text-gray-800">
               <span className="font-bold text-gray-400 mr-1">{qIndex + 1}.</span> {q.text}
             </p>
@@ -43,7 +43,7 @@ export default function MultipleChoiceBlock({ questions, answers, isMiniChalleng
                     key={opt.label}
                     onClick={() => onAnswer(q.id, oIdx)}
                     disabled={isReviewMode}
-                    className={`flex items-center gap-2 py-2 px-2.5 rounded-lg border text-left transition-all min-h-[38px] ${
+                    className={`flex items-center gap-2 py-2 px-2.5 rounded-lg border text-left transition-colors duration-150 min-h-[38px] ${
                       showCorrect
                         ? 'border-green-500 bg-green-50 ring-1 ring-green-300'
                         : showIncorrect
@@ -76,3 +76,5 @@ export default function MultipleChoiceBlock({ questions, answers, isMiniChalleng
     </div>
   )
 }
+
+export default React.memo(MultipleChoiceBlock)

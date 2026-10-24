@@ -12,7 +12,7 @@ export const VocabGridCard: React.FC<VocabGridCardProps> = ({
 }) => {
   return (
     <div
-      className={`p-4.5 rounded-2xl border transition-all duration-200 flex flex-col justify-between break-inside-avoid relative group print:shadow-none print:border-gray-200 ${
+      className={`p-4.5 rounded-2xl border transition-all duration-200 flex flex-col justify-between break-inside-avoid relative group print:shadow-none print:border-gray-200 scroll-contain-item ${
         isMastered
           ? 'bg-emerald-50/30 border-emerald-200/90 shadow-sm hover:shadow-md'
           : 'bg-white border-gray-100 hover:border-indigo-200 shadow-sm hover:shadow-md'

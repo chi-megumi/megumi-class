@@ -46,41 +46,43 @@ function getSessionList(
     const prev = cleanedList[cleanedList.length - 1]
     if (
       prev &&
-      (prev.isInterrupted || item.isInterrupted) &&
       item.completedAt &&
       prev.completedAt &&
       Math.abs(new Date(item.completedAt).getTime() - new Date(prev.completedAt).getTime()) < 15000
     ) {
       // Merge into previous entry, taking max duration
       prev.durationSeconds = Math.max(prev.durationSeconds || 0, item.durationSeconds || 0)
-      prev.isQuickExit = prev.durationSeconds < 5
+      if (!item.isInterrupted) {
+        prev.isInterrupted = false
+      }
+      if (item.score !== undefined) prev.score = item.score
+      if (item.correctCount !== undefined) prev.correctCount = item.correctCount
+      if (item.totalCount !== undefined) prev.totalCount = item.totalCount
+      if (item.answers && item.answers.length > 0) prev.answers = item.answers
+      prev.isQuickExit = (prev.durationSeconds || 0) < 2 && !prev.score && (!prev.answers || prev.answers.length === 0)
     } else {
       cleanedList.push({ ...item })
     }
   }
 
-  // 2. Count valid attempts in cleaned list
-  const validHistoryCount = cleanedList.filter(
-    (h) => !h.isQuickExit && (h.durationSeconds === undefined || h.durationSeconds >= 5),
-  ).length
-  const missingLegacyCount = Math.max(0, timesPlayed - validHistoryCount)
-
-  // 3. Synthesize legacy entries if student had plays before history tracking
-  const legacyEntries: EnrichedPracticeSession[] = []
-  for (let i = 1; i <= missingLegacyCount; i++) {
-    legacyEntries.push({
-      attempt: i,
-      durationSeconds: defaultDuration,
-      isQuickExit: false,
-      isInterrupted: false,
-      completedAt: new Date(0),
-      isLegacy: true,
-    })
+  // 2. Only synthesize legacy entries if history was completely absent or empty but timesPlayed was recorded before history tracking
+  if (rawList.length === 0 && timesPlayed > 0) {
+    const legacyEntries: EnrichedPracticeSession[] = []
+    for (let i = 1; i <= timesPlayed; i++) {
+      legacyEntries.push({
+        attempt: i,
+        durationSeconds: defaultDuration,
+        isQuickExit: false,
+        isInterrupted: false,
+        completedAt: new Date(0),
+        isLegacy: true,
+      })
+    }
+    return legacyEntries
   }
 
-  // 4. Combine and strictly re-index all attempts sequentially (1, 2, 3...)
-  const combined = [...legacyEntries, ...cleanedList]
-  return combined.map((entry, index) => ({
+  // 3. Combine and strictly re-index all attempts sequentially (1, 2, 3...)
+  return cleanedList.map((entry, index) => ({
     ...entry,
     attempt: index + 1,
   }))
@@ -164,12 +166,9 @@ function PracticeActivityCard({
         <div className="space-y-2 pt-1">
           {sessions.map((h, idx) => {
             const isQuick =
-              h.isQuickExit ||
-              (h.durationSeconds !== undefined && h.durationSeconds < 5) ||
-              (type === 'quiz' &&
-                h.score === 0 &&
-                (h.totalCount ?? 0) === 0 &&
-                (h.durationSeconds ?? 0) < 10)
+              h.isQuickExit &&
+              !h.isInterrupted &&
+              (h.durationSeconds === undefined || h.durationSeconds < 2)
             const dt = formatDateTime(h.completedAt)
 
             return (
@@ -189,7 +188,11 @@ function PracticeActivityCard({
                     </span>
                     {isQuick ? (
                       <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-300 flex items-center gap-1">
-                        <AlertTriangle size={10} /> Thoát ngay (&lt; 5s)
+                        <AlertTriangle size={10} /> Thoát ngay (&lt; 2s)
+                      </span>
+                    ) : h.isInterrupted ? (
+                      <span className="text-[10px] font-bold text-amber-800 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-300 flex items-center gap-1">
+                        <AlertTriangle size={10} /> Thoát giữa chừng / F5
                       </span>
                     ) : h.isLegacy ? (
                       <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200">
@@ -197,12 +200,7 @@ function PracticeActivityCard({
                       </span>
                     ) : (
                       <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1">
-                        <CheckCircle2 size={11} className="text-emerald-500" /> Hợp lệ
-                      </span>
-                    )}
-                    {h.isInterrupted && !isQuick && (
-                      <span className="text-[10px] font-bold text-rose-600 bg-rose-50 px-1.5 py-0.5 rounded border border-rose-200 flex items-center gap-1">
-                        <AlertTriangle size={10} /> F5 / Thoát dở
+                        <CheckCircle2 size={11} className="text-emerald-500" /> Hoàn thành
                       </span>
                     )}
                   </div>
@@ -287,12 +285,17 @@ export default function UnitProgressStudentRow({ data }: UnitProgressStudentRowP
     90,
   )
   const totalFlashcardSeconds = flashcardSessions.reduce((acc, s) => acc + (s.durationSeconds || 0), 0)
+  const flashcardTimes = Math.max(data.games.flashcard.timesPlayed, flashcardSessions.length)
 
   const quizSessions = getSessionList(data.games.quiz.timesPlayed, data.games.quiz.history, 120)
   const totalQuizSeconds = quizSessions.reduce((acc, s) => acc + (s.durationSeconds || 0), 0)
+  const quizTimes = Math.max(data.games.quiz.timesPlayed, quizSessions.length)
 
   const matchSessions = getSessionList(data.games.match.timesPlayed, data.games.match.history, 45)
   const totalMatchSeconds = matchSessions.reduce((acc, s) => acc + (s.durationSeconds || 0), 0)
+  const matchTimes = Math.max(data.games.match.timesPlayed, matchSessions.length)
+
+  const totalPracticeCount = flashcardTimes + quizTimes + matchTimes
 
   return (
     <>
@@ -342,10 +345,10 @@ export default function UnitProgressStudentRow({ data }: UnitProgressStudentRowP
         {/* Game Activities Summary */}
         <td className="py-4 px-6">
           <div className="flex flex-wrap gap-2">
-            {data.games.flashcard.played && (
+            {(data.games.flashcard.played || flashcardTimes > 0) && (
               <div className="flex items-center gap-1.5 px-2.5 py-1 bg-blue-50 text-blue-700 rounded-lg border border-blue-100 text-xs font-semibold">
                 <BookA size={12} />
-                <span>{data.games.flashcard.timesPlayed} lượt</span>
+                <span>{flashcardTimes} lượt</span>
                 {totalFlashcardSeconds > 0 && (
                   <span className="text-[10px] text-blue-500 font-normal">
                     ({formatDuration(totalFlashcardSeconds)})
@@ -353,10 +356,10 @@ export default function UnitProgressStudentRow({ data }: UnitProgressStudentRowP
                 )}
               </div>
             )}
-            {data.games.quiz.played && (
+            {(data.games.quiz.played || quizTimes > 0) && (
               <div className="flex items-center gap-1.5 px-2.5 py-1 bg-purple-50 text-purple-700 rounded-lg border border-purple-100 text-xs font-semibold">
                 <Gamepad2 size={12} />
-                <span>{data.games.quiz.timesPlayed} lượt</span>
+                <span>{quizTimes} lượt</span>
                 {totalQuizSeconds > 0 && (
                   <span className="text-[10px] text-purple-500 font-normal">
                     ({formatDuration(totalQuizSeconds)})
@@ -364,10 +367,10 @@ export default function UnitProgressStudentRow({ data }: UnitProgressStudentRowP
                 )}
               </div>
             )}
-            {data.games.match.played && (
+            {(data.games.match.played || matchTimes > 0) && (
               <div className="flex items-center gap-1.5 px-2.5 py-1 bg-orange-50 text-orange-700 rounded-lg border border-orange-100 text-xs font-semibold">
                 <Zap size={12} />
-                <span>{data.games.match.timesPlayed} lượt</span>
+                <span>{matchTimes} lượt</span>
                 {data.games.match.bestTime && (
                   <span className="text-[10px] text-orange-500 font-normal">
                     (⚡ {data.games.match.bestTime}s)
@@ -375,11 +378,9 @@ export default function UnitProgressStudentRow({ data }: UnitProgressStudentRowP
                 )}
               </div>
             )}
-            {!data.games.flashcard.played &&
-              !data.games.quiz.played &&
-              !data.games.match.played && (
-                <span className="text-xs text-gray-400 italic">Chưa tham gia luyện tập</span>
-              )}
+            {flashcardTimes === 0 && quizTimes === 0 && matchTimes === 0 && (
+              <span className="text-xs text-gray-400 italic">Chưa tham gia luyện tập</span>
+            )}
           </div>
         </td>
 
@@ -430,10 +431,7 @@ export default function UnitProgressStudentRow({ data }: UnitProgressStudentRowP
                       Chi tiết hoạt động luyện tập
                     </h4>
                     <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
-                      {data.games.flashcard.timesPlayed +
-                        data.games.quiz.timesPlayed +
-                        data.games.match.timesPlayed}{' '}
-                      lượt
+                      {totalPracticeCount} lượt
                     </span>
                   </div>
                   <span className="text-[11px] text-gray-400 font-medium">
@@ -452,7 +450,7 @@ export default function UnitProgressStudentRow({ data }: UnitProgressStudentRowP
                   cardBorder="border-blue-100/90 hover:border-blue-200"
                   badgeColor="text-blue-700 bg-blue-50 border-blue-200"
                   calendarColor="text-blue-500"
-                  timesPlayed={data.games.flashcard.timesPlayed}
+                  timesPlayed={flashcardTimes}
                   totalSeconds={totalFlashcardSeconds}
                   sessions={flashcardSessions}
                   legacyDurationText="~1-2 phút"
@@ -469,7 +467,7 @@ export default function UnitProgressStudentRow({ data }: UnitProgressStudentRowP
                   cardBorder="border-purple-100/90 hover:border-purple-200"
                   badgeColor="text-purple-700 bg-purple-50 border-purple-200"
                   calendarColor="text-purple-500"
-                  timesPlayed={data.games.quiz.timesPlayed}
+                  timesPlayed={quizTimes}
                   totalSeconds={totalQuizSeconds}
                   bestMetricBadge={
                     data.games.quiz.score > 0 ? (
@@ -493,7 +491,7 @@ export default function UnitProgressStudentRow({ data }: UnitProgressStudentRowP
                   cardBorder="border-amber-100/90 hover:border-amber-200"
                   badgeColor="text-orange-700 bg-orange-50 border-orange-200"
                   calendarColor="text-orange-500"
-                  timesPlayed={data.games.match.timesPlayed}
+                  timesPlayed={matchTimes}
                   totalSeconds={totalMatchSeconds}
                   bestMetricBadge={
                     data.games.match.bestTime ? (

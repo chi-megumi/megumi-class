@@ -32,10 +32,21 @@ type GamePlayerInnerProps = {
   unitId?: string
   onClose?: () => void
   onTestComplete?: (testId: string, result: TestResultPayload) => void
+  onGameComplete?: (details?: { time?: number }) => void
   isRetake?: boolean
 }
 
-const GamePlayerInner = ({ mode, vocabItems = [], testData, initialResult, unitId, onClose, onTestComplete, isRetake }: GamePlayerInnerProps) => {
+const GamePlayerInner = ({
+  mode,
+  vocabItems = [],
+  testData,
+  initialResult,
+  unitId,
+  onClose,
+  onTestComplete,
+  onGameComplete,
+  isRetake,
+}: GamePlayerInnerProps) => {
   const setVocabItems = useFlashcardStore((s) => s.setVocabItems)
   const setMode = useFlashcardStore((s) => s.setMode)
 
@@ -46,20 +57,20 @@ const GamePlayerInner = ({ mode, vocabItems = [], testData, initialResult, unitI
   })
 
   return (
-    <div className={`w-full ${mode === 'test' ? 'max-w-3xl p-1.5 sm:p-3 md:p-4' : 'max-w-5xl p-4 md:p-8'} mx-auto flex-1 flex flex-col justify-center`}>
+    <div className={`w-full ${mode === 'test' ? 'max-w-3xl p-1.5 sm:p-3 md:p-4 h-full min-h-0' : 'max-w-5xl p-4 md:p-8'} mx-auto flex-1 flex flex-col justify-center`}>
       {mode === 'flashcard' && <FlashcardGame />}
       {mode === 'quiz' && (
         <div className="w-full animate-in fade-in zoom-in-95 duration-500">
-          <QuizView />
+          <QuizView onClose={onClose} onGameComplete={onGameComplete} />
         </div>
       )}
       {mode === 'match' && (
         <div className="w-full animate-in fade-in zoom-in-95 duration-500">
-          <MatchGame />
+          <MatchGame onClose={onClose} onGameComplete={onGameComplete} />
         </div>
       )}
       {mode === 'test' && testData && (
-        <div className="w-full h-full pb-4">
+        <div className="w-full h-full min-h-0 pb-2">
           <TestView testData={testData} initialResult={initialResult} unitId={unitId} onClose={onClose!} onTestComplete={onTestComplete} isRetake={isRetake} />
         </div>
       )}

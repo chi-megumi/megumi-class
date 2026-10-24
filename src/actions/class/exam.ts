@@ -55,6 +55,7 @@ export async function updateUnitExams(unitId: string, examsData: ExamUpsertInput
   })
 
   revalidatePath(`/teacher/classes/${unit.classId}`)
+  revalidatePath(`/teacher/classes/${unit.classId}/units`)
   revalidatePath(`/student/classes/${unit.classId}`)
   revalidatePath(`/student/classes/${unit.classId}/units/${unitId}`)
   return { success: true, exams: updatedUnit?.exams || [] }
@@ -85,6 +86,7 @@ export async function deleteUnitExam(examId: string, unitId: string) {
   })
 
   revalidatePath(`/teacher/classes/${unit.classId}`)
+  revalidatePath(`/teacher/classes/${unit.classId}/units`)
   revalidatePath(`/student/classes/${unit.classId}`)
   revalidatePath(`/student/classes/${unit.classId}/units/${unitId}`)
   return { success: true, exams: updatedUnit?.exams || [] }

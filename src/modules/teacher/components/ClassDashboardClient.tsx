@@ -89,6 +89,13 @@ const ClassDashboardClient = ({ classData }: ClassDashboardClientProps) => {
   const [editVocabList, setEditVocabList] = useState<VocabItemData[]>([])
   const [savingVocab, setSavingVocab] = useState(false)
 
+  const handleUpdateEditingUnit = (unit: UnitData | null) => {
+    setEditingUnit(unit)
+    if (unit) {
+      setUnits((prev) => prev.map((u) => (u.id === unit.id ? unit : u)))
+    }
+  }
+
   const pendingStudents = classData.students.filter((s: EnrollmentData) => s.status === 'pending')
   const activeStudents = classData.students.filter((s: EnrollmentData) => s.status === 'active')
 
@@ -201,7 +208,14 @@ const ClassDashboardClient = ({ classData }: ClassDashboardClientProps) => {
 
   const handleOpenEditVocab = (unit: UnitData) => {
     setEditingUnit(unit)
-    setEditVocabList(unit.vocabItems || [])
+    const sorted = [...(unit.vocabItems || [])].sort((a, b) => {
+      if (a.createdAt && b.createdAt) {
+        const timeDiff = new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        if (timeDiff !== 0) return timeDiff
+      }
+      return (a.sortOrder ?? 0) - (b.sortOrder ?? 0)
+    })
+    setEditVocabList(sorted)
   }
 
   const handleSaveVocab = async () => {
@@ -497,7 +511,7 @@ const ClassDashboardClient = ({ classData }: ClassDashboardClientProps) => {
           editVocabList={editVocabList}
           editingUnit={editingUnit}
           savingVocab={savingVocab}
-          setEditingUnit={setEditingUnit}
+          setEditingUnit={handleUpdateEditingUnit}
           setEditVocabList={setEditVocabList}
           handleSaveVocab={handleSaveVocab}
           activeStudents={activeStudents}

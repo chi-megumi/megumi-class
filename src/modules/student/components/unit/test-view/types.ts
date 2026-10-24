@@ -24,5 +24,6 @@ export type DraggedReorderWord = {
   questionId: string
   wordIdx: number
   fromSentence?: boolean
+  fromSentencePos?: number | null
   sentencePos?: number
 }

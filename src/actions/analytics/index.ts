@@ -5,6 +5,17 @@ import * as examSessionModule from './exam-session'
 import * as examAnalyticsModule from './exam-analytics'
 import * as classAnalyticsModule from './class-analytics'
 import * as unitAnalyticsModule from './unit-analytics'
+import * as examRunnerModule from './exam-runner'
+
+/**
+ * Exam runner actions
+ */
+export async function getStudentExamRunnerData(
+  ...args: Parameters<typeof examRunnerModule.getStudentExamRunnerData>
+) {
+  return examRunnerModule.getStudentExamRunnerData(...args)
+}
+export type { ExamRunnerData } from './exam-runner'
 
 /**
  * Game progress action
@@ -13,6 +24,12 @@ export async function recordGameCompletion(
   ...args: Parameters<typeof gameProgressModule.recordGameCompletion>
 ) {
   return gameProgressModule.recordGameCompletion(...args)
+}
+
+export async function syncMasteryProgress(
+  ...args: Parameters<typeof gameProgressModule.syncMasteryProgress>
+) {
+  return gameProgressModule.syncMasteryProgress(...args)
 }
 
 /**

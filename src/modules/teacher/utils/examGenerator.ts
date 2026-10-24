@@ -1,4 +1,5 @@
 import { VocabItemData, TestBlock, TestQuestion, MatchingPair } from '../types'
+import { splitSentenceWords, shuffleReorderWords } from './reorderUtils'
 
 export type QuestionTypeOption =
   | 'en_to_vi'
@@ -205,10 +206,14 @@ export function generateExamFromVocab(
           }
         }
 
+        const rawWords = splitSentenceWords(exampleSentence)
+        const shuffledWords = shuffleReorderWords(rawWords)
+
         reorderQuestions.push({
           id: crypto.randomUUID(),
           text: exampleVi ? `Dịch: ${exampleVi}` : `Sắp xếp các từ thành câu hoàn chỉnh (từ khóa: "${target.word}"):`,
           sentence: exampleSentence,
+          words: shuffledWords,
         })
         return
       }

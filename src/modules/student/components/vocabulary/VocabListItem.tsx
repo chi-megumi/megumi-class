@@ -12,7 +12,7 @@ export const VocabListItem: React.FC<VocabListItemProps> = ({
 }) => {
   return (
     <div
-      className={`p-3 md:p-4.5 flex flex-col md:flex-row md:items-center gap-3.5 transition-all group break-inside-avoid ${
+      className={`p-3 md:p-4.5 flex flex-col md:flex-row md:items-center gap-3.5 transition-all group break-inside-avoid scroll-contain-item ${
         isMastered
           ? 'bg-emerald-50/40 border-l-4 border-l-emerald-500'
           : 'bg-white border-l-4 border-l-transparent hover:bg-indigo-50/30'

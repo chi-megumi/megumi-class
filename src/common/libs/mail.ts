@@ -17,6 +17,14 @@ export interface SendConsultationEmailParams {
  * Khởi tạo Gmail / SMTP Transporter
  */
 const getMailTransporter = () => {
+  if (
+    process.env.MOCK_MAIL === 'true' ||
+    process.env.NODE_ENV === 'test' ||
+    process.env.NODE_ENV !== 'production'
+  ) {
+    return null
+  }
+
   const user = process.env.SMTP_USER
   const pass = process.env.SMTP_PASS
 
@@ -31,6 +39,9 @@ const getMailTransporter = () => {
       host,
       port,
       secure: isSecure,
+      connectionTimeout: 5000,
+      greetingTimeout: 5000,
+      socketTimeout: 5000,
       auth: {
         user,
         // Tự động bỏ dấu cách nếu người dùng copy mã App Password dạng "abcd efgh ijkl mnop"

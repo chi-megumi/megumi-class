@@ -78,6 +78,7 @@ export type TestResultPayload = {
   completedAt?: string | Date | null
   attemptCount?: number
   bestScore?: number
+  isInterrupted?: boolean
 }
 
 export type QuestionMistake = {

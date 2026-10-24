@@ -14,7 +14,7 @@ type FillBlankBlockProps = {
   onAnswer: (questionId: string, value: string | number) => void
 }
 
-export default function FillBlankBlock({ blockId, questions, text, answer, answers, isMiniChallenge, isReviewMode, result, onAnswer }: FillBlankBlockProps) {
+function FillBlankBlock({ blockId, questions, text, answer, answers, isMiniChallenge, isReviewMode, result, onAnswer }: FillBlankBlockProps) {
   const effectiveQuestions = (questions && questions.length > 0)
     ? questions
     : [{ id: blockId, text: text || '', answer: answer || '' }]
@@ -31,7 +31,7 @@ export default function FillBlankBlock({ blockId, questions, text, answer, answe
         const showIncorrect = isReviewMode && hasCorrectDetail && !isCorrect && answerStr !== ''
 
         return (
-          <div key={qId} className="space-y-1 p-2.5 bg-gray-50/60 rounded-lg border border-gray-100">
+          <div key={qId ? `${qId}_${qIdx}` : `fb-${qIdx}`} className="space-y-1 p-2.5 bg-gray-50/60 rounded-lg border border-gray-100">
             <p className="text-xs sm:text-sm font-medium text-gray-800 leading-relaxed">
               <span className="font-bold text-gray-400 mr-1">{qIdx + 1}.</span>
               {(q.text || '').split('___').map((part: string, i: number, arr: string[]) => (
@@ -74,3 +74,5 @@ export default function FillBlankBlock({ blockId, questions, text, answer, answe
     </div>
   )
 }
+
+export default React.memo(FillBlankBlock)

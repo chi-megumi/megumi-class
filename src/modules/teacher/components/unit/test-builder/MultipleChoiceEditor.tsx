@@ -31,14 +31,14 @@ export default function MultipleChoiceEditor({
             key={q.id}
             className={`flex gap-4 items-start p-4 rounded-xl border relative group/q ${
               isMiniChallenge
-                ? 'bg-gradient-to-br from-orange-50/30 to-pink-50/30 border-orange-100 shadow-sm hover:shadow-md transition-shadow'
+                ? 'bg-gradient-to-br from-orange-50/30 to-pink-50/30 border-orange-100'
                 : 'bg-gray-50/50 border-gray-100'
             }`}
           >
             <div
               className={`font-bold text-lg mt-2 flex items-center justify-center shrink-0 ${
                 isMiniChallenge
-                  ? 'w-10 h-10 rounded-full bg-orange-100 text-orange-600 shadow-sm border border-orange-200'
+                  ? 'w-10 h-10 rounded-full bg-orange-100 text-orange-600 border border-orange-200'
                   : 'text-indigo-600'
               }`}
             >

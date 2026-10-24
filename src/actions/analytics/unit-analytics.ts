@@ -39,7 +39,9 @@ type QuizAnswerRecord = {
  */
 export async function getUnitAnalytics(unitId: string): Promise<UnitAnalyticsResult> {
   const me = await getMe()
-  if (!me || (me.role !== 'teacher' && me.role !== 'TEACHER')) {
+  const isTeacher = me?.role === 'teacher' || me?.role === 'TEACHER'
+  const isAdmin = me?.systemRole === 'admin'
+  if (!me || (!isTeacher && !isAdmin)) {
     throw new Error('Unauthorized')
   }
 
@@ -101,12 +103,44 @@ export async function getUnitAnalytics(unitId: string): Promise<UnitAnalyticsRes
     throw new Error('Không tìm thấy bài học')
   }
 
-  if (unit.class.teacherId !== me.id) {
+  if (!isAdmin && unit.class.teacherId !== me.id) {
     throw new Error('Unauthorized')
   }
 
   const activeStudents = unit.class.students
-  const totalStudents = activeStudents.length
+  const enrolledStudentIds = new Set(activeStudents.map((e) => e.student.id))
+
+  // Include non-enrolled accounts (e.g. teacher or admin testing the unit) if they practiced
+  const nonEnrolledProgressList = (unit.studentProgress || []).filter(
+    (p) => !enrolledStudentIds.has(p.userId),
+  )
+
+  let extraStudentList: typeof activeStudents = []
+  if (nonEnrolledProgressList.length > 0) {
+    const extraUsers = await prisma.user.findMany({
+      where: { id: { in: nonEnrolledProgressList.map((p) => p.userId) } },
+      select: { id: true, name: true, email: true, avatarUrl: true },
+    })
+    extraStudentList = extraUsers.map((u) => ({
+      id: `virtual-${u.id}`,
+      classId: unit.classId,
+      studentId: u.id,
+      joinedAt: new Date(0),
+      status: 'active',
+      student: {
+        id: u.id,
+        name:
+          u.id === unit.class.teacherId
+            ? `${u.name} (Giáo viên - Thử nghiệm)`
+            : `${u.name} (Thử nghiệm)`,
+        email: u.email,
+        avatarUrl: u.avatarUrl,
+      },
+    })) as typeof activeStudents
+  }
+
+  const allDisplayStudents = [...activeStudents, ...extraStudentList]
+  const totalStudents = allDisplayStudents.length
   const vocabItems = unit.vocabItems
   const publishedUnitExams = (unit.exams || []).filter((e) => e.isPublished)
   const publishedClassExams = (unit.class.exams || []).filter((e) => e.isPublished)
@@ -119,7 +153,7 @@ export async function getUnitAnalytics(unitId: string): Promise<UnitAnalyticsRes
   let totalPracticesSum = 0
   let totalSubmissionsSum = 0
 
-  const studentAnalyticsList: StudentAnalyticsData[] = activeStudents.map((enrollment) => {
+  const studentAnalyticsList: StudentAnalyticsData[] = allDisplayStudents.map((enrollment) => {
     const student = enrollment.student
     const progress = unit.studentProgress?.find((p) => p.userId === student.id)
     const history = (progress?.activityHistory as Record<string, unknown> | null) || {}
@@ -128,9 +162,9 @@ export async function getUnitAnalytics(unitId: string): Promise<UnitAnalyticsRes
     const quizHistory = Array.isArray(history.quiz) ? history.quiz : []
     const matchHistory = Array.isArray(history.match) ? history.match : []
 
-    const flashcardPlays = progress?.flashcardPlayCount || flashcardHistory.length || 0
-    const quizPlays = progress?.quizPlayCount || quizHistory.length || 0
-    const matchPlays = progress?.matchPlayCount || matchHistory.length || 0
+    const flashcardPlays = Math.max(progress?.flashcardPlayCount || 0, flashcardHistory.length)
+    const quizPlays = Math.max(progress?.quizPlayCount || 0, quizHistory.length)
+    const matchPlays = Math.max(progress?.matchPlayCount || 0, matchHistory.length)
     const masteryProgress = progress?.masteryProgress || 0
 
     totalPracticesSum += flashcardPlays + quizPlays + matchPlays
@@ -216,19 +250,19 @@ export async function getUnitAnalytics(unitId: string): Promise<UnitAnalyticsRes
       masteryProgress,
       games: {
         flashcard: {
-          played: flashcardPlays > 0,
+          played: flashcardPlays > 0 || flashcardHistory.length > 0,
           progress: masteryProgress,
           timesPlayed: flashcardPlays,
           history: flashcardHistory as PracticeSessionEntry[],
         },
         quiz: {
-          played: quizPlays > 0,
+          played: quizPlays > 0 || quizHistory.length > 0,
           score: progress?.bestQuizScore || 0,
           timesPlayed: quizPlays,
           history: quizHistory as PracticeSessionEntry[],
         },
         match: {
-          played: matchPlays > 0,
+          played: matchPlays > 0 || matchHistory.length > 0,
           bestTime: progress?.bestMatchTime || null,
           timesPlayed: matchPlays,
           history: matchHistory as PracticeSessionEntry[],

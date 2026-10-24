@@ -38,6 +38,9 @@ body {
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }
+  .scroll-contain-item {
+    content-visibility: visible !important;
+  }
 }
 
 @keyframes shimmer {
@@ -51,4 +54,38 @@ body {
 
 .animate-shimmer {
   animation: shimmer 1.6s infinite ease-in-out;
+}
+
+/* Optimized custom scrollbar with GPU acceleration & scroll chaining prevention */
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(156, 163, 175, 0.4) transparent;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  transform: translateZ(0);
+  will-change: scroll-position;
+}
+
+/* Optimization for scrollable question/block cards to skip off-screen rendering */
+.scroll-contain-item {
+  content-visibility: auto;
+  contain-intrinsic-size: 0 160px;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(156, 163, 175, 0.35);
+  border-radius: 9999px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(156, 163, 175, 0.6);
 }

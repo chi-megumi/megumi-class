@@ -1,5 +1,6 @@
 'use client'
 
+import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import {
   Users,
@@ -36,6 +37,7 @@ type OverviewTabProps = {
 }
 
 const OverviewTab = ({ classData, activeStudents }: OverviewTabProps) => {
+  const router = useRouter()
   const [selectedUnitProgress, setSelectedUnitProgress] = useState<UnitData | null>(null)
   const [classExams, setClassExams] = useState<ExamData[]>(classData.exams || [])
   const [isGeneratorOpen, setIsGeneratorOpen] = useState(false)
@@ -374,7 +376,7 @@ const OverviewTab = ({ classData, activeStudents }: OverviewTabProps) => {
                           <BarChart3 size={13} /> BXH
                         </button>
                         <button
-                          onClick={() => setEditingClassTestId(test.id)}
+                          onClick={() => router.push(`/teacher/classes/${classData.id}/test-builder?testId=${test.id}`)}
                           className={`p-1.5 rounded-lg transition-colors ${
                             test.isPublished ? 'text-amber-300 hover:text-white hover:bg-white/10' : 'text-indigo-200 hover:text-white hover:bg-white/10'
                           }`}
@@ -470,13 +472,12 @@ const OverviewTab = ({ classData, activeStudents }: OverviewTabProps) => {
                 </tr>
               ) : (
                 classData.units.map((unit) => {
-                  const activeStudentsCount = classData.students.length
                   const activeStudentIds = new Set(classData.students.map((s) => s.student.id))
+                  if (classData.teacherId) activeStudentIds.add(classData.teacherId)
                   const unitStudentProgress = (unit.studentProgress || []).filter((p) => activeStudentIds.has(p.userId))
                   const progressCount = unitStudentProgress.length
-                  const participationRate = activeStudentsCount > 0 
-                    ? Math.round((progressCount / activeStudentsCount) * 100) 
-                    : 0
+                  const totalStudentsBase = Math.max(1, classData.students.length + (unit.studentProgress?.some((p) => p.userId === classData.teacherId) ? 1 : 0))
+                  const participationRate = Math.min(100, Math.round((progressCount / totalStudentsBase) * 100))
 
                   const quizScores = unitStudentProgress
                     .filter((p) => p.bestQuizScore !== null && p.bestQuizScore !== undefined)

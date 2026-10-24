@@ -27,6 +27,7 @@ type StoredAnswersPayload = {
   correctAnswersDetail?: Record<string, string | number>
   totalQuestions?: number
   correctAnswers?: number
+  isInterrupted?: boolean
 }
 
 /**
@@ -112,6 +113,44 @@ export async function startTest({
   }
 
   if (existingExamResult?.completedAt) {
+    // Check if this was a bogus empty auto-submit caused by previous bugs
+    const payload = (existingExamResult.answers as StoredAnswersPayload | null) || {}
+    const hasAnyAnswers = payload.answers && Object.keys(payload.answers).length > 0
+    const wasEmptyAutoSubmit =
+      !hasAnyAnswers && (payload.isInterrupted || existingExamResult.score === 0 || existingExamResult.score === null)
+
+    if (wasEmptyAutoSubmit) {
+      // Heal the session so student can take the exam
+      const startedAt = new Date()
+      await prisma.examResult.update({
+        where: { id: existingExamResult.id },
+        data: {
+          startedAt,
+          completedAt: null,
+          score: null,
+          answers: {},
+        },
+      })
+      if (unitId) {
+        const progress = await prisma.userUnitProgress.findUnique({
+          where: { userId_unitId: { userId: user.id, unitId } },
+        })
+        if (progress?.testResults && typeof progress.testResults === 'object') {
+          const currentResults = { ...(progress.testResults as Record<string, unknown>) }
+          delete currentResults[testId]
+          await prisma.userUnitProgress.update({
+            where: { userId_unitId: { userId: user.id, unitId } },
+            data: { testResults: currentResults as import('@prisma/client').Prisma.InputJsonValue },
+          })
+        }
+      }
+      return {
+        success: true,
+        startedAt: startedAt.toISOString(),
+        isCompleted: false,
+      }
+    }
+
     return {
       success: true,
       startedAt: existingExamResult.startedAt.toISOString(),
@@ -120,6 +159,30 @@ export async function startTest({
   }
 
   if (existingExamResult?.startedAt) {
+    const elapsedSeconds = Math.floor(
+      (Date.now() - new Date(existingExamResult.startedAt).getTime()) / 1000,
+    )
+    const durationSeconds = (test?.duration && test.duration > 0 ? test.duration : 15) * 60
+    const payload = (existingExamResult.answers as StoredAnswersPayload | null) || {}
+    const hasAnyAnswers = payload.answers && Object.keys(payload.answers).length > 0
+
+    // If time expired and student either has no answers or it's a retakable practice test, reset timer
+    if (elapsedSeconds >= durationSeconds && (isRetakable || !hasAnyAnswers)) {
+      const freshStartedAt = new Date()
+      await prisma.examResult.update({
+        where: { id: existingExamResult.id },
+        data: {
+          startedAt: freshStartedAt,
+          completedAt: null,
+        },
+      })
+      return {
+        success: true,
+        startedAt: freshStartedAt.toISOString(),
+        isCompleted: false,
+      }
+    }
+
     return {
       success: true,
       startedAt: existingExamResult.startedAt.toISOString(),
@@ -251,6 +314,11 @@ export async function submitTestResult({
     throw new Error('Bài thi không thuộc lớp học này')
   }
 
+  // If interrupted without any answers, do not submit or mark completed
+  if (isInterrupted && (!answers || Object.keys(answers).length === 0)) {
+    return { success: true, resultData: undefined }
+  }
+
   // Check if student has already completed this exam in ExamResult
   const existingExamResult = await prisma.examResult.findUnique({
     where: {
@@ -283,7 +351,8 @@ export async function submitTestResult({
 
   const blocks = (test.content as unknown as TestBlock[]) || []
   const { totalQuestions, correctAnswers, correctAnswersDetail, score } = gradeExamBlocks(blocks, answers)
-  const completedAt = new Date()
+  const isFinalSubmission = !isInterrupted
+  const completedAt = isFinalSubmission ? new Date() : null
 
   // Build attempt history for retakable exams
   const prevPayload = (existingExamResult?.answers as StoredAnswersPayload | null) || {}
@@ -291,15 +360,15 @@ export async function submitTestResult({
   const prevAttemptCount = typeof prevPayload.attemptCount === 'number'
     ? prevPayload.attemptCount
     : (existingExamResult?.completedAt ? 1 : 0)
-  const attemptCount = prevAttemptCount + 1
+  const attemptCount = isFinalSubmission ? prevAttemptCount + 1 : prevAttemptCount
 
   const newHistoryEntry: AttemptHistoryEntry = {
     attempt: attemptCount,
     score,
     correctAnswers,
     totalQuestions,
-    startedAt: existingExamResult?.startedAt?.toISOString() || completedAt.toISOString(),
-    completedAt: completedAt.toISOString(),
+    startedAt: existingExamResult?.startedAt?.toISOString() || new Date().toISOString(),
+    completedAt: completedAt ? completedAt.toISOString() : new Date().toISOString(),
   }
 
   const bestScore = Math.max(score, prevPayload.bestScore ?? (existingExamResult?.score ?? score))
@@ -310,12 +379,12 @@ export async function submitTestResult({
     totalQuestions,
     answers,
     correctAnswersDetail,
-    startedAt: existingExamResult?.startedAt?.toISOString() || completedAt.toISOString(),
-    completedAt: completedAt.toISOString(),
+    startedAt: existingExamResult?.startedAt?.toISOString() || new Date().toISOString(),
+    completedAt: completedAt ? completedAt.toISOString() : null,
     attemptCount,
     bestScore,
     isInterrupted: !!isInterrupted,
-    history: test.isRetakable ? [...prevHistory, newHistoryEntry] : undefined,
+    history: isFinalSubmission && test.isRetakable ? [...prevHistory, newHistoryEntry] : prevHistory,
   }
 
   // 1. Primary storage: Upsert into ExamResult table
@@ -327,15 +396,15 @@ export async function submitTestResult({
       },
     },
     update: {
-      score,
-      completedAt,
+      score: isFinalSubmission ? score : (existingExamResult?.score ?? score),
+      ...(completedAt ? { completedAt } : {}),
       answers: answersPayload as import('@prisma/client').Prisma.InputJsonValue,
     },
     create: {
       examId: testId,
       studentId: me.id,
       score,
-      startedAt: existingExamResult?.startedAt ?? completedAt,
+      startedAt: existingExamResult?.startedAt ?? new Date(),
       completedAt,
       answers: answersPayload as import('@prisma/client').Prisma.InputJsonValue,
     },

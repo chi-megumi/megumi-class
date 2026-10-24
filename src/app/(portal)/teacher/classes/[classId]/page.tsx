@@ -1,12 +1,13 @@
 import { getTeacherClassDetails } from '~/actions/class'
 import { redirect } from 'next/navigation'
-import ClassDashboardClient from '~/modules/teacher/components/ClassDashboardClient'
+import OverviewTab from '@/modules/teacher/components/overview/OverviewTab'
+import { ClassData, EnrollmentData } from '@/modules/teacher/types'
 
 type PageProps = {
   params: Promise<{ classId: string }>
 }
 
-export default async function ClassManagementPage({ params }: PageProps) {
+export default async function ClassOverviewPage({ params }: PageProps) {
   const { classId } = await params
 
   const classData = await getTeacherClassDetails(classId)
@@ -15,11 +16,10 @@ export default async function ClassManagementPage({ params }: PageProps) {
     redirect('/')
   }
 
-  return (
-    <div className="w-full max-w-[1200px] mx-auto min-h-screen py-8 relative lg:px-4">
-      <ClassDashboardClient
-        classData={classData as unknown as import('~/modules/teacher/types').ClassData}
-      />
-    </div>
+  const typedClassData = classData as unknown as ClassData
+  const activeStudents = (typedClassData.students || []).filter(
+    (s: EnrollmentData) => s.status === 'active'
   )
+
+  return <OverviewTab classData={typedClassData} activeStudents={activeStudents} />
 }

@@ -1,6 +1,6 @@
 'use client'
 
-import { useRef, useEffect } from 'react'
+import { useRef, useEffect, useCallback } from 'react'
 import { BookA, Gamepad2, Zap, X } from 'lucide-react'
 import { ExamData, VocabItemData, TestContent } from '~/modules/teacher/types'
 import { recordGameCompletion } from '@/actions/analytics/game-progress'
@@ -37,16 +37,107 @@ const GamePlayerModal = ({
 }: GamePlayerModalProps) => {
   const params = useParams()
   const classId = propClassId || (params.classId as string)
+
+  const unitIdRef = useRef(unitId)
+  const classIdRef = useRef(classId)
+  const modeRef = useRef(mode)
+  const vocabItemsRef = useRef(vocabItems)
   const masteredSet = useFlashcardStore((s) => s.masteredSet)
+  const masteredSetRef = useRef(masteredSet)
 
-  const startTimeRef = useRef(0)
+  useEffect(() => {
+    unitIdRef.current = unitId
+    classIdRef.current = classId
+    modeRef.current = mode
+    vocabItemsRef.current = vocabItems
+    masteredSetRef.current = masteredSet
+  }, [unitId, classId, mode, vocabItems, masteredSet])
+
+  // Track the actual start time when the player opens and prevent resets on re-renders
+  const startTimeRef = useRef<number>(0)
   const hasFinishedRef = useRef(false)
+  const matchFinishedRef = useRef(false)
 
-  // Track session and recover if previously interrupted by F5
+  // Robust function to save game progress (handles both normal completion and midway exits)
+  const saveGameProgress = useCallback(
+    async (isInterrupted: boolean, overrideTime?: number) => {
+      const currentUnitId = unitIdRef.current
+      const currentMode = modeRef.current
+      if (!currentUnitId || currentMode === 'test') return
+      hasFinishedRef.current = true
+
+      const sessionKey = `megumi_active_game_${currentUnitId}_${currentMode}`
+      try {
+        sessionStorage.removeItem(sessionKey)
+      } catch {
+        // Ignore
+      }
+
+      const items = vocabItemsRef.current || []
+      const totalVocab = items.length
+      const currentMastered = masteredSetRef.current || []
+      const masteryPercentage =
+        totalVocab > 0 ? Math.round((currentMastered.length / totalVocab) * 100) : 0
+
+      let quizScore: number | undefined
+      let correctCount: number | undefined
+      let totalCount: number | undefined
+      let quizAnswers: Array<{ wordId: string; correct: boolean; selectedWordId?: string }> | undefined
+      let quizElapsedSeconds: number | undefined
+
+      if (currentMode === 'quiz') {
+        const quizState = useQuizStore.getState()
+        const totalAnswered = quizState.sessionAnswers?.length || 0
+        correctCount = quizState.sessionCorrect || 0
+        totalCount = quizState.sessionTotal || totalAnswered
+        quizScore = totalCount > 0 ? Math.round((correctCount / totalCount) * 100) : 0
+        quizAnswers = quizState.sessionAnswers?.map((ans) => ({
+          wordId: ans.wordId,
+          correct: ans.correct,
+          selectedWordId: ans.selectedWordId,
+        }))
+        if (quizState.sessionStartMs > 0) {
+          quizElapsedSeconds = Math.max(1, Math.round((Date.now() - quizState.sessionStartMs) / 1000))
+        }
+      }
+
+      const elapsed =
+        overrideTime ??
+        quizElapsedSeconds ??
+        (startTimeRef.current > 0
+          ? Math.max(1, Math.round((Date.now() - startTimeRef.current) / 1000))
+          : 1)
+
+      const payload = {
+        unitId: currentUnitId,
+        classId: classIdRef.current,
+        gameType: currentMode as 'flashcard' | 'quiz' | 'match',
+        masteryProgress: masteryPercentage,
+        time: elapsed,
+        score: quizScore,
+        correctCount,
+        totalCount,
+        quizAnswers,
+        isQuickExit: false,
+        isInterrupted,
+      }
+
+      try {
+        await recordGameCompletion(payload)
+      } catch (err) {
+        console.error('recordGameCompletion error:', err)
+      }
+    },
+    []
+  )
+
+  // Track session and recover if previously interrupted by F5, browser back, or tab close
   useEffect(() => {
     if (!unitId || mode === 'test') return
 
     startTimeRef.current = Date.now()
+    hasFinishedRef.current = false
+    matchFinishedRef.current = false
 
     const sessionKey = `megumi_active_game_${unitId}_${mode}`
 
@@ -58,8 +149,6 @@ const GamePlayerModal = ({
     }
 
     // 2. Start current session
-    startTimeRef.current = Date.now()
-    hasFinishedRef.current = false
     try {
       sessionStorage.setItem(
         sessionKey,
@@ -74,91 +163,119 @@ const GamePlayerModal = ({
       // Ignore
     }
 
-    // 3. Handle pagehide / F5 / tab close
+    // 3. Handle pagehide / F5 / tab close via sendBeacon as last resort
     const handlePageHide = () => {
-      if (hasFinishedRef.current) return
-      hasFinishedRef.current = true
-      const elapsed = Math.max(1, Math.round((Date.now() - startTimeRef.current) / 1000))
-      const isQuick = elapsed < 5
-      const payload = {
-        unitId,
-        classId,
-        gameType: mode,
-        time: elapsed,
-        isInterrupted: true,
-        isQuickExit: isQuick,
-      }
-      try {
-        const blob = new Blob([JSON.stringify(payload)], { type: 'application/json' })
-        navigator.sendBeacon('/api/analytics/game-progress', blob)
-        sessionStorage.removeItem(sessionKey)
-      } catch {
-        // Ignore
-      }
-    }
+      if (!hasFinishedRef.current) {
+        hasFinishedRef.current = true
+        const currentUnitId = unitIdRef.current
+        const currentMode = modeRef.current
+        if (!currentUnitId || currentMode === 'test') return
 
-    window.addEventListener('pagehide', handlePageHide)
-    return () => {
-      window.removeEventListener('pagehide', handlePageHide)
-    }
-  }, [unitId, classId, mode])
+        let quizScore: number | undefined
+        let correctCount: number | undefined
+        let totalCount: number | undefined
+        let quizAnswers: Array<{ wordId: string; correct: boolean; selectedWordId?: string }> | undefined
+        let quizElapsedSeconds: number | undefined
 
-  const handleClose = async () => {
-    hasFinishedRef.current = true
-    if (unitId && mode !== 'test') {
-      const sessionKey = `megumi_active_game_${unitId}_${mode}`
-      try {
-        sessionStorage.removeItem(sessionKey)
-      } catch {
-        // Ignore
-      }
-
-      const items = vocabItems || []
-      const totalVocab = items.length
-      const masteredCount = masteredSet.length
-      const masteryPercentage = totalVocab > 0 ? Math.round((masteredCount / totalVocab) * 100) : 0
-      const durationSeconds =
-        startTimeRef.current > 0 ? Math.max(1, Math.round((Date.now() - startTimeRef.current) / 1000)) : 1
-
-      let quizScore: number | undefined
-      let correctCount: number | undefined
-      let totalCount: number | undefined
-      let quizAnswers: Array<{ wordId: string; correct: boolean; selectedWordId?: string }> | undefined
-      let isQuick = durationSeconds < 5
-
-      if (mode === 'quiz') {
-        const quizState = useQuizStore.getState()
-        const totalAnswered = quizState.sessionAnswers?.length || 0
-        correctCount = quizState.sessionCorrect || 0
-        totalCount = quizState.sessionTotal || totalAnswered
-        quizScore = totalCount > 0 ? Math.round((correctCount / totalCount) * 100) : 0
-        quizAnswers = quizState.sessionAnswers?.map((ans) => ({
-          wordId: ans.wordId,
-          correct: ans.correct,
-          selectedWordId: ans.selectedWordId,
-        }))
-        if (totalAnswered === 0 && durationSeconds < 10) {
-          isQuick = true
+        if (currentMode === 'quiz') {
+          const quizState = useQuizStore.getState()
+          const totalAnswered = quizState.sessionAnswers?.length || 0
+          correctCount = quizState.sessionCorrect || 0
+          totalCount = quizState.sessionTotal || totalAnswered
+          quizScore = totalCount > 0 ? Math.round((correctCount / totalCount) * 100) : 0
+          quizAnswers = quizState.sessionAnswers?.map((ans) => ({
+            wordId: ans.wordId,
+            correct: ans.correct,
+            selectedWordId: ans.selectedWordId,
+          }))
+          if (quizState.sessionStartMs > 0) {
+            quizElapsedSeconds = Math.max(1, Math.round((Date.now() - quizState.sessionStartMs) / 1000))
+          }
         }
-      }
 
-      try {
-        await recordGameCompletion({
-          unitId,
-          classId,
-          gameType: mode as 'flashcard' | 'quiz' | 'match',
-          masteryProgress: masteryPercentage,
-          time: durationSeconds,
+        const elapsed =
+          quizElapsedSeconds ??
+          (startTimeRef.current > 0
+            ? Math.max(1, Math.round((Date.now() - startTimeRef.current) / 1000))
+            : 1)
+
+        const payload = {
+          unitId: currentUnitId,
+          classId: classIdRef.current,
+          gameType: currentMode as 'flashcard' | 'quiz' | 'match',
+          masteryProgress:
+            (vocabItemsRef.current?.length || 0) > 0
+              ? Math.round(((masteredSetRef.current || []).length / vocabItemsRef.current.length) * 100)
+              : 0,
+          time: elapsed,
           score: quizScore,
           correctCount,
           totalCount,
           quizAnswers,
-          isQuickExit: isQuick,
-          isInterrupted: false,
-        })
-      } catch (err) {
-        console.error('recordGameCompletion error:', err)
+          isInterrupted: true,
+          isQuickExit: false,
+        }
+        if (typeof navigator !== 'undefined' && navigator.sendBeacon) {
+          const blob = new Blob([JSON.stringify(payload)], { type: 'application/json' })
+          navigator.sendBeacon('/api/analytics/game-progress', blob)
+        }
       }
+    }
+
+    // 4. Handle client-side popstate / browser back
+    const handlePopState = () => {
+      if (!hasFinishedRef.current) {
+        saveGameProgress(true)
+      }
+    }
+
+    window.addEventListener('pagehide', handlePageHide)
+    window.addEventListener('popstate', handlePopState)
+
+    return () => {
+      window.removeEventListener('pagehide', handlePageHide)
+      window.removeEventListener('popstate', handlePopState)
+      // Save midway exit only if component unmounts without finishing
+      if (!hasFinishedRef.current) {
+        saveGameProgress(true)
+      }
+    }
+  }, [unitId, mode, classId, saveGameProgress])
+
+  // Explicit completion handler from inner games (Quiz round done, Match game finished)
+  const handleGameComplete = useCallback(
+    (details?: { time?: number }) => {
+      if (mode === 'match') {
+        matchFinishedRef.current = true
+      }
+      saveGameProgress(false, details?.time)
+    },
+    [mode, saveGameProgress]
+  )
+
+  const handleClose = async () => {
+    if (!hasFinishedRef.current && unitId && mode !== 'test') {
+      let isInterrupted = false
+      if (mode === 'quiz') {
+        const quizState = useQuizStore.getState()
+        const totalAnswered = quizState.sessionAnswers?.length || 0
+        // If session was completed or student answered questions and chose to finish, mark as completed
+        if (quizState.sessionDone || totalAnswered > 0) {
+          isInterrupted = false
+        } else {
+          // Bounced without answering any questions
+          isInterrupted = true
+        }
+      } else if (mode === 'match') {
+        if (!matchFinishedRef.current) {
+          isInterrupted = true
+        }
+      } else if (mode === 'flashcard') {
+        // Flashcard review: if studied >= 3 seconds, mark as completed study session
+        const elapsed = Math.round((Date.now() - startTimeRef.current) / 1000)
+        isInterrupted = elapsed < 3
+      }
+      await saveGameProgress(isInterrupted)
     }
 
     onClose()
@@ -167,8 +284,8 @@ const GamePlayerModal = ({
   // We wrap inside FlashcardProvider to isolate the state for this student's unit run
   return (
     <Portal>
-      <div className="fixed inset-0 z-[100] bg-gradient-to-br from-[#F5F7FF] via-[#EAEFFF] to-[#F3E8FF] backdrop-blur-xl flex flex-col animate-in fade-in zoom-in-95 duration-300 overflow-hidden">
-        <div className="px-5 py-3 flex justify-between items-center border-b border-indigo-100 shrink-0 bg-white/40 shadow-xs">
+      <div className="fixed inset-0 z-[100] bg-gradient-to-br from-[#F5F7FF] via-[#EAEFFF] to-[#F3E8FF] flex flex-col animate-in fade-in duration-200 overflow-hidden">
+        <div className="px-5 py-3 flex justify-between items-center border-b border-indigo-100 shrink-0 bg-white/70 shadow-xs">
           <h2 className="text-indigo-900 font-bold text-lg md:text-xl flex items-center gap-2">
             {mode === 'flashcard' && (
               <>
@@ -203,8 +320,18 @@ const GamePlayerModal = ({
           )}
         </div>
 
-        <div className="flex-1 overflow-y-auto custom-scrollbar flex flex-col relative">
-          <GamePlayerInner mode={mode} vocabItems={vocabItems} testData={testData} initialResult={initialResult} unitId={unitId} onClose={handleClose} onTestComplete={onTestComplete} isRetake={isRetake} />
+        <div className={`flex-1 ${mode === 'test' ? 'overflow-hidden' : 'overflow-y-auto overscroll-contain'} custom-scrollbar flex flex-col relative`}>
+          <GamePlayerInner
+            mode={mode}
+            vocabItems={vocabItems}
+            testData={testData}
+            initialResult={initialResult}
+            unitId={unitId}
+            onClose={handleClose}
+            onTestComplete={onTestComplete}
+            onGameComplete={handleGameComplete}
+            isRetake={isRetake}
+          />
         </div>
       </div>
     </Portal>

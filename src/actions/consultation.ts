@@ -6,7 +6,7 @@ import { sendConsultationNotificationEmail } from '@/common/libs/mail'
 
 const phoneRegex = /(84|0[3|5|7|8|9])+([0-9]{8})\b/
 
-export const consultationSchema = z.object({
+const consultationSchema = z.object({
   fullName: z.string().trim().min(1, 'Vui lòng nhập họ và tên của bạn'),
   phone: z
     .string()
@@ -42,13 +42,15 @@ export async function submitConsultation(data: ConsultationInput) {
       },
     })
 
-    // Send email notification to chidoan995.work@gmail.com
-    await sendConsultationNotificationEmail({
+    // Send email notification to chidoan995.work@gmail.com (resilient, non-blocking)
+    sendConsultationNotificationEmail({
       fullName: validated.fullName,
       phone: validated.phone,
       email: validated.email || undefined,
       course: validated.course,
       learningGoal: validated.learningGoal || undefined,
+    }).catch((emailErr) => {
+      console.error('[Consultation Email Notification Error]:', emailErr)
     })
 
     return { success: true, id: registration.id }

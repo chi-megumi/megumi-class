@@ -6,13 +6,15 @@ import MultipleChoiceEditor from './MultipleChoiceEditor'
 import FillBlankEditor from './FillBlankEditor'
 import MatchingEditor from './MatchingEditor'
 import ReorderEditor from './ReorderEditor'
-import type { TestBlock } from '@/modules/teacher/types'
+import { ReadingEditor } from './reading'
+import type { TestBlock, VocabItemData } from '@/modules/teacher/types'
 
 type TestBlockEditorProps = {
   block: TestBlock
   index: number
   isMiniChallenge: boolean
   isDragOver: boolean
+  vocabItems?: VocabItemData[]
   onDragStart: (e: React.DragEvent, index: number) => void
   onDragEnter: (e: React.DragEvent, index: number) => void
   onDragEnd: () => void
@@ -24,11 +26,12 @@ type TestBlockEditorProps = {
   onAddQuestionToBlock: (blockId: string) => void
 }
 
-export default function TestBlockEditor({
+function TestBlockEditor({
   block,
   index,
   isMiniChallenge,
   isDragOver,
+  vocabItems,
   onDragStart,
   onDragEnter,
   onDragEnd,
@@ -41,24 +44,24 @@ export default function TestBlockEditor({
 }: TestBlockEditorProps) {
   return (
     <div
-      draggable
-      onDragStart={(e) => onDragStart(e, index)}
       onDragEnter={(e) => onDragEnter(e, index)}
       onDragEnd={onDragEnd}
       onDragOver={onDragOver}
-      className={`bg-white rounded-2xl shadow-sm border ${
+      className={`bg-white rounded-2xl border ${
         isDragOver
           ? 'border-indigo-500 border-t-4'
           : isMiniChallenge
-            ? 'border-orange-200 shadow-orange-100/50'
+            ? 'border-orange-200'
             : 'border-gray-200'
-      } overflow-hidden group transition-all ${isMiniChallenge ? 'hover:scale-[1.01]' : ''}`}
+      } overflow-hidden group scroll-contain-item`}
     >
       {/* Block Toolbar */}
       <div
+        draggable
+        onDragStart={(e) => onDragStart(e, index)}
         className={`${
           isMiniChallenge ? 'bg-orange-50/50 border-orange-100' : 'bg-gray-50 border-gray-100'
-        } border-b px-4 py-3 flex items-center justify-between cursor-grab active:cursor-grabbing`}
+        } border-b px-4 py-3 flex items-center justify-between cursor-grab active:cursor-grabbing select-none`}
       >
         <div className="flex items-center gap-3 flex-1 min-w-0">
           <GripVertical
@@ -149,7 +152,17 @@ export default function TestBlockEditor({
           />
         )}
 
-        {['reading', 'listening'].includes(block.type) && (
+        {block.type === 'reading' && (
+          <ReadingEditor
+            block={block}
+            isMiniChallenge={isMiniChallenge}
+            vocabItems={vocabItems}
+            onUpdateContent={onUpdateContent}
+            onAddQuestion={() => onAddQuestionToBlock(block.id)}
+          />
+        )}
+
+        {block.type === 'listening' && (
           <div className="h-32 border-2 border-dashed border-gray-200 rounded-xl flex items-center justify-center text-gray-400 bg-gray-50">
             UI đang được hoàn thiện cho dạng bài này...
           </div>
@@ -158,3 +171,5 @@ export default function TestBlockEditor({
     </div>
   )
 }
+
+export default React.memo(TestBlockEditor)

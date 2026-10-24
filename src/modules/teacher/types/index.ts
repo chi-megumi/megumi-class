@@ -13,6 +13,8 @@ export type VocabItemData = {
   exampleVi?: string | null
   tip?: string | null
   pendingFile?: File | null
+  sortOrder?: number | null
+  createdAt?: string | Date | null
 }
 
 export type StudentData = {
@@ -45,6 +47,8 @@ export type TestQuestion = {
   answer?: string
   sentence?: string
   words?: string[]
+  explanation?: string
+  kind?: string
 }
 
 export type TestBlock = {
@@ -58,6 +62,12 @@ export type TestBlock = {
     text?: string
     answer?: string
     sentence?: string
+    passages?: Array<{
+      id: string
+      title?: string
+      text: string
+      questions: TestQuestion[]
+    }>
   }
 }
 
@@ -101,6 +111,7 @@ export type ExamData = {
 
 export type UnitData = {
   id: string
+  classId?: string
   title: string
   description?: string | null
   isPublished: boolean
@@ -136,6 +147,8 @@ export type PracticeSessionEntry = {
   isInterrupted?: boolean
   isQuickExit?: boolean
   completedAt: Date | string
+  answers?: Array<{ wordId: string; correct: boolean; selectedWordId?: string }> | null
+  masteryProgress?: number | null
 }
 
 export type StudentExamDetail = {

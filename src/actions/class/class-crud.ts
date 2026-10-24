@@ -1,5 +1,6 @@
 'use server'
 
+import { cache } from 'react'
 import { revalidatePath } from 'next/cache'
 import { getMe } from '../auth'
 import { prisma } from '~/common/libs/prisma'
@@ -176,6 +177,67 @@ export async function requestJoinClass(inviteCode: string) {
   return { success: true, message: 'Đã gửi yêu cầu tham gia lớp học thành công' }
 }
 
+const getTeacherClassDetailsInternal = cache(
+  async (classId: string, userId: string, isAdmin: boolean) => {
+    const whereClause = isAdmin ? { id: classId } : { id: classId, teacherId: userId }
+
+    const classData = await prisma.class.findFirst({
+      where: whereClause,
+      include: {
+        teacher: {
+          select: { id: true, name: true, email: true, avatarUrl: true },
+        },
+        exams: {
+          where: { unitId: null },
+          orderBy: { createdAt: 'desc' },
+          include: {
+            results: {
+              where: { completedAt: { not: null } },
+              include: {
+                student: {
+                  select: { id: true, name: true, email: true, avatarUrl: true },
+                },
+              },
+            },
+          },
+        },
+        units: {
+          orderBy: [{ createdAt: 'asc' }, { sortOrder: 'asc' }, { id: 'asc' }],
+          include: {
+            vocabItems: {
+              orderBy: [{ sortOrder: 'asc' }, { createdAt: 'desc' }],
+            },
+            studentProgress: true,
+            exams: {
+              orderBy: { createdAt: 'asc' },
+              include: {
+                results: {
+                  where: { completedAt: { not: null } },
+                  include: {
+                    student: {
+                      select: { id: true, name: true, email: true, avatarUrl: true },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+        students: {
+          include: {
+            student: {
+              select: { id: true, name: true, email: true, avatarUrl: true, userType: true },
+            },
+          },
+          orderBy: { joinedAt: 'desc' },
+        },
+      },
+    })
+
+    return classData
+  }
+)
+
 export async function getTeacherClassDetails(classId: string) {
   const user = await getMe()
   const isTeacher = user?.role === 'teacher' || user?.role === 'TEACHER'
@@ -185,62 +247,7 @@ export async function getTeacherClassDetails(classId: string) {
     return null
   }
 
-  const whereClause = isAdmin ? { id: classId } : { id: classId, teacherId: user.id }
-
-  const classData = await prisma.class.findFirst({
-    where: whereClause,
-    include: {
-      teacher: {
-        select: { id: true, name: true, email: true, avatarUrl: true },
-      },
-      exams: {
-        where: { unitId: null },
-        orderBy: { createdAt: 'desc' },
-        include: {
-          results: {
-            where: { completedAt: { not: null } },
-            include: {
-              student: {
-                select: { id: true, name: true, email: true, avatarUrl: true },
-              },
-            },
-          },
-        },
-      },
-      units: {
-        orderBy: [{ createdAt: 'asc' }, { sortOrder: 'asc' }, { id: 'asc' }],
-        include: {
-          vocabItems: {
-            orderBy: { sortOrder: 'asc' },
-          },
-          studentProgress: true,
-          exams: {
-            orderBy: { createdAt: 'asc' },
-            include: {
-              results: {
-                where: { completedAt: { not: null } },
-                include: {
-                  student: {
-                    select: { id: true, name: true, email: true, avatarUrl: true },
-                  },
-                },
-              },
-            },
-          },
-        },
-      },
-      students: {
-        include: {
-          student: {
-            select: { id: true, name: true, email: true, avatarUrl: true, userType: true },
-          },
-        },
-        orderBy: { joinedAt: 'desc' },
-      },
-    },
-  })
-
-  return classData
+  return getTeacherClassDetailsInternal(classId, user.id, !!isAdmin)
 }
 
 export async function getStudentClassDetails(classId: string) {

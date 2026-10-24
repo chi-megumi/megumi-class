@@ -129,8 +129,22 @@ export async function getExamQuestionAnalytics(
   blocks.forEach((block, bIdx) => {
     const blockTitle = block.title || `Phần ${bIdx + 1}`
 
-    if (block.type === 'multiple_choice') {
-      block.content?.questions?.forEach((q: TestQuestion, qIdx: number) => {
+    if (block.type === 'multiple_choice' || block.type === 'reading') {
+      const allQs: TestQuestion[] = []
+      if (
+        block.type === 'reading' &&
+        Array.isArray(block.content?.passages) &&
+        block.content.passages.length > 0
+      ) {
+        block.content.passages.forEach((p) => {
+          if (Array.isArray(p.questions)) allQs.push(...p.questions)
+        })
+      } else if (Array.isArray(block.content?.questions)) {
+        allQs.push(...block.content.questions)
+      }
+
+      allQs.forEach((q: TestQuestion, qIdx: number) => {
+        if (!Array.isArray(q.options) || q.options.length === 0) return
         const correctIndex = q.correctIndex ?? 0
         const correctOpt = q.options?.[correctIndex] || `Đáp án ${correctIndex + 1}`
         let correctCount = 0

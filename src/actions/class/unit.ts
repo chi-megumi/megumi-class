@@ -33,7 +33,7 @@ export async function createUnit(classId: string, title: string, description?: s
     },
     include: {
       vocabItems: {
-        orderBy: { sortOrder: 'asc' },
+        orderBy: [{ sortOrder: 'asc' }, { createdAt: 'desc' }],
       },
       studentProgress: true,
       exams: {
@@ -42,7 +42,7 @@ export async function createUnit(classId: string, title: string, description?: s
     },
   })
 
-  revalidatePath(`/teacher/classes/${classId}`)
+  revalidatePath(`/teacher/classes/${classId}`, 'layout')
   return { success: true, unit: newUnit }
 }
 
@@ -65,7 +65,7 @@ export async function updateUnitInfo(unitId: string, title: string, description?
     },
   })
 
-  revalidatePath(`/teacher/classes/${unit.classId}`)
+  revalidatePath(`/teacher/classes/${unit.classId}`, 'layout')
   return { success: true, unit: updatedUnit }
 }
 
@@ -82,10 +82,23 @@ export async function deleteUnit(unitId: string) {
 
   // Lấy các ảnh thuộc unit chuẩn bị xóa để giải phóng dung lượng kho lưu trữ
   const existingVocabs = await prisma.vocabItem.findMany({
-    where: { unitId, image: { not: null } },
-    select: { image: true },
+    where: { unitId },
+    select: { id: true, image: true },
   })
   const imagesToDelete = existingVocabs.map((v) => v.image).filter(Boolean) as string[]
+  const vIds = existingVocabs.map((v) => v.id)
+
+  // Dọn dẹp quan hệ khóa ngoại quiz_answers và quiz_sessions trước khi xóa unit
+  if (vIds.length > 0) {
+    await prisma.quizAnswer.deleteMany({
+      where: {
+        OR: [{ vocabItemId: { in: vIds } }, { selectedVocabId: { in: vIds } }],
+      },
+    })
+  }
+  await prisma.quizSession.deleteMany({
+    where: { unitId },
+  })
 
   await prisma.unit.delete({
     where: { id: unitId },
@@ -97,7 +110,7 @@ export async function deleteUnit(unitId: string) {
     )
   }
 
-  revalidatePath(`/teacher/classes/${unit.classId}`)
+  revalidatePath(`/teacher/classes/${unit.classId}`, 'layout')
   return { success: true }
 }
 
@@ -117,7 +130,7 @@ export async function updateUnitSettings(unitId: string, settings: UnitSettingsI
     data: settings,
   })
 
-  revalidatePath(`/teacher/classes/${unit.classId}`)
+  revalidatePath(`/teacher/classes/${unit.classId}`, 'layout')
   revalidatePath(`/student/classes/${unit.classId}`)
   revalidatePath(`/student/classes/${unit.classId}/units/${unitId}`)
   return { success: true, unit: updatedUnit }
@@ -143,27 +156,47 @@ export async function updateUnitVocab(unitId: string, vocabItems: UnitVocabItemI
   const newImageSet = new Set(vocabItems.map((v) => v.image).filter(Boolean) as string[])
   const imagesToDelete = Array.from(oldImageSet).filter((img) => !newImageSet.has(img))
 
-  // Transaction: Delete existing vocabs in unit, then create new ones
-  await prisma.$transaction([
-    prisma.vocabItem.deleteMany({
+  // Transaction: Clean up quiz_answers constraints first, then update vocab items
+  const unitVocabs = await prisma.vocabItem.findMany({
+    where: { unitId },
+    select: { id: true },
+  })
+  const unitVocabIds = unitVocabs.map((v) => v.id)
+
+  await prisma.$transaction(async (tx) => {
+    if (unitVocabIds.length > 0) {
+      await tx.quizAnswer.deleteMany({
+        where: {
+          OR: [
+            { vocabItemId: { in: unitVocabIds } },
+            { selectedVocabId: { in: unitVocabIds } },
+          ],
+        },
+      })
+    }
+
+    await tx.vocabItem.deleteMany({
       where: { unitId },
-    }),
-    prisma.vocabItem.createMany({
-      data: vocabItems.map((item, index) => ({
-        unitId,
-        word: item.word,
-        vi: item.vi,
-        ipa: item.ipa || null,
-        pos: item.pos || null,
-        emoji: item.emoji || null,
-        image: item.image || null,
-        example: item.example || null,
-        exampleVi: item.exampleVi || null,
-        tip: item.tip || null,
-        sortOrder: index,
-      })),
-    }),
-  ])
+    })
+
+    if (vocabItems.length > 0) {
+      await tx.vocabItem.createMany({
+        data: vocabItems.map((item, index) => ({
+          unitId,
+          word: item.word,
+          vi: item.vi,
+          ipa: item.ipa || null,
+          pos: item.pos || null,
+          emoji: item.emoji || null,
+          image: item.image || null,
+          example: item.example || null,
+          exampleVi: item.exampleVi || null,
+          tip: item.tip || null,
+          sortOrder: index,
+        })),
+      })
+    }
+  })
 
   // Dọn dẹp ảnh cũ khỏi storage nếu có
   if (imagesToDelete.length > 0) {
@@ -172,7 +205,7 @@ export async function updateUnitVocab(unitId: string, vocabItems: UnitVocabItemI
     )
   }
 
-  revalidatePath(`/teacher/classes/${unit.classId}`)
+  revalidatePath(`/teacher/classes/${unit.classId}`, 'layout')
   return { success: true }
 }
 
@@ -186,7 +219,7 @@ export async function getStudentUnitDetails(unitId: string) {
       include: {
         class: true,
         vocabItems: {
-          orderBy: { sortOrder: 'asc' },
+          orderBy: [{ sortOrder: 'asc' }, { createdAt: 'desc' }],
         },
         studentProgress: {
           where: { userId: user.id },
@@ -219,7 +252,7 @@ export async function getStudentUnitDetails(unitId: string) {
         },
       },
       vocabItems: {
-        orderBy: { sortOrder: 'asc' },
+        orderBy: [{ sortOrder: 'asc' }, { createdAt: 'desc' }],
       },
       studentProgress: {
         where: { userId: user.id },

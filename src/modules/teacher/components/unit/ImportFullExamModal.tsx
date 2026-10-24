@@ -12,6 +12,8 @@ import {
 } from 'lucide-react'
 import { TestBlock } from '../../types'
 import { sanitizeMultipleChoiceOptions } from '../../utils/questionUtils'
+import { ensureShuffledWords } from '../../utils/reorderUtils'
+import { validateReadingJson } from './test-builder/reading/readingJsonValidator'
 import Portal from '@/components/common/Portal'
 
 interface ImportFullExamModalProps {
@@ -96,6 +98,7 @@ interface RawValidatedQuestion {
   correctIndex?: number
   answer?: string
   sentence?: string
+  words?: string[]
 }
 
 interface RawValidatedPair {
@@ -252,10 +255,17 @@ function validateFullExamJson(raw: string): ValidationResult {
         const rawQs = Array.isArray(content.questions) ? content.questions : []
         const qs: RawValidatedQuestion[] = rawQs.map((item: unknown) => {
           const q = item as Record<string, unknown> | null
+          const sentence = String(q?.sentence || q?.correctSentence || '').trim()
+          const importedWords =
+            Array.isArray(q?.words) && q.words.every((w) => typeof w === 'string')
+              ? (q.words as string[])
+              : undefined
+
           return {
             id: typeof q?.id === 'string' ? q.id : undefined,
             text: String(q?.text || 'Sắp xếp các từ sau thành câu hoàn chỉnh:').trim(),
-            sentence: String(q?.sentence || q?.correctSentence || '').trim(),
+            sentence,
+            words: ensureShuffledWords(sentence, importedWords),
           }
         })
         totalQuestions += qs.length
@@ -265,12 +275,38 @@ function validateFullExamJson(raw: string): ValidationResult {
           title,
           content: { questions: qs },
         })
+      } else if (type === 'reading') {
+        const readingRes = validateReadingJson(JSON.stringify(b.content || b))
+        if (readingRes.isValid) {
+          const qCount =
+            readingRes.passages && readingRes.passages.length > 0
+              ? readingRes.passages.reduce((acc, p) => acc + (p.questions?.length || 0), 0)
+              : readingRes.questions.length
+          totalQuestions += qCount
+          validatedBlocks.push({
+            id: typeof b.id === 'string' ? b.id : undefined,
+            type: 'reading',
+            title: title || readingRes.title || 'Bài tập Đọc hiểu (Reading)',
+            content: {
+              text: readingRes.text,
+              questions: readingRes.questions,
+              passages: readingRes.passages,
+            },
+          })
+        } else {
+          validatedBlocks.push({
+            id: typeof b.id === 'string' ? b.id : undefined,
+            type: 'reading',
+            title,
+            content: b.content || {},
+          })
+        }
       } else {
         validatedBlocks.push({
           id: typeof b.id === 'string' ? b.id : undefined,
           type,
           title,
-          content: {},
+          content: b.content || {},
         })
       }
     }
@@ -338,13 +374,33 @@ export default function ImportFullExamModal({
             right: p.right,
           })),
         }
+      } else if (b.type === 'reading') {
+        updatedContent = {
+          ...b.content,
+          text: b.content?.text,
+          passages: b.content?.passages?.map((p) => ({
+            ...p,
+            id: p.id || crypto.randomUUID(),
+            questions: p.questions?.map((q) => ({
+              ...q,
+              id: q.id || crypto.randomUUID(),
+            })),
+          })),
+          questions: b.content?.questions?.map((q) => ({
+            ...q,
+            id: q.id || crypto.randomUUID(),
+          })),
+        }
       } else if (b.content?.questions) {
         updatedContent = {
+          ...b.content,
           questions: b.content.questions.map((q) => ({
             ...q,
             id: q.id || crypto.randomUUID(),
           })),
         }
+      } else {
+        updatedContent = { ...b.content }
       }
 
       return {

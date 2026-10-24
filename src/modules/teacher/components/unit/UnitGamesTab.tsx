@@ -1,5 +1,7 @@
 'use client'
 
+import { useState } from 'react'
+import { useRouter, useParams } from 'next/navigation'
 import {
   Plus,
   Edit2,
@@ -17,8 +19,10 @@ import {
   Layers,
   HelpCircle,
   Puzzle,
+  Loader2,
 } from 'lucide-react'
 import { UnitData, TestContent, ExamData } from '../../types'
+import { updateUnitExams, deleteUnitExam } from '~/actions/class'
 
 interface UnitGamesTabProps {
   editingUnit: UnitData
@@ -45,6 +49,11 @@ export default function UnitGamesTab({
   setEditingUnit,
   onOpenGenerator,
 }: UnitGamesTabProps) {
+  const router = useRouter()
+  const params = useParams()
+  const classId = params?.classId as string | undefined
+  const [togglingExamId, setTogglingExamId] = useState<string | null>(null)
+
   return (
     <div className="p-8 flex flex-col">
       {/* KHU VỰC BÀI KIỂM TRA */}
@@ -67,7 +76,13 @@ export default function UnitGamesTab({
             </button>
           )}
           <button
-            onClick={() => setEditingTestId('new')}
+            onClick={() => {
+              if (classId) {
+                router.push(`/teacher/classes/${classId}/test-builder?unitId=${editingUnit.id}&testId=new&tab=games`)
+              } else {
+                setEditingTestId('new')
+              }
+            }}
             className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-md transition-colors flex items-center gap-2 text-sm"
           >
             <Plus size={18} /> Tạo Đề Thủ Công
@@ -89,27 +104,43 @@ export default function UnitGamesTab({
                 </h4>
                 <div className="flex items-center gap-2">
                   <button
-                    onClick={async () => {
+                    type="button"
+                    disabled={togglingExamId === test.id}
+                    onClick={async (e) => {
+                      e.stopPropagation()
+                      if (togglingExamId === test.id) return
+                      setTogglingExamId(test.id)
+
                       const newExams = (editingUnit.exams || []).map((t: ExamData) =>
                         t.id === test.id ? { ...t, isEnabled: !t.isEnabled } : t,
                       )
                       setEditingUnit({ ...editingUnit, exams: newExams })
-                      const { updateUnitExams } = await import('~/actions/class')
-                      const res = await updateUnitExams(editingUnit.id, newExams)
-                      if (res.success && res.exams) {
-                        setEditingUnit({
-                          ...editingUnit,
-                          exams: res.exams as unknown as ExamData[],
-                        })
+
+                      try {
+                        const res = await updateUnitExams(editingUnit.id, newExams)
+                        if (res.success && res.exams) {
+                          setEditingUnit({
+                            ...editingUnit,
+                            exams: res.exams as unknown as ExamData[],
+                          })
+                        }
+                      } catch (err) {
+                        console.error('Lỗi khi cập nhật trạng thái hiển thị bài kiểm tra:', err)
+                        // Revert optimistic update on failure
+                        setEditingUnit(editingUnit)
+                      } finally {
+                        setTogglingExamId(null)
                       }
                     }}
                     className={`flex shrink-0 items-center gap-1.5 px-2.5 py-1 rounded-lg border text-xs font-bold transition-colors ${
                       test.isEnabled
                         ? 'bg-green-50 border-green-200 text-green-600'
                         : 'bg-gray-50 border-gray-200 text-gray-500 hover:bg-gray-100'
-                    }`}
+                    } ${togglingExamId === test.id ? 'opacity-60 cursor-not-allowed' : ''}`}
                   >
-                    {test.isEnabled ? (
+                    {togglingExamId === test.id ? (
+                      <Loader2 size={16} className="animate-spin text-gray-500" />
+                    ) : test.isEnabled ? (
                       <>
                         <ToggleRight size={16} /> Hiển thị
                       </>
@@ -120,13 +151,14 @@ export default function UnitGamesTab({
                     )}
                   </button>
                   <button
-                    onClick={async () => {
+                    type="button"
+                    onClick={async (e) => {
+                      e.stopPropagation()
                       if (
                         window.confirm(
                           'Bạn có chắc chắn muốn xóa bài kiểm tra này? Mọi dữ liệu làm bài của học sinh sẽ bị mất!',
                         )
                       ) {
-                        const { deleteUnitExam } = await import('~/actions/class')
                         const res = await deleteUnitExam(test.id, editingUnit.id)
                         if (res.success) {
                           setEditingUnit({
@@ -176,7 +208,13 @@ export default function UnitGamesTab({
                     <FileText size={16} /> Kết quả
                   </button>
                   <button
-                    onClick={() => setEditingTestId(test.id)}
+                    onClick={() => {
+                      if (classId) {
+                        router.push(`/teacher/classes/${classId}/test-builder?unitId=${editingUnit.id}&testId=${test.id}&tab=games`)
+                      } else {
+                        setEditingTestId(test.id)
+                      }
+                    }}
                     className={`flex-1 flex items-center justify-center gap-1.5 px-4 py-2 font-semibold rounded-xl transition-colors text-sm border ${
                       test.isPublished
                         ? 'bg-amber-50 text-amber-700 hover:bg-amber-100 border-amber-200'
@@ -197,7 +235,9 @@ export default function UnitGamesTab({
                 </div>
                 {!test.isPublished ? (
                   <button
-                    onClick={async () => {
+                    type="button"
+                    onClick={async (e) => {
+                      e.stopPropagation()
                       if (
                         window.confirm(
                           'Sau khi public bạn sẽ không thể sửa đề nữa. Bạn có chắc chắn?',
@@ -207,13 +247,17 @@ export default function UnitGamesTab({
                           t.id === test.id ? { ...t, isPublished: true } : t,
                         )
                         setEditingUnit({ ...editingUnit, exams: newExams })
-                        const { updateUnitExams } = await import('~/actions/class')
-                        const res = await updateUnitExams(editingUnit.id, newExams)
-                        if (res.success && res.exams) {
-                          setEditingUnit({
-                            ...editingUnit,
-                            exams: res.exams as unknown as ExamData[],
-                          })
+                        try {
+                          const res = await updateUnitExams(editingUnit.id, newExams)
+                          if (res.success && res.exams) {
+                            setEditingUnit({
+                              ...editingUnit,
+                              exams: res.exams as unknown as ExamData[],
+                            })
+                          }
+                        } catch (err) {
+                          console.error('Lỗi khi public bài kiểm tra:', err)
+                          setEditingUnit(editingUnit)
                         }
                       }
                     }}

@@ -1,4 +1,5 @@
-import { TestBlock, TestQuestion } from '@/modules/teacher/types'
+import { TestBlock } from '@/modules/teacher/types'
+import { shuffleReorderWords, splitSentenceWords } from '@/modules/teacher/utils/reorderUtils'
 
 /**
  * Fisher-Yates array shuffle helper.
@@ -7,8 +8,8 @@ import { TestBlock, TestQuestion } from '@/modules/teacher/types'
 export function shuffleArray<T>(items: T[]): T[] {
   const result = [...items]
   for (let i = result.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [result[i], result[j]] = [result[j], result[i]]
+    const j = Math.floor(Math.random() * (i + 1))
+    ;[result[i], result[j]] = [result[j], result[i]]
   }
   return result
 }
@@ -64,34 +65,40 @@ export function shuffleRetakableExam(originalBlocks: TestBlock[]): TestBlock[] {
       return
     }
 
-    // For question-based blocks (multiple_choice, fill_blank, reorder)
-    const blockQuestionCounts = blockIndices.map((bIdx) => {
-      const b = clonedBlocks[bIdx]
-      return b.content?.questions?.length || 0
-    })
+    if (type === 'reading') {
+      // Reading questions are tied to their specific passages; do not pool across blocks
+      blockIndices.forEach((bIdx) => {
+        const block = clonedBlocks[bIdx]
+        if (block.content?.passages && Array.isArray(block.content.passages)) {
+          block.content.passages = block.content.passages.map((p) => ({
+            ...p,
+            questions: p.questions ? shuffleArray(p.questions) : [],
+          }))
+          block.content.questions = block.content.passages.flatMap((p) => p.questions)
+        } else if (block.content?.questions && Array.isArray(block.content.questions)) {
+          block.content.questions = shuffleArray(block.content.questions)
+        }
+      })
+      return
+    }
 
-    const pooledQuestions: TestQuestion[] = []
+    // For question-based blocks (multiple_choice, fill_blank, reorder), shuffle internally within each block
     blockIndices.forEach((bIdx) => {
       const b = clonedBlocks[bIdx]
       if (b.content?.questions && Array.isArray(b.content.questions)) {
-        pooledQuestions.push(...b.content.questions)
+        let qs = shuffleArray(b.content.questions)
+        if (type === 'reorder') {
+          qs = qs.map((q) => {
+            const baseWords =
+              q.words && q.words.length > 0 ? q.words : splitSentenceWords(q.sentence)
+            return {
+              ...q,
+              words: shuffleReorderWords(baseWords),
+            }
+          })
+        }
+        b.content.questions = qs
       }
-    })
-
-    if (pooledQuestions.length === 0) return
-
-    const shuffledPool = shuffleArray(pooledQuestions)
-
-    let currentPoolIndex = 0
-    blockIndices.forEach((bIdx, groupIndex) => {
-      const count = blockQuestionCounts[groupIndex]
-      const assigned = shuffledPool.slice(currentPoolIndex, currentPoolIndex + count)
-      currentPoolIndex += count
-
-      if (!clonedBlocks[bIdx].content) {
-        clonedBlocks[bIdx].content = {}
-      }
-      clonedBlocks[bIdx].content.questions = assigned
     })
   })
 

@@ -62,7 +62,7 @@ export async function updateClassInfoAction(
       },
     })
 
-    revalidatePath(`/teacher/classes/${classId}`)
+    revalidatePath(`/teacher/classes/${classId}`, 'layout')
     revalidatePath('/teacher')
 
     return {
@@ -112,7 +112,7 @@ export async function regenerateInviteCodeAction(
       select: { inviteCode: true },
     })
 
-    revalidatePath(`/teacher/classes/${classId}`)
+    revalidatePath(`/teacher/classes/${classId}`, 'layout')
     return {
       success: true,
       message: 'Đã tạo mã mời mới thành công',
@@ -144,6 +144,30 @@ export async function deleteClassAction(
       select: { image: true },
     })
     const imagesToDelete = existingVocabs.map((v) => v.image).filter(Boolean) as string[]
+
+    // Dọn dẹp quiz_answers và quiz_sessions của các unit thuộc lớp trước khi xóa
+    const units = await prisma.unit.findMany({
+      where: { classId },
+      select: { id: true },
+    })
+    const uIds = units.map((u) => u.id)
+    if (uIds.length > 0) {
+      const vocabs = await prisma.vocabItem.findMany({
+        where: { unitId: { in: uIds } },
+        select: { id: true },
+      })
+      const vIds = vocabs.map((v) => v.id)
+      if (vIds.length > 0) {
+        await prisma.quizAnswer.deleteMany({
+          where: {
+            OR: [{ vocabItemId: { in: vIds } }, { selectedVocabId: { in: vIds } }],
+          },
+        })
+      }
+      await prisma.quizSession.deleteMany({
+        where: { unitId: { in: uIds } },
+      })
+    }
 
     await prisma.class.delete({
       where: { id: classId },
@@ -191,7 +215,7 @@ export async function transferClassOwnershipAction(
       }),
     ])
 
-    revalidatePath(`/teacher/classes/${classId}`)
+    revalidatePath(`/teacher/classes/${classId}`, 'layout')
     revalidatePath('/teacher')
 
     return {

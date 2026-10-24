@@ -23,6 +23,9 @@ interface UnitDetailModalProps {
   handleSaveVocab: () => void
   activeStudents?: EnrollmentData[]
   classExams?: ExamData[]
+  initialTab?: 'vocab' | 'games' | 'analytics'
+  onTabChange?: (tab: 'vocab' | 'games' | 'analytics') => void
+  onClose?: () => void
 }
 
 const UnitDetailModalInner = ({
@@ -34,8 +37,17 @@ const UnitDetailModalInner = ({
   handleSaveVocab,
   activeStudents,
   classExams,
+  initialTab = 'vocab',
+  onTabChange,
+  onClose,
 }: UnitDetailModalProps) => {
-  const [activeTab, setActiveTab] = useState<'vocab' | 'games' | 'analytics'>('vocab')
+  const [prevInitialTab, setPrevInitialTab] = useState(initialTab)
+  const [activeTab, setActiveTab] = useState<'vocab' | 'games' | 'analytics'>(initialTab)
+
+  if (initialTab !== prevInitialTab) {
+    setPrevInitialTab(initialTab)
+    setActiveTab(initialTab)
+  }
   const [editingTestId, setEditingTestId] = useState<string | null>(null)
   const [generatedExam, setGeneratedExam] = useState<GeneratedExamResult | null>(null)
   const [isGeneratorOpen, setIsGeneratorOpen] = useState(false)
@@ -72,7 +84,7 @@ const UnitDetailModalInner = ({
 
   return (
     <Portal>
-      <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in slide-in-from-bottom-4 duration-300">
+      <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 p-4 animate-in fade-in duration-200">
         <div className="bg-white w-full max-w-6xl h-full rounded-[2rem] shadow-2xl flex flex-col overflow-hidden border border-gray-200/50">
           {/* Modal Header */}
           <div className="px-8 py-5 border-b border-gray-100 flex items-center justify-between bg-white z-10 shadow-sm shrink-0">
@@ -86,7 +98,8 @@ const UnitDetailModalInner = ({
 
             <div className="flex gap-3">
               <button
-                onClick={() => setEditingUnit(null)}
+                type="button"
+                onClick={() => (onClose ? onClose() : setEditingUnit(null))}
                 className="px-5 py-2.5 text-gray-600 font-medium hover:bg-gray-100 rounded-xl transition-colors"
               >
                 Đóng
@@ -110,7 +123,10 @@ const UnitDetailModalInner = ({
               return (
                 <button
                   key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
+                  onClick={() => {
+                    setActiveTab(tab.id)
+                    onTabChange?.(tab.id)
+                  }}
                   className={`flex items-center gap-2 px-4 py-3 font-medium transition-all border-b-2 mb-[-1px] ${
                     isActive
                       ? 'border-[#6A5EEB] text-[#6A5EEB]'

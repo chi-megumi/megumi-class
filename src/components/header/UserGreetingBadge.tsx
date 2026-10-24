@@ -13,6 +13,7 @@ export const UserGreetingBadge: React.FC = () => {
 
   const [isEditing, setIsEditing] = useState(false)
   const [nameInput, setNameInput] = useState(user?.name || '')
+  const [prevUserName, setPrevUserName] = useState(user?.name)
   const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState('')
   const [showSavedToast, setShowSavedToast] = useState(false)
@@ -21,11 +22,12 @@ export const UserGreetingBadge: React.FC = () => {
   const inputRef = useRef<HTMLInputElement>(null)
 
   // Keep input in sync when user changes and not editing
-  useEffect(() => {
+  if (user?.name !== prevUserName) {
+    setPrevUserName(user?.name)
     if (!isEditing && user?.name) {
       setNameInput(user.name)
     }
-  }, [user?.name, isEditing])
+  }
 
   // Focus and select input on entering edit mode
   useEffect(() => {

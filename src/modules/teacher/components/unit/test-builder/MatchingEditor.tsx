@@ -63,10 +63,10 @@ export default function MatchingEditor({
         {pairs.map((p, pIndex) => (
           <div
             key={p.id}
-            className={`flex flex-col sm:flex-row items-stretch sm:items-center gap-3 p-4 rounded-2xl border relative group/p transition-all ${
+            className={`flex flex-col sm:flex-row items-stretch sm:items-center gap-3 p-4 rounded-2xl border relative group/p transition-colors ${
               isMiniChallenge
-                ? 'bg-gradient-to-br from-orange-50/20 to-pink-50/20 border-orange-100 shadow-sm'
-                : 'bg-gray-50/60 border-gray-100 shadow-sm hover:border-gray-200'
+                ? 'bg-gradient-to-br from-orange-50/20 to-pink-50/20 border-orange-100'
+                : 'bg-gray-50/60 border-gray-100 hover:border-gray-200'
             }`}
           >
             <div

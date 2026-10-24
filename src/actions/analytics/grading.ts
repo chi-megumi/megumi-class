@@ -45,9 +45,12 @@ export function gradeExamBlocks(
         questions.forEach((q: TestQuestion) => {
           totalQuestions++
           correctAnswersDetail[q.id] = q.answer || ''
-          const answerStr = (answers[q.id] || '').toString().trim().toLowerCase()
-          const correctStr = (q.answer || '').toString().trim().toLowerCase()
-          if (answerStr === correctStr) {
+          const acceptableAnswers = (q.answer || '')
+            .split('|')
+            .map((s) => normalizeSentence(s))
+            .filter(Boolean)
+          const studentAns = normalizeSentence(String(answers[q.id] || ''))
+          if (acceptableAnswers.includes(studentAns)) {
             correctAnswers++
           }
         })
@@ -55,9 +58,12 @@ export function gradeExamBlocks(
         totalQuestions++
         const blockAnswer = block.content?.answer || ''
         correctAnswersDetail[block.id] = blockAnswer
-        const answerStr = (answers[block.id] || '').toString().trim().toLowerCase()
-        const correctStr = blockAnswer.toString().trim().toLowerCase()
-        if (answerStr === correctStr) {
+        const acceptableAnswers = blockAnswer
+          .split('|')
+          .map((s) => normalizeSentence(s))
+          .filter(Boolean)
+        const studentAns = normalizeSentence(String(answers[block.id] || ''))
+        if (acceptableAnswers.includes(studentAns)) {
           correctAnswers++
         }
       }
@@ -91,6 +97,45 @@ export function gradeExamBlocks(
           }
         })
       }
+    } else if (block.type === 'reading') {
+      const allQuestions: TestQuestion[] = []
+      if (Array.isArray(block.content?.passages) && block.content.passages.length > 0) {
+        block.content.passages.forEach((p) => {
+          if (Array.isArray(p.questions)) allQuestions.push(...p.questions)
+        })
+      } else if (Array.isArray(block.content?.questions)) {
+        allQuestions.push(...block.content.questions)
+      }
+
+      allQuestions.forEach((q: TestQuestion) => {
+        totalQuestions++
+        if (Array.isArray(q.options) && q.options.length > 0) {
+          // Trắc nghiệm (MC, True/False, Sentence Insertion, Cloze choice, Matching heading)
+          const correctIdx = q.correctIndex ?? 0
+          correctAnswersDetail[q.id] = correctIdx
+          if (answers[q.id] === correctIdx) {
+            correctAnswers++
+          }
+        } else if (q.answer) {
+          // Tự gõ từ (Short answer, Cloze text)
+          correctAnswersDetail[q.id] = q.answer
+          const acceptableAnswers = q.answer
+            .split('|')
+            .map((s) => normalizeSentence(s))
+            .filter(Boolean)
+          const studentAns = normalizeSentence(String(answers[q.id] || ''))
+          if (acceptableAnswers.includes(studentAns)) {
+            correctAnswers++
+          }
+        } else {
+          // Fallback trắc nghiệm nếu không có answer
+          const correctIdx = q.correctIndex ?? 0
+          correctAnswersDetail[q.id] = correctIdx
+          if (answers[q.id] === correctIdx) {
+            correctAnswers++
+          }
+        }
+      })
     }
   })
 

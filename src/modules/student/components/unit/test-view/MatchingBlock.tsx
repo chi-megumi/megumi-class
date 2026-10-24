@@ -104,7 +104,7 @@ function MatchingReview({ blockId, pairs, shuffledRight, answers, result }: {
   )
 }
 
-export default function MatchingBlock({
+function MatchingBlock({
   blockId, pairs, shuffledRight, answers, isReviewMode, result,
   selectedMatchingRight, selectedMatchingSlot,
   dragOverMatchingSlot,
@@ -190,7 +190,7 @@ export default function MatchingBlock({
                   }}
                   onDragLeave={() => onDragLeaveSlot()}
                   onDrop={(e) => onDropSlot(e, blockId, p.id, pairs)}
-                  className={`flex-1 min-h-[36px] sm:min-h-[38px] rounded-md border-2 transition-all flex items-center justify-between p-1.5 sm:p-2 cursor-pointer ${
+                  className={`flex-1 min-h-[36px] sm:min-h-[38px] rounded-md border-2 transition-colors flex items-center justify-between p-1.5 sm:p-2 cursor-pointer ${
                     matchedRightItem
                       ? 'border-white/80 bg-white shadow-2xs'
                       : isDragOver || isTargetSlotActive
@@ -267,7 +267,7 @@ export default function MatchingBlock({
                   draggable={!isUsed}
                   onDragStart={(e) => onDragStartRight(e, blockId, r.id)}
                   onClick={() => onBankItemClick(blockId, r, pairs, isUsed)}
-                  className={`px-2.5 py-1 rounded-md text-[11px] font-bold transition-all select-none flex items-center gap-1 ${
+                  className={`px-2.5 py-1 rounded-md text-[11px] font-bold transition-colors select-none flex items-center gap-1 ${
                     isUsed
                       ? 'bg-gray-200/60 text-gray-400 border border-transparent cursor-pointer line-through opacity-50 hover:opacity-80'
                       : isCurrentSelected
@@ -298,3 +298,5 @@ export default function MatchingBlock({
     </div>
   )
 }
+
+export default React.memo(MatchingBlock)

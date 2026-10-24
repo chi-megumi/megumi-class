@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import {
   BookA,
   PlayCircle,
@@ -14,14 +15,12 @@ import {
   FileText,
   BookOpen,
   GraduationCap,
-  Zap,
 } from 'lucide-react'
-import { ClassData, ExamData } from '@/modules/teacher/types'
+import type { ClassData, ExamData } from '@/modules/teacher/types'
 import { sortUnits } from '@/modules/teacher/utils/unitSort'
-import GamePlayerModal from '@/modules/student/components/unit/GamePlayerModal'
 import { startTest } from '@/actions/analytics/exam-session'
 import type { TestResultPayload } from '@/actions/analytics/types'
-import Portal from '@/components/common/Portal'
+import TestConfirmModal from './exam/TestConfirmModal'
 
 type StudentClassDashboardClientProps = {
   classData: ClassData
@@ -32,53 +31,43 @@ export default function StudentClassDashboardClient({
   classData,
   classId,
 }: StudentClassDashboardClientProps) {
-  const [activeTest, setActiveTest] = useState<ExamData | null>(null)
+  const router = useRouter()
   const [confirmTest, setConfirmTest] = useState<ExamData | null>(null)
   const [isStartingTest, setIsStartingTest] = useState(false)
-  const [testSessionData, setTestSessionData] = useState<Record<string, TestResultPayload>>({})
-  const [isRetakeActive, setIsRetakeActive] = useState(false)
-  const [retakeSessionKey, setRetakeSessionKey] = useState(0)
+  const [testSessionData] = useState<Record<string, TestResultPayload>>({})
 
   const handleStartDirectTest = async (test: ExamData, forceRetake = false) => {
     if (isStartingTest) return
     setIsStartingTest(true)
     try {
-      const res = await startTest({
+      await startTest({
         classId,
         testId: test.id,
         forceRetake,
       })
-      if (res.success && res.startedAt) {
-        if (forceRetake) {
-          setTestSessionData((prev) => ({
-            ...prev,
-            [test.id]: {
-              startedAt: res.startedAt,
-              completedAt: undefined,
-              score: undefined,
-              answers: {},
-              correctAnswersDetail: undefined,
-              correctAnswers: undefined,
-              totalQuestions: undefined,
-            },
-          }))
-          setIsRetakeActive(true)
-          setRetakeSessionKey((prev) => prev + 1)
-        } else {
-          setTestSessionData((prev) => ({
-            ...prev,
-            [test.id]: {
-              ...(getExamResult(test) || {}),
-              startedAt: res.startedAt,
-              completedAt: getExamResult(test)?.completedAt,
-            },
-          }))
-          setIsRetakeActive(false)
-        }
-      }
-      setActiveTest(test)
+      router.push(
+        `/student/classes/${classId}/exams/${test.id}${forceRetake ? '?retake=1' : ''}`,
+      )
     } catch (e) {
       console.error(e)
+      alert('Lỗi khởi tạo bài thi. Vui lòng thử lại.')
+    } finally {
+      setIsStartingTest(false)
+    }
+  }
+
+  const handleConfirmStart = async () => {
+    if (!confirmTest || isStartingTest) return
+    setIsStartingTest(true)
+    try {
+      await startTest({
+        classId,
+        testId: confirmTest.id,
+      })
+      const testId = confirmTest.id
+      setConfirmTest(null)
+      router.push(`/student/classes/${classId}/exams/${testId}`)
+    } catch {
       alert('Lỗi khởi tạo bài thi. Vui lòng thử lại.')
     } finally {
       setIsStartingTest(false)
@@ -95,6 +84,12 @@ export default function StudentClassDashboardClient({
     if (test.results && test.results[0]) {
       const r = test.results[0]
       const payload = (r.answers as TestResultPayload | null) || {}
+      const hasAnswers = payload.answers && Object.keys(payload.answers).length > 0
+      const isBogusAutoSubmit =
+        !!payload.isInterrupted && !hasAnswers && (r.score === 0 || r.score === null)
+      if (isBogusAutoSubmit) {
+        return undefined
+      }
       return {
         score: r.score ?? payload.score,
         startedAt: r.startedAt ? new Date(r.startedAt).toISOString() : undefined,
@@ -110,142 +105,62 @@ export default function StudentClassDashboardClient({
 
   return (
     <div className="w-full flex flex-col gap-8 pb-20 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      {/* Test Runner Modal */}
-      {activeTest && (
-        <GamePlayerModal
-          key={`${activeTest.id}-${retakeSessionKey}-${isRetakeActive ? 'retake' : 'review'}`}
-          mode="test"
-          testData={activeTest}
-          initialResult={isRetakeActive ? undefined : getExamResult(activeTest)}
-          isRetake={isRetakeActive}
-          onClose={() => {
-            setActiveTest(null)
-            setIsRetakeActive(false)
-          }}
-          onTestComplete={(testId, result) => {
-            setIsRetakeActive(false)
-            setTestSessionData((prev) => ({
-              ...prev,
-              [testId]: {
-                ...prev[testId],
-                score: result.score,
-                completedAt: result.completedAt || new Date().toISOString(),
-                correctAnswersDetail: result.correctAnswersDetail,
-                answers: result.answers,
-                correctAnswers: result.correctAnswers,
-                totalQuestions: result.totalQuestions,
-              },
-            }))
-          }}
-        />
-      )}
+      {/* Test Confirmation Modal */}
+      <TestConfirmModal
+        test={confirmTest}
+        isLoading={isStartingTest}
+        onCancel={() => setConfirmTest(null)}
+        onConfirm={handleConfirmStart}
+      />
 
-      {/* Test Confirmation Modal (Only for non-retakable 1-time tests) */}
-      {confirmTest && !confirmTest.isRetakable && (
-        <Portal>
-          <div className="fixed inset-0 z-[150] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-            <div className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl animate-in zoom-in-95 duration-200">
-              <div className="w-12 h-12 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center mb-4">
-                <FileText size={24} />
-              </div>
-              <h3 className="text-2xl font-bold text-gray-900 mb-3">Sẵn sàng làm bài?</h3>
-              <p className="text-gray-600 mb-6 leading-relaxed text-sm">
-                Bạn sắp bắt đầu làm bài kiểm tra tổng hợp{' '}
-                <strong className="text-gray-900">{confirmTest.title}</strong>.<br />
-                Thời gian giới hạn:{' '}
-                <strong className="text-indigo-600">{confirmTest.duration} phút</strong>.
-                <br />
-                <br />
-                <span className="text-rose-600 font-semibold block bg-rose-50 p-3 rounded-xl border border-rose-100">
-                  ⚠️ Lưu ý quan trọng: Một khi đã bấm bắt đầu, đồng hồ sẽ đếm ngược liên tục. Bạn
-                  không thể làm lại sau khi nộp bài.
-                </span>
-              </p>
-              <div className="flex gap-3">
-                <button
-                  onClick={() => setConfirmTest(null)}
-                  className="flex-1 px-5 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold rounded-xl transition-colors text-sm"
-                >
-                  Chưa sẵn sàng
-                </button>
-                <button
-                  onClick={async () => {
-                    if (isStartingTest) return
-                    setIsStartingTest(true)
-                    try {
-                      const res = await startTest({
-                        classId,
-                        testId: confirmTest.id,
-                      })
-                      if (res.success && res.startedAt) {
-                        setTestSessionData((prev) => ({
-                          ...prev,
-                          [confirmTest.id]: {
-                            ...(getExamResult(confirmTest) || {}),
-                            startedAt: res.startedAt,
-                          },
-                        }))
-                      }
-                      setActiveTest(confirmTest)
-                      setConfirmTest(null)
-                    } catch {
-                      alert('Lỗi khởi tạo bài thi. Vui lòng thử lại.')
-                    } finally {
-                      setIsStartingTest(false)
-                    }
-                  }}
-                  disabled={isStartingTest}
-                  className="flex-1 px-5 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 disabled:opacity-50 text-white font-bold rounded-xl transition-all shadow-md flex items-center justify-center gap-2 text-sm"
-                >
-                  {isStartingTest ? 'Đang chuẩn bị...' : 'Bắt đầu ngay'}
-                </button>
-              </div>
-            </div>
+      {/* HERO SECTION */}
+      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-indigo-900 via-indigo-800 to-purple-900 p-8 md:p-12 text-white shadow-xl">
+        <div className="relative z-10 max-w-2xl">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 backdrop-blur-md text-xs font-semibold uppercase tracking-wider mb-4 border border-white/20">
+            <Sparkles size={14} className="text-amber-300" />
+            Lớp học trực tuyến
           </div>
-        </Portal>
-      )}
-
-      {/* Class Banner / Header */}
-      <div className="bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 rounded-3xl p-8 md:p-10 text-white shadow-xl relative overflow-hidden">
-        <div className="relative z-10 max-w-3xl">
-          <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/20 backdrop-blur-md rounded-full text-xs font-bold uppercase tracking-wider text-white mb-4 border border-white/20">
-            <Sparkles size={14} /> Khóa học & Lớp học
-          </div>
-          <h1 className="text-3xl md:text-4xl font-extrabold mb-3 leading-tight">
+          <h1 className="text-3xl md:text-5xl font-black mb-4 tracking-tight">
             {classData.name}
           </h1>
           {classData.description && (
-            <p className="text-indigo-100 mb-6 text-base md:text-lg leading-relaxed">
+            <p className="text-indigo-100/90 text-sm md:text-base leading-relaxed mb-6 font-normal">
               {classData.description}
             </p>
           )}
-          <div className="flex flex-wrap items-center gap-3">
-            <div className="px-4 py-2 bg-white/15 backdrop-blur-md rounded-xl text-sm font-semibold border border-white/20 flex items-center gap-1.5">
-              <BookOpen size={16} /> {publishedUnits.length} bài học
+
+          <div className="flex flex-wrap items-center gap-4 text-xs font-medium text-indigo-200">
+            <div className="flex items-center gap-2 bg-white/10 px-3.5 py-1.5 rounded-full border border-white/10">
+              <GraduationCap size={16} className="text-indigo-300" />
+              <span>GV: {classData.teacher?.name || 'Giáo viên phụ trách'}</span>
+            </div>
+            <div className="flex items-center gap-2 bg-white/10 px-3.5 py-1.5 rounded-full border border-white/10">
+              <BookOpen size={16} className="text-indigo-300" />
+              <span>{publishedUnits.length} bài học</span>
             </div>
             {publishedClassExams.length > 0 && (
-              <div className="px-4 py-2 bg-white/25 backdrop-blur-md rounded-xl text-sm font-bold border border-white/30 text-yellow-200 flex items-center gap-1.5">
-                <Trophy size={16} /> {publishedClassExams.length} bài thi tổng hợp
+              <div className="flex items-center gap-2 bg-amber-400/20 text-amber-200 px-3.5 py-1.5 rounded-full border border-amber-300/30">
+                <Trophy size={16} className="text-amber-300" />
+                <span>{publishedClassExams.length} bài thi tổng hợp</span>
               </div>
             )}
           </div>
         </div>
 
-        {/* Decorative elements */}
-        <div className="absolute -right-8 -bottom-8 text-white opacity-10 select-none pointer-events-none rotate-12">
-          <GraduationCap size={140} />
-        </div>
+        <div className="absolute -right-16 -top-16 w-80 h-80 rounded-full bg-indigo-500/20 blur-3xl pointer-events-none" />
+        <div className="absolute right-1/4 -bottom-20 w-64 h-64 rounded-full bg-purple-500/20 blur-2xl pointer-events-none" />
       </div>
 
-      {/* KHU VỰC BÀI THI TỔNG HỢP CẤP LỚP (BIG EXAMS) */}
+      {/* BÀI THI TỔNG HỢP CẤP LỚP */}
       {publishedClassExams.length > 0 && (
-        <div className="bg-white rounded-3xl p-6 md:p-8 shadow-sm border border-gray-100">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6 pb-4 border-b border-gray-100">
+        <div className="bg-white rounded-3xl p-6 md:p-8 shadow-sm border border-gray-100 flex flex-col gap-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-gray-100">
             <div>
-              <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-3">
-                <Trophy className="w-7 h-7 text-amber-500 shrink-0" />
-                Bài Kiểm Tra Tổng Hợp
-              </h2>
+              <div className="flex items-center gap-2 text-indigo-600 font-bold text-sm uppercase tracking-wider mb-1">
+                <Trophy size={18} />
+                Đánh giá định kỳ & Tổng kết
+              </div>
+              <h2 className="text-2xl font-black text-gray-900">Bài kiểm tra tổng hợp</h2>
               <p className="text-gray-500 text-sm mt-1">
                 Các bài thi lớn tích hợp kiến thức nhiều bài học để đánh giá năng lực toàn diện.
               </p>
@@ -265,19 +180,12 @@ export default function StudentClassDashboardClient({
                 <div
                   key={test.id}
                   onClick={() => {
-                    if (test.isRetakable) {
-                      if (isCompleted) {
-                        setIsRetakeActive(false)
-                        setActiveTest(test)
-                      } else {
-                        handleStartDirectTest(test, false)
-                      }
+                    if (isCompleted) {
+                      router.push(`/student/classes/${classId}/exams/${test.id}`)
+                    } else if (test.isRetakable) {
+                      handleStartDirectTest(test, false)
                     } else {
-                      if (isCompleted) {
-                        setActiveTest(test)
-                      } else {
-                        setConfirmTest(test)
-                      }
+                      setConfirmTest(test)
                     }
                   }}
                   className={`group relative bg-gradient-to-b from-white to-gray-50/50 border rounded-3xl p-6 transition-all duration-300 flex flex-col justify-between ${
@@ -298,52 +206,38 @@ export default function StudentClassDashboardClient({
                             ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
                             : isInProgress
                               ? 'bg-amber-100 text-amber-800 border border-amber-200 animate-pulse'
-                              : test.duration <= 15
-                                ? 'bg-orange-100 text-orange-800 border border-orange-200'
-                                : 'bg-indigo-100 text-indigo-800 border border-indigo-200'
+                              : 'bg-indigo-100 text-indigo-800 border border-indigo-200'
                       }`}
                     >
-                      {test.isRetakable ? (
-                        <span className="flex items-center gap-1">
-                          <RotateCcw size={12} /> Luyện tập (Làm lại)
-                        </span>
-                      ) : isCompleted ? (
-                        <span className="flex items-center gap-1">
-                          <CheckCircle2 size={12} /> Đã hoàn thành
-                        </span>
-                      ) : isInProgress ? (
-                        <span className="flex items-center gap-1">
-                          <Clock size={12} /> Đang làm dở
-                        </span>
-                      ) : test.duration <= 15 ? (
-                        <span className="flex items-center gap-1">
-                          <span>Mini Thử Thách</span>
-                          <Zap size={12} className="text-amber-500 fill-amber-500" />
-                        </span>
-                      ) : (
-                        <span className="flex items-center gap-1">
-                          <span>Đề Tổng Hợp</span>
-                          <Sparkles size={12} className="text-indigo-600" />
-                        </span>
-                      )}
+                      {test.isRetakable
+                        ? 'Luyện tập'
+                        : isCompleted
+                          ? 'Đã hoàn thành'
+                          : isInProgress
+                            ? 'Đang làm dở'
+                            : 'Đợt thi chính thức'}
                     </span>
-                    <span className="text-xs text-gray-500 font-semibold flex items-center gap-1 bg-white px-2.5 py-1 rounded-lg border border-gray-100 shadow-2xs">
-                      <Clock size={12} className="text-gray-400" />
+                    <div className="flex items-center gap-1.5 text-xs font-bold text-gray-500 bg-white px-2.5 py-1 rounded-full border border-gray-100 shadow-2xs">
+                      <Clock size={14} className="text-indigo-500" />
                       {test.duration} phút
-                    </span>
+                    </div>
                   </div>
 
-                  {/* Body */}
-                  <div className="mb-6">
-                    <h3 className="text-xl font-bold text-gray-900 mb-2 group-hover:text-indigo-600 transition-colors leading-snug">
-                      {test.title}
-                    </h3>
-                    <p className="text-gray-500 text-xs leading-relaxed line-clamp-2">
-                      {isCompleted
-                        ? 'Bạn đã nộp bài. Bấm vào đây để xem lại chi tiết câu hỏi và đáp án đúng.'
-                        : isInProgress
-                          ? 'Bạn đang làm dở bài thi này. Hãy tiếp tục để hoàn thành trước khi hết giờ!'
-                          : 'Bài thi đánh giá tổng hợp. Bấm để bắt đầu làm bài khi bạn đã sẵn sàng.'}
+                  {/* Body Content */}
+                  <div className="flex-1 mb-6">
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="w-8 h-8 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold text-xs shrink-0 group-hover:scale-110 transition-transform">
+                        <FileText size={16} />
+                      </div>
+                      <h3 className="font-extrabold text-gray-900 text-base line-clamp-1 group-hover:text-indigo-600 transition-colors">
+                        {test.title}
+                      </h3>
+                    </div>
+
+                    <p className="text-gray-500 text-xs line-clamp-2 leading-relaxed">
+                      {test.isRetakable
+                        ? 'Đề thi tự do: Bạn có thể thi lại nhiều lần để nâng cao thành tích.'
+                        : 'Lưu ý: Chỉ làm được 1 lần duy nhất, kết quả sẽ gửi thẳng đến giáo viên.'}
                     </p>
                   </div>
 

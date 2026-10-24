@@ -1,10 +1,11 @@
 'use client'
 
 import { UnitData, EnrollmentData, ExamData, StudentAnalyticsData } from '../../types'
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import UnitProgressToolbar from './UnitProgressToolbar'
 import UnitProgressStudentRow from './UnitProgressStudentRow'
 import Portal from '@/components/common/Portal'
+import { getUnitAnalytics } from '@/actions/analytics/unit-analytics'
 
 type UnitProgressModalProps = {
   unit: UnitData
@@ -20,19 +21,85 @@ const UnitProgressModal = ({
   onClose,
 }: UnitProgressModalProps) => {
   const [searchTerm, setSearchTerm] = useState('')
+  const [analyticsStudents, setAnalyticsStudents] = useState<StudentAnalyticsData[] | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+
+  // Fetch real-time fresh analytics from the server when modal is opened
+  useEffect(() => {
+    let ignore = false
+
+    const loadAnalytics = async () => {
+      try {
+        const res = await getUnitAnalytics(unit.id)
+        if (!ignore && res?.students) {
+          setAnalyticsStudents(res.students)
+        }
+      } catch (err) {
+        console.error('Failed to load fresh unit analytics:', err)
+      } finally {
+        if (!ignore) {
+          setIsLoading(false)
+        }
+      }
+    }
+
+    loadAnalytics()
+
+    return () => {
+      ignore = true
+    }
+  }, [unit.id])
+
+  // Manual refresh callback for toolbar
+  const handleRefresh = useCallback(async () => {
+    setIsLoading(true)
+    try {
+      const res = await getUnitAnalytics(unit.id)
+      if (res?.students) {
+        setAnalyticsStudents(res.students)
+      }
+    } catch (err) {
+      console.error('Failed to load fresh unit analytics:', err)
+    } finally {
+      setIsLoading(false)
+    }
+  }, [unit.id])
 
   const publishedUnitExams = (unit.exams || []).filter((e) => e.isPublished)
   const publishedClassExams = (classExams || []).filter((e) => e.isPublished)
   const totalExamsCount = publishedUnitExams.length + publishedClassExams.length
 
-  // Map real analytics data from the database
-  const studentAnalytics: StudentAnalyticsData[] = activeStudents.map((enrollment) => {
+  // Fallback initial mapping from classData while loading or in case of offline
+  const enrolledStudentIds = new Set(activeStudents.map((e) => e.student.id))
+  const nonEnrolledProgresses = (unit.studentProgress || []).filter(
+    (p) => !enrolledStudentIds.has(p.userId)
+  )
+  const extraFallbackStudents = nonEnrolledProgresses.map((p) => ({
+    id: `virtual-${p.userId}`,
+    classId: unit.classId || '',
+    studentId: p.userId,
+    joinedAt: new Date(0),
+    status: 'active' as const,
+    student: {
+      id: p.userId,
+      name: 'Tài khoản thử nghiệm',
+      email: '',
+      avatarUrl: null,
+    },
+  }))
+  const allStudentsForFallback = [...activeStudents, ...extraFallbackStudents]
+
+  const fallbackAnalytics: StudentAnalyticsData[] = allStudentsForFallback.map((enrollment) => {
     // Find the real progress record for this student in this unit
     const progress = unit.studentProgress?.find((p) => p.userId === enrollment.student.id)
     const history = (progress?.activityHistory as Record<string, unknown> | null) || {}
     const flashcardHistory = Array.isArray(history.flashcard) ? history.flashcard : []
     const quizHistory = Array.isArray(history.quiz) ? history.quiz : []
     const matchHistory = Array.isArray(history.match) ? history.match : []
+
+    const flashcardPlays = Math.max(progress?.flashcardPlayCount || 0, flashcardHistory.length)
+    const quizPlays = Math.max(progress?.quizPlayCount || 0, quizHistory.length)
+    const matchPlays = Math.max(progress?.matchPlayCount || 0, matchHistory.length)
 
     // Find student exams in this unit
     const unitExamList = publishedUnitExams.map((exam) => {
@@ -91,21 +158,21 @@ const UnitProgressModal = ({
       masteryProgress: progress?.masteryProgress || 0, // % vocab mastered
       games: {
         flashcard: {
-          played: (progress?.flashcardPlayCount || 0) > 0 || flashcardHistory.length > 0,
+          played: flashcardPlays > 0 || flashcardHistory.length > 0,
           progress: progress?.masteryProgress || 0,
-          timesPlayed: progress?.flashcardPlayCount || 0,
+          timesPlayed: flashcardPlays,
           history: flashcardHistory as import('../../types').PracticeSessionEntry[],
         },
         quiz: {
-          played: (progress?.quizPlayCount || 0) > 0 || quizHistory.length > 0,
+          played: quizPlays > 0 || quizHistory.length > 0,
           score: progress?.bestQuizScore || 0,
-          timesPlayed: progress?.quizPlayCount || 0,
+          timesPlayed: quizPlays,
           history: quizHistory as import('../../types').PracticeSessionEntry[],
         },
         match: {
-          played: (progress?.matchPlayCount || 0) > 0 || matchHistory.length > 0,
+          played: matchPlays > 0 || matchHistory.length > 0,
           bestTime: progress?.bestMatchTime || null,
-          timesPlayed: progress?.matchPlayCount || 0,
+          timesPlayed: matchPlays,
           history: matchHistory as import('../../types').PracticeSessionEntry[],
         },
       },
@@ -113,7 +180,7 @@ const UnitProgressModal = ({
     }
   })
 
-  const displayData = studentAnalytics
+  const displayData = analyticsStudents || fallbackAnalytics
 
   const filteredData = displayData.filter((d) =>
     d.student.name.toLowerCase().includes(searchTerm.toLowerCase()),
@@ -129,6 +196,8 @@ const UnitProgressModal = ({
             searchTerm={searchTerm}
             setSearchTerm={setSearchTerm}
             onClose={onClose}
+            onRefresh={handleRefresh}
+            isLoading={isLoading}
           />
 
           {/* Table Content */}
@@ -148,7 +217,7 @@ const UnitProgressModal = ({
                 {filteredData.length === 0 ? (
                   <tr>
                     <td colSpan={4} className="py-12 text-center text-gray-400">
-                      {studentAnalytics.length === 0
+                      {displayData.length === 0
                         ? 'Chưa có học sinh nào trong lớp học.'
                         : 'Không tìm thấy học sinh nào phù hợp.'}
                     </td>

@@ -1,10 +1,12 @@
-import { Search, BookA, Gamepad2, Zap, X } from 'lucide-react'
+import { Search, BookA, Gamepad2, Zap, X, RotateCcw } from 'lucide-react'
 
 type UnitProgressToolbarProps = {
   unitTitle: string
   searchTerm: string
   setSearchTerm: (term: string) => void
   onClose: () => void
+  onRefresh?: () => void
+  isLoading?: boolean
 }
 
 const UnitProgressToolbar = ({
@@ -12,6 +14,8 @@ const UnitProgressToolbar = ({
   searchTerm,
   setSearchTerm,
   onClose,
+  onRefresh,
+  isLoading,
 }: UnitProgressToolbarProps) => {
   return (
     <>
@@ -23,12 +27,27 @@ const UnitProgressToolbar = ({
             Bài học: <span className="font-bold text-indigo-600">{unitTitle}</span>
           </p>
         </div>
-        <button
-          onClick={onClose}
-          className="p-2 hover:bg-red-50 text-gray-500 hover:text-red-500 rounded-full transition-colors"
-        >
-          <X size={20} />
-        </button>
+        <div className="flex items-center gap-2">
+          {onRefresh && (
+            <button
+              type="button"
+              onClick={onRefresh}
+              disabled={isLoading}
+              className={`p-2 hover:bg-indigo-50 text-gray-500 hover:text-indigo-600 rounded-full transition-colors ${
+                isLoading ? 'opacity-50 cursor-not-allowed' : ''
+              }`}
+              title="Làm mới dữ liệu mới nhất"
+            >
+              <RotateCcw size={18} className={isLoading ? 'animate-spin' : ''} />
+            </button>
+          )}
+          <button
+            onClick={onClose}
+            className="p-2 hover:bg-red-50 text-gray-500 hover:text-red-500 rounded-full transition-colors"
+          >
+            <X size={20} />
+          </button>
+        </div>
       </div>
 
       {/* Toolbar */}

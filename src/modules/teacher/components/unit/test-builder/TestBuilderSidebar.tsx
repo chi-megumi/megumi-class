@@ -11,6 +11,7 @@ type TestBuilderSidebarProps = {
   onOpenGenerator: () => void
   onOpenFullExamImport: () => void
   onAddBlock: (type: TemplateType, title: string) => void
+  onOpenReadingPicker?: () => void
   onCloseSidebar: () => void
   onCloseModal: () => void
 }
@@ -20,11 +21,12 @@ export default function TestBuilderSidebar({
   onOpenGenerator,
   onOpenFullExamImport,
   onAddBlock,
+  onOpenReadingPicker,
   onCloseSidebar,
   onCloseModal,
 }: TestBuilderSidebarProps) {
   return (
-    <div className="w-full md:w-72 lg:w-80 bg-white border-r border-gray-200 h-auto max-h-[40vh] md:max-h-none md:h-full flex flex-col shrink-0 shadow-lg z-10 transition-all">
+    <div className="w-full md:w-72 lg:w-80 bg-white border-r border-gray-200 h-auto max-h-[40vh] md:max-h-none md:h-full flex flex-col shrink-0 z-10">
       <div className="p-4 sm:p-5 border-b border-gray-100 flex items-center justify-between">
         <div>
           <h2 className="text-lg sm:text-xl font-bold text-gray-800">Kho Template</h2>
@@ -93,7 +95,13 @@ export default function TestBuilderSidebar({
         {TEMPLATES.map((tpl) => (
           <div
             key={tpl.type}
-            onClick={() => onAddBlock(tpl.type, tpl.title)}
+            onClick={() => {
+              if (tpl.type === 'reading' && onOpenReadingPicker) {
+                onOpenReadingPicker()
+              } else {
+                onAddBlock(tpl.type, tpl.title)
+              }
+            }}
             className="group relative bg-white border border-gray-200 rounded-xl p-3.5 sm:p-4 cursor-pointer hover:border-indigo-400 hover:shadow-md transition-all hover:-translate-y-0.5"
           >
             <div className="absolute top-3.5 right-3.5 w-7 h-7 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">

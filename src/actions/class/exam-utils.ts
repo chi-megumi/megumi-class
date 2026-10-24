@@ -1,4 +1,5 @@
 import type { MatchingPair, TestBlock, TestQuestion } from '@/modules/teacher/types'
+import { ensureShuffledWords } from '@/modules/teacher/utils/reorderUtils'
 
 /**
  * Utility to shuffle an array (Fisher-Yates)
@@ -16,9 +17,11 @@ export function shuffleArray<T>(arr: T[]): T[] {
  * Utility to sanitize exams for student view (remove correctIndex, sentence answers, etc.)
  */
 export function sanitizeExams<T extends { content?: unknown }>(
-  exams: T[]
+  exams: T[],
+  options?: { isReviewMode?: boolean }
 ): (T & { content?: TestBlock[] })[] {
   if (!Array.isArray(exams)) return []
+  const isReviewMode = options?.isReviewMode ?? false
 
   return exams.map((test) => {
     if (!test.content || !Array.isArray(test.content)) {
@@ -30,8 +33,8 @@ export function sanitizeExams<T extends { content?: unknown }>(
       if (block.type === 'multiple_choice') {
         const questions = block.content?.questions?.map((q: TestQuestion) => {
           // eslint-disable-next-line @typescript-eslint/no-unused-vars
-          const { correctIndex, ...rest } = q
-          return rest
+          const { correctIndex, explanation, ...rest } = q
+          return isReviewMode && explanation !== undefined ? { ...rest, explanation } : rest
         })
         return {
           ...block,
@@ -42,12 +45,61 @@ export function sanitizeExams<T extends { content?: unknown }>(
         }
       }
 
+      if (block.type === 'reading') {
+        const seenIds = new Set<string>()
+        const ensureUniqueId = (rawId: string | undefined, pIdx: number, qIdx: number): string => {
+          let id = rawId?.trim() || `p${pIdx + 1}_q${qIdx + 1}`
+          if (seenIds.has(id)) {
+            id = `${id}_p${pIdx + 1}_${qIdx + 1}`
+          }
+          seenIds.add(id)
+          return id
+        }
+
+        const passages = block.content?.passages?.map((p, pIdx) => ({
+          ...p,
+          questions: p.questions?.map((q: TestQuestion, qIdx: number) => {
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+            const { correctIndex, answer, explanation, ...rest } = q
+            const id = ensureUniqueId(q.id, pIdx, qIdx)
+            return {
+              ...rest,
+              ...(isReviewMode && explanation !== undefined ? { explanation } : {}),
+              id,
+            }
+          }),
+        }))
+
+        const questions =
+          passages && passages.length > 0
+            ? passages.flatMap((p) => p.questions || [])
+            : block.content?.questions?.map((q: TestQuestion, qIdx: number) => {
+                // eslint-disable-next-line @typescript-eslint/no-unused-vars
+                const { correctIndex, answer, explanation, ...rest } = q
+                const id = ensureUniqueId(q.id, 0, qIdx)
+                return {
+                  ...rest,
+                  ...(isReviewMode && explanation !== undefined ? { explanation } : {}),
+                  id,
+                }
+              })
+
+        return {
+          ...block,
+          content: {
+            ...block.content,
+            questions,
+            passages,
+          },
+        }
+      }
+
       if (block.type === 'fill_blank') {
         if (Array.isArray(block.content?.questions)) {
           const questions = block.content.questions.map((q: TestQuestion) => {
             // eslint-disable-next-line @typescript-eslint/no-unused-vars
-            const { answer, ...rest } = q
-            return rest
+            const { answer, explanation, ...rest } = q
+            return isReviewMode && explanation !== undefined ? { ...rest, explanation } : rest
           })
           return {
             ...block,
@@ -58,10 +110,10 @@ export function sanitizeExams<T extends { content?: unknown }>(
           }
         }
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const { answer, ...restContent } = block.content || {}
+        const { answer, explanation, ...restContent } = block.content || {}
         return {
           ...block,
-          content: restContent,
+          content: isReviewMode && explanation !== undefined ? { ...restContent, explanation } : restContent,
         }
       }
 
@@ -106,9 +158,7 @@ export function sanitizeExams<T extends { content?: unknown }>(
           : []
         const sanitizedQuestions = questions.map((q) => {
           const { sentence, ...rest } = q
-          const words = shuffleArray(
-            (sentence || '').trim().split(/\s+/).filter(Boolean)
-          )
+          const words = ensureShuffledWords(sentence, q.words)
           return {
             ...rest,
             words,

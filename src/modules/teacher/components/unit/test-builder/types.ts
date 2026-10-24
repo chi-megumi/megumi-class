@@ -34,4 +34,5 @@ export type TestBuilderModalProps = {
 export type ImportBlockData = {
   questions?: NonNullable<TestBlock['content']>['questions']
   pairs?: NonNullable<TestBlock['content']>['pairs']
+  text?: string
 }

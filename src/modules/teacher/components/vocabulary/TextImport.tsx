@@ -27,6 +27,7 @@ const TextImport = ({ onImport }: TextImportProps) => {
           id: crypto.randomUUID(),
           word: parts[0].trim(),
           vi: parts.slice(1).join(sep).trim(),
+          createdAt: new Date().toISOString(),
         })
       }
     }

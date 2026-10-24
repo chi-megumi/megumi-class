@@ -26,7 +26,7 @@ type ReorderBlockProps = {
   onDragOverPos: (pos: number) => void
 }
 
-export default function ReorderBlock({
+function ReorderBlock({
   questions, answers, isReviewMode, result,
   shuffledWordsMap, reorderSelections,
   dragOverReorderZone, dragOverReorderPos,
@@ -64,13 +64,13 @@ export default function ReorderBlock({
 
         return (
           <div 
-            key={q.id}
-            className={`p-3 sm:p-3.5 rounded-lg border transition-all ${
+            key={q.id ? `${q.id}_${qIdx}` : `reorder-${qIdx}`}
+            className={`p-3 sm:p-3.5 rounded-lg border transition-colors ${
               showCorrect 
                 ? 'border-green-300 bg-green-50/40' 
                 : showIncorrect 
                   ? 'border-red-300 bg-red-50/40' 
-                  : 'border-gray-200 bg-white shadow-2xs'
+                  : 'border-gray-200 bg-white'
             }`}
           >
             {/* Header */}
@@ -253,10 +253,10 @@ export default function ReorderBlock({
                         draggable={!isUsed}
                         onDragStart={(e) => onDragStartBankWord(e, q.id, wIdx)}
                         onClick={() => onSelectWord(q.id, wIdx, words)}
-                        className={`px-2.5 py-1 rounded-md font-bold text-[11px] transition-all select-none ${
+                        className={`px-2.5 py-1 rounded-md font-bold text-[11px] transition-colors select-none ${
                           isUsed
                             ? 'bg-gray-100 text-gray-300 border border-transparent cursor-not-allowed scale-95 opacity-40'
-                            : 'bg-white text-gray-800 border border-gray-200 shadow-2xs hover:border-indigo-400 hover:text-indigo-600 hover:-translate-y-0.5 active:translate-y-0 cursor-grab active:cursor-grabbing'
+                            : 'bg-white text-gray-800 border border-gray-200 hover:border-indigo-400 hover:text-indigo-600 cursor-grab active:cursor-grabbing'
                         }`}
                         title={isUsed ? 'Đã dùng' : 'Kéo lên ô hoặc chạm để ghép'}
                       >
@@ -273,3 +273,5 @@ export default function ReorderBlock({
     </div>
   )
 }
+
+export default React.memo(ReorderBlock)

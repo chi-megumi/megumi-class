@@ -20,8 +20,20 @@ export const VocabVault: React.FC<VocabVaultProps> = ({
   const [viewMode, setViewMode] = useState<VocabLayoutMode>('list')
   const [previewItem, setPreviewItem] = useState<VocabItemData | null>(null)
 
-  const totalCount = vocabItems?.length || 0
-  const masteredCount = vocabItems.filter((item) =>
+  // Sắp xếp ưu tiên: Từ mới tạo nhất hiển thị lên đầu
+  const sortedItems = React.useMemo(() => {
+    if (!vocabItems || vocabItems.length === 0) return []
+    return [...vocabItems].sort((a, b) => {
+      if (a.createdAt && b.createdAt) {
+        const timeDiff = new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        if (timeDiff !== 0) return timeDiff
+      }
+      return (a.sortOrder ?? 0) - (b.sortOrder ?? 0)
+    })
+  }, [vocabItems])
+
+  const totalCount = sortedItems.length
+  const masteredCount = sortedItems.filter((item) =>
     masteredSet.includes(item.id)
   ).length
 
@@ -77,7 +89,7 @@ export const VocabVault: React.FC<VocabVaultProps> = ({
         <VocabEmptyState />
       ) : viewMode === 'list' ? (
         <VocabListView
-          items={vocabItems}
+          items={sortedItems}
           masteredSet={masteredSet}
           toggleMasteredById={toggleMasteredById}
           speak={speak}
@@ -85,7 +97,7 @@ export const VocabVault: React.FC<VocabVaultProps> = ({
         />
       ) : (
         <VocabGridView
-          items={vocabItems}
+          items={sortedItems}
           masteredSet={masteredSet}
           toggleMasteredById={toggleMasteredById}
           speak={speak}

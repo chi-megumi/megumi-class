@@ -3,15 +3,17 @@
 import React from 'react'
 import type { TestBlock, TestQuestion } from '@/modules/teacher/types'
 import { getActiveQuestionOptions } from '@/modules/teacher/utils/questionUtils'
+import { ensureShuffledWords } from '@/modules/teacher/utils/reorderUtils'
+import { ReadingBlockPreview } from './reading'
 
 type TestBlockPreviewProps = {
   block: TestBlock
   index: number
 }
 
-export default function TestBlockPreview({ block, index }: TestBlockPreviewProps) {
+function TestBlockPreview({ block, index }: TestBlockPreviewProps) {
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden mb-6">
+    <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden mb-6 scroll-contain-item">
       <div className="bg-indigo-50/50 px-6 py-4 border-b border-gray-100">
         <h2 className="text-lg font-bold text-indigo-900">
           Phần {index + 1}: {(block.title || '').replace(/^Phần\s+\d+:\s*/i, '')}
@@ -161,7 +163,7 @@ export default function TestBlockPreview({ block, index }: TestBlockPreviewProps
         {block.type === 'reorder' && (
           <div className="space-y-6">
             {(block.content?.questions || []).map((q, qIdx) => {
-              const words = (q.sentence || '').trim().split(/\s+/).filter(Boolean)
+              const words = ensureShuffledWords(q.sentence, q.words)
               return (
                 <div
                   key={q.id}
@@ -181,19 +183,24 @@ export default function TestBlockPreview({ block, index }: TestBlockPreviewProps
                       <span>{q.sentence}</span>
                     </div>
                   )}
-                  <div className="flex flex-wrap gap-2 pt-1">
-                    {words.length > 0 ? (
-                      words.map((w, wIdx) => (
-                        <span
-                          key={wIdx}
-                          className="px-3 py-1.5 bg-white text-gray-700 rounded-xl text-xs font-semibold border border-gray-200 shadow-2xs"
-                        >
-                          {w}
-                        </span>
-                      ))
-                    ) : (
-                      <span className="text-xs text-gray-400 italic">Chưa nhập câu</span>
-                    )}
+                  <div className="space-y-1.5 pt-1">
+                    <span className="text-xs font-semibold text-gray-500 block">
+                      Các thẻ từ học sinh sẽ nhận (đã xáo trộn):
+                    </span>
+                    <div className="flex flex-wrap gap-2">
+                      {words.length > 0 ? (
+                        words.map((w, wIdx) => (
+                          <span
+                            key={wIdx}
+                            className="px-3 py-1.5 bg-white text-gray-700 rounded-xl text-xs font-semibold border border-gray-200 shadow-2xs"
+                          >
+                            {w}
+                          </span>
+                        ))
+                      ) : (
+                        <span className="text-xs text-gray-400 italic">Chưa nhập câu</span>
+                      )}
+                    </div>
                   </div>
                 </div>
               )
@@ -201,7 +208,12 @@ export default function TestBlockPreview({ block, index }: TestBlockPreviewProps
           </div>
         )}
 
-        {['reading', 'listening'].includes(block.type) && (
+        {/* Reading Preview */}
+        {block.type === 'reading' && (
+          <ReadingBlockPreview block={block} />
+        )}
+
+        {block.type === 'listening' && (
           <p className="text-gray-400 italic">
             Dạng bài này sẽ được hiển thị khi học sinh làm bài.
           </p>
@@ -210,3 +222,5 @@ export default function TestBlockPreview({ block, index }: TestBlockPreviewProps
     </div>
   )
 }
+
+export default React.memo(TestBlockPreview)

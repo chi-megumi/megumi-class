@@ -11,7 +11,12 @@ import HistoryPanel from '@/components/flashcards/components/quiz/HistoryPanel'
 import ScoredSummary from '@/components/flashcards/components/quiz/ScoreSummary'
 import { useFlashcardStore } from '@/components/flashcards/stores/useFlashcardStore'
 
-export function QuizView() {
+type QuizViewProps = {
+  onClose?: () => void
+  onGameComplete?: (details?: { time?: number }) => void
+}
+
+export function QuizView({ onClose, onGameComplete }: QuizViewProps = {}) {
   const activeMode = useFlashcardStore((s) => s.activeMode)
   const vocabItems = useFlashcardStore((s) => s.vocabItems)
   const quizMode = useQuizStore((s) => s.quizMode)
@@ -23,6 +28,7 @@ export function QuizView() {
   const sessionQueue = useQuizStore((s) => s.sessionQueue)
   const sessionTotal = useQuizStore((s) => s.sessionTotal)
   const sessionCorrect = useQuizStore((s) => s.sessionCorrect)
+  const sessionAnswers = useQuizStore((s) => s.sessionAnswers)
   const sessionDone = useQuizStore((s) => s.sessionDone)
   const streak = useQuizStore((s) => s.streak)
   const startSession = useQuizStore((s) => s.startSession)
@@ -33,6 +39,38 @@ export function QuizView() {
   const { speak, isSpeaking } = useSpeech()
 
   const [modalEntry, setModalEntry] = useState<QuizHistoryEntry | null>(null)
+
+  // Auto-save when quiz round finishes
+  useEffect(() => {
+    if (sessionDone && onGameComplete) {
+      const state = useQuizStore.getState()
+      const durationMs = state.sessionStartMs > 0 ? Date.now() - state.sessionStartMs : 0
+      onGameComplete({ time: Math.max(1, Math.round(durationMs / 1000)) })
+    }
+  }, [sessionDone, onGameComplete])
+
+  const handleFinishEarly = () => {
+    const state = useQuizStore.getState()
+    const durationMs = state.sessionStartMs > 0 ? Date.now() - state.sessionStartMs : 0
+    const total = state.sessionAnswers.length
+    if (total === 0) return
+    const score = Math.round((state.sessionCorrect / total) * 100)
+    const entry: QuizHistoryEntry = {
+      id: `${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+      date: new Date().toISOString(),
+      durationMs,
+      score,
+      correct: state.sessionCorrect,
+      total,
+      mode: 'scored',
+      answers: state.sessionAnswers,
+    }
+    useQuizStore.setState({
+      sessionDone: true,
+      sessionTotal: total,
+      history: [entry, ...state.history].slice(0, 50),
+    })
+  }
 
   const currentWord = currentWordId ? vocabItems.find((v) => v.id === currentWordId) : null
 
@@ -174,6 +212,16 @@ export function QuizView() {
             >
               <RotateCcw size={16} />
             </button>
+            {quizMode === 'scored' && sessionAnswers.length > 0 && !sessionDone && (
+              <button
+                type="button"
+                className="px-2.5 py-1 text-xs font-bold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 rounded-lg border border-indigo-200 transition-colors shadow-2xs cursor-pointer ml-1"
+                onClick={handleFinishEarly}
+                title="Kết thúc bài ôn và nộp kết quả"
+              >
+                Nộp bài ({sessionAnswers.length} câu)
+              </button>
+            )}
           </div>
         </div>
 
@@ -191,7 +239,7 @@ export function QuizView() {
 
         {/* Session done → summary */}
         {sessionDone ? (
-          <ScoredSummary />
+          <ScoredSummary onClose={onClose} />
         ) : (
           <>
             <div className="quiz-question-box">

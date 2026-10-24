@@ -13,7 +13,12 @@ type Card = {
   isMatched: boolean
 }
 
-export function MatchGame() {
+type MatchGameProps = {
+  onClose?: () => void
+  onGameComplete?: (data?: { time?: number }) => void
+}
+
+export function MatchGame({ onClose, onGameComplete }: MatchGameProps = {}) {
   const vocabItems = useFlashcardStore((s) => s.vocabItems)
   const [cards, setCards] = useState<Card[]>([])
   const [selectedCards, setSelectedCards] = useState<Card[]>([])
@@ -97,6 +102,10 @@ export function MatchGame() {
               setIsFinished(true)
               playSound('correct')
               fireConfetti()
+              if (onGameComplete) {
+                const totalSeconds = startTime ? Math.max(1, Math.round((Date.now() - startTime) / 1000)) : 1
+                onGameComplete({ time: totalSeconds })
+              }
             }, 300)
           }
           return next
@@ -154,12 +163,23 @@ export function MatchGame() {
         </div>
         
         {isFinished && (
-          <button
-            onClick={startGame}
-            className="flex justify-center items-center gap-2 py-2 px-4 sm:px-6 bg-green-500 hover:bg-green-600 text-white font-bold rounded-xl transition-all shadow-sm text-sm sm:text-base"
-          >
-            <RotateCcw size={16} /> Chơi lại
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={startGame}
+              className="flex justify-center items-center gap-2 py-2 px-4 sm:px-6 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl transition-all shadow-sm text-sm sm:text-base cursor-pointer"
+            >
+              <RotateCcw size={16} /> Chơi lại
+            </button>
+            {onClose && (
+              <button
+                type="button"
+                onClick={onClose}
+                className="flex justify-center items-center gap-2 py-2 px-4 sm:px-6 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl transition-all shadow-sm text-sm sm:text-base cursor-pointer"
+              >
+                Hoàn thành & Thoát
+              </button>
+            )}
+          </div>
         )}
       </div>
 
@@ -167,9 +187,18 @@ export function MatchGame() {
         <div className="w-full bg-green-50 border border-green-100 rounded-3xl p-6 sm:p-8 text-center mb-6 sm:mb-8 animate-in slide-in-from-top-4 fade-in">
           <div className="text-3xl sm:text-4xl mb-3 sm:mb-4">🎉</div>
           <h2 className="text-xl sm:text-2xl font-bold text-green-800 mb-2">Hoàn thành xuất sắc!</h2>
-          <p className="text-green-600 text-sm sm:text-base">
+          <p className="text-green-600 text-sm sm:text-base mb-4">
             Bạn đã ghép đúng tất cả các thẻ trong {formatDuration(elapsed)}.
           </p>
+          {onClose && (
+            <button
+              type="button"
+              onClick={onClose}
+              className="inline-flex justify-center items-center gap-2 py-2.5 px-6 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl transition-all shadow-md text-sm sm:text-base cursor-pointer"
+            >
+              Lưu kết quả & Thoát
+            </button>
+          )}
         </div>
       )}
 

@@ -28,8 +28,9 @@ export async function recordGameCompletion({
   }
 
   const role = me.role?.toLowerCase()
-  // Teachers have full rights of students, so both students and teachers can study and record progress
-  if (role !== 'student' && role !== 'teacher') {
+  const isAdmin = me.systemRole === 'admin'
+  // Teachers and admins have full rights of students, so students, teachers, and admins can study and record progress
+  if (role !== 'student' && role !== 'teacher' && !isAdmin) {
     return { success: false, error: 'Unauthorized' }
   }
 
@@ -45,11 +46,14 @@ export async function recordGameCompletion({
 
   const now = new Date().toISOString()
   const duration = time || 0
-  const isQuick =
-    isQuickExit !== undefined
-      ? isQuickExit
-      : duration < 5 ||
-        (gameType === 'quiz' && (correctCount ?? 0) === 0 && (totalCount ?? 0) === 0 && duration < 10)
+  const hasUserAction =
+    (quizAnswers && quizAnswers.length > 0) ||
+    (correctCount ?? 0) > 0 ||
+    (totalCount ?? 0) > 0 ||
+    (masteryProgress ?? 0) > 0 ||
+    duration >= 3
+  const isAccidentalInstantBounce = duration < 1 && !hasUserAction
+  const isQuick = isQuickExit !== undefined ? isQuickExit && !hasUserAction : isAccidentalInstantBounce
 
   if (!existingProgress) {
     const initialHistory = {
@@ -101,11 +105,11 @@ export async function recordGameCompletion({
       data: {
         userId: me.id,
         unitId,
-        flashcardPlayCount: gameType === 'flashcard' && !isQuick ? 1 : 0,
-        quizPlayCount: gameType === 'quiz' && !isQuick ? 1 : 0,
-        bestQuizScore: gameType === 'quiz' && !isQuick ? score : null,
-        matchPlayCount: gameType === 'match' && !isQuick ? 1 : 0,
-        bestMatchTime: gameType === 'match' && !isQuick && !isInterrupted ? duration : null,
+        flashcardPlayCount: gameType === 'flashcard' ? 1 : 0,
+        quizPlayCount: gameType === 'quiz' ? 1 : 0,
+        bestQuizScore: gameType === 'quiz' ? score : null,
+        matchPlayCount: gameType === 'match' ? 1 : 0,
+        bestMatchTime: gameType === 'match' && !isInterrupted && duration > 0 ? duration : null,
         masteryProgress: masteryProgress || 0,
         activityHistory: initialHistory as import('@prisma/client').Prisma.InputJsonValue,
       },
@@ -136,23 +140,25 @@ export async function recordGameCompletion({
             })
           : null
 
-      const isDuplicateInterrupted =
+      const isDuplicate =
         lastItem &&
-        (lastItem.isInterrupted || !!isInterrupted) &&
         lastItem.completedAt &&
         Math.abs(Date.now() - new Date(lastItem.completedAt).getTime()) < 15000
 
-      if (isDuplicateInterrupted && lastItem) {
+      if (isDuplicate && lastItem) {
         lastItem.durationSeconds = Math.max(lastItem.durationSeconds || 0, duration)
-        lastItem.isQuickExit = lastItem.durationSeconds < 5
+        if (!isInterrupted) {
+          lastItem.isInterrupted = false
+        }
+        if (isQuick !== undefined) {
+          lastItem.isQuickExit = isQuick
+        }
         lastItem.completedAt = now
         if (masteryProgress !== undefined) {
           lastItem.masteryProgress = masteryProgress
         }
       } else {
-        if (!isQuick) {
-          updateData.flashcardPlayCount = { increment: 1 }
-        }
+        updateData.flashcardPlayCount = { increment: 1 }
         const lastAttempt = lastItem?.attempt || existingProgress.flashcardPlayCount || 0
         flashcardList.push({
           attempt: lastAttempt + 1,
@@ -175,28 +181,39 @@ export async function recordGameCompletion({
               score?: number
               correctCount?: number
               totalCount?: number
+              answers?: Array<{ wordId: string; correct: boolean; selectedWordId?: string }>
             })
           : null
 
-      const isDuplicateInterrupted =
+      const isDuplicate =
         lastItem &&
-        (lastItem.isInterrupted || !!isInterrupted) &&
         lastItem.completedAt &&
         Math.abs(Date.now() - new Date(lastItem.completedAt).getTime()) < 15000
 
-      if (isDuplicateInterrupted && lastItem) {
+      if (isDuplicate && lastItem) {
         lastItem.durationSeconds = Math.max(lastItem.durationSeconds || 0, duration)
-        lastItem.isQuickExit = lastItem.durationSeconds < 5
+        if (!isInterrupted) {
+          lastItem.isInterrupted = false
+        }
+        if (isQuick !== undefined) {
+          lastItem.isQuickExit = isQuick
+        }
         lastItem.completedAt = now
-        if (score !== undefined) lastItem.score = score
+        if (score !== undefined) {
+          lastItem.score = score
+          if (
+            existingProgress.bestQuizScore === null ||
+            score > existingProgress.bestQuizScore
+          ) {
+            updateData.bestQuizScore = score
+          }
+        }
         if (correctCount !== undefined) lastItem.correctCount = correctCount
         if (totalCount !== undefined) lastItem.totalCount = totalCount
+        if (quizAnswers && quizAnswers.length > 0) lastItem.answers = quizAnswers
       } else {
-        if (!isQuick) {
-          updateData.quizPlayCount = { increment: 1 }
-        }
+        updateData.quizPlayCount = { increment: 1 }
         if (
-          !isQuick &&
           score !== undefined &&
           (existingProgress.bestQuizScore === null || score > existingProgress.bestQuizScore)
         ) {
@@ -227,22 +244,30 @@ export async function recordGameCompletion({
             })
           : null
 
-      const isDuplicateInterrupted =
+      const isDuplicate =
         lastItem &&
-        (lastItem.isInterrupted || !!isInterrupted) &&
         lastItem.completedAt &&
         Math.abs(Date.now() - new Date(lastItem.completedAt).getTime()) < 15000
 
-      if (isDuplicateInterrupted && lastItem) {
+      if (isDuplicate && lastItem) {
         lastItem.durationSeconds = Math.max(lastItem.durationSeconds || 0, duration)
-        lastItem.isQuickExit = lastItem.durationSeconds < 5
+        if (!isInterrupted) {
+          lastItem.isInterrupted = false
+          if (
+            lastItem.durationSeconds > 0 &&
+            (existingProgress.bestMatchTime === null ||
+              lastItem.durationSeconds < existingProgress.bestMatchTime)
+          ) {
+            updateData.bestMatchTime = lastItem.durationSeconds
+          }
+        }
+        if (isQuick !== undefined) {
+          lastItem.isQuickExit = isQuick
+        }
         lastItem.completedAt = now
       } else {
-        if (!isQuick) {
-          updateData.matchPlayCount = { increment: 1 }
-        }
+        updateData.matchPlayCount = { increment: 1 }
         if (
-          !isQuick &&
           duration > 0 &&
           !isInterrupted &&
           (existingProgress.bestMatchTime === null || duration < existingProgress.bestMatchTime)
@@ -315,10 +340,64 @@ export async function recordGameCompletion({
     }
   }
 
-  // Revalidate the teacher's dashboard so they see the updated counts immediately
+  // Revalidate the teacher's dashboard and student unit so they see updated counts immediately
+  if (classId) {
+    try {
+      revalidatePath(`/teacher/classes/${classId}`)
+      revalidatePath(`/teacher/classes/${classId}/units`)
+      revalidatePath(`/student/classes/${classId}/units/${unitId}`)
+    } catch {
+      // Safe fallback when executed in an API route / sendBeacon context
+    }
+  }
+
+  return { success: true }
+}
+
+/**
+ * Synchronizes student's vocabulary mastery percentage to user_unit_progress
+ * Called when marking words as mastered in VocabVault or Flashcards.
+ */
+export async function syncMasteryProgress({
+  unitId,
+  classId,
+  masteryProgress,
+}: {
+  unitId: string
+  classId?: string
+  masteryProgress: number
+}) {
+  const me = await getMe()
+  if (!me) return { success: false, error: 'Unauthorized' }
+
+  const role = me.role?.toLowerCase()
+  const isAdmin = me.systemRole === 'admin'
+  if (role !== 'student' && role !== 'teacher' && !isAdmin) {
+    return { success: false, error: 'Unauthorized' }
+  }
+
+  const sanitizedMastery = Math.min(100, Math.max(0, Math.round(masteryProgress)))
+
+  await prisma.userUnitProgress.upsert({
+    where: {
+      userId_unitId: {
+        userId: me.id,
+        unitId,
+      },
+    },
+    create: {
+      userId: me.id,
+      unitId,
+      masteryProgress: sanitizedMastery,
+    },
+    update: {
+      masteryProgress: sanitizedMastery,
+    },
+  })
+
   if (classId) {
     revalidatePath(`/teacher/classes/${classId}`)
   }
 
-  return { success: true }
+  return { success: true, masteryProgress: sanitizedMastery }
 }

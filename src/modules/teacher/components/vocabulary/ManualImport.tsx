@@ -244,6 +244,7 @@ const ManualImport = ({ editingItem, onSave, onCancelEdit }: ManualImportProps) 
       exampleVi: formData.exampleVi.trim(),
       tip: formData.tip.trim(),
       pendingFile: pendingFile !== undefined ? pendingFile : (editingItem?.pendingFile ?? null),
+      createdAt: editingItem?.createdAt || new Date().toISOString(),
     })
 
     if (!editingItem) {

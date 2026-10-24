@@ -26,7 +26,7 @@ export async function updateEnrollmentStatus(enrollmentId: string, status: Enrol
     data: { status },
   })
 
-  revalidatePath(`/teacher/classes/${enrollment.classId}`)
+  revalidatePath(`/teacher/classes/${enrollment.classId}`, 'layout')
   return { success: true }
 }
 
@@ -49,7 +49,7 @@ export async function removeStudentFromClass(enrollmentId: string) {
     where: { id: enrollmentId },
   })
 
-  revalidatePath(`/teacher/classes/${enrollment.classId}`)
+  revalidatePath(`/teacher/classes/${enrollment.classId}`, 'layout')
   return { success: true }
 }
 
@@ -81,6 +81,6 @@ export async function addStudentsToClass(classId: string, studentIds: string[]) 
     })
   }
 
-  revalidatePath(`/teacher/classes/${classId}`)
+  revalidatePath(`/teacher/classes/${classId}`, 'layout')
   return { success: true }
 }

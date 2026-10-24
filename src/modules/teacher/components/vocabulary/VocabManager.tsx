@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Trash2, Code, AlignLeft, Type, Edit2, Lightbulb, BookOpen, Image as ImageIcon, X } from 'lucide-react'
+import { Trash2, Code, AlignLeft, Type, Edit2, Lightbulb, BookOpen, Image as ImageIcon, X, Sparkles } from 'lucide-react'
 
 import { VocabItemData } from '../../types'
 import { getMediaUrl } from '~/common/utils/media'
@@ -27,12 +27,16 @@ const VocabManager = ({ vocabList, onChange }: VocabManagerProps) => {
   const [jsonInput, setJsonInput] = useState('')
   const [jsonError, setJsonError] = useState('')
 
+  // Recently added IDs tracking (for highlighting newest additions)
+  const [recentlyAddedIds, setRecentlyAddedIds] = useState<string[]>([])
+
   const handleSaveManual = (item: VocabItemData) => {
     if (editingItem) {
       onChange(vocabList.map((v) => (v.id === editingItem.id ? item : v)))
       setEditingItem(null)
     } else {
-      onChange([...vocabList, item])
+      onChange([item, ...vocabList])
+      setRecentlyAddedIds((prev) => [item.id, ...prev])
     }
   }
 
@@ -46,7 +50,8 @@ const VocabManager = ({ vocabList, onChange }: VocabManagerProps) => {
   }
 
   const handleTextImport = (newItems: VocabItemData[]) => {
-    onChange([...vocabList, ...newItems])
+    onChange([...newItems, ...vocabList])
+    setRecentlyAddedIds((prev) => [...newItems.map((i) => i.id), ...prev])
   }
 
   const handleJsonImport = () => {
@@ -79,11 +84,13 @@ const VocabManager = ({ vocabList, onChange }: VocabManagerProps) => {
           example: item.example || '',
           exampleVi: item.exampleVi || '',
           tip: item.tip || '',
+          createdAt: new Date().toISOString(),
         }))
         .filter((i) => i.word && i.vi)
 
       if (newItems.length > 0) {
-        onChange([...vocabList, ...newItems])
+        onChange([...newItems, ...vocabList])
+        setRecentlyAddedIds((prev) => [...newItems.map((i) => i.id), ...prev])
         setJsonInput('')
       } else {
         setJsonError('Không tìm thấy từ vựng hợp lệ (cần có word và vi)')
@@ -188,93 +195,110 @@ const VocabManager = ({ vocabList, onChange }: VocabManagerProps) => {
       {/* FLASHCARDS PREVIEW */}
       {vocabList.length > 0 && (
         <div className="space-y-3 mt-8">
-          <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4">
-            Danh sách từ đã thêm
-          </h3>
-          <div className="p-1 grid grid-cols-1 md:grid-cols-2 gap-3 max-h-96 overflow-y-auto custom-scrollbar pr-2">
-            {vocabList.map((item) => (
-              <div
-                key={item.id}
-                className="bg-white border border-gray-100 rounded-2xl p-4 flex flex-col gap-3 shadow-sm hover:shadow-md transition-shadow group"
-              >
-                <div className="flex items-start justify-between">
-                  <div className="flex items-start gap-4">
-                    <div className="w-10 h-10 shrink-0 bg-indigo-50 rounded-xl flex items-center justify-center text-xl shadow-inner">
-                      {item.emoji || '📝'}
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-2 mb-1 flex-wrap">
-                        <h4 className="font-bold text-gray-800 text-lg leading-none">
-                          {item.word}
-                        </h4>
-                        {item.pos && (
-                          <span className="text-[10px] uppercase font-bold text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded">
-                            {item.pos}
-                          </span>
-                        )}
-                        {item.image && (
-                          <button
-                            type="button"
-                            onClick={() => setPreviewItem(item)}
-                            className={`inline-flex items-center gap-1 text-[11px] font-medium border px-2 py-0.5 rounded-full transition-all cursor-pointer shadow-2xs hover:scale-105 ${
-                              item.pendingFile
-                                ? 'text-amber-700 bg-amber-50 hover:bg-amber-100 border-amber-200/80'
-                                : 'text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border-emerald-200/80'
-                            }`}
-                            title={item.pendingFile ? 'Xem ảnh preview (Chờ lưu)' : 'Xem ảnh minh họa kích thước chuẩn'}
-                          >
-                            <ImageIcon size={11} />
-                            <span>{item.pendingFile ? 'Ảnh mới (chờ lưu)' : 'Xem ảnh'}</span>
-                          </button>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider">
+              Danh sách từ đã thêm ({vocabList.length})
+            </h3>
+            <span className="text-xs text-indigo-600 bg-indigo-50 font-medium px-2.5 py-1 rounded-lg">
+              Từ mới tạo hiển thị ở đầu
+            </span>
+          </div>
+          <div className="p-1 grid grid-cols-1 md:grid-cols-2 gap-3 max-h-[480px] overflow-y-auto custom-scrollbar pr-2">
+            {vocabList.map((item) => {
+              const isRecentlyAdded = recentlyAddedIds.includes(item.id)
+              return (
+                <div
+                  key={item.id}
+                  className={`bg-white border rounded-2xl p-4 flex flex-col justify-between gap-3 shadow-sm hover:shadow-md transition-shadow group scroll-contain-item ${
+                    isRecentlyAdded
+                      ? 'border-emerald-300 ring-1 ring-emerald-200/60 bg-emerald-50/10'
+                      : 'border-gray-100'
+                  }`}
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-start gap-4">
+                      <div className="w-10 h-10 shrink-0 bg-indigo-50 rounded-xl flex items-center justify-center text-xl shadow-inner">
+                        {item.emoji || '📝'}
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2 mb-1 flex-wrap">
+                          <h4 className="font-bold text-gray-800 text-lg leading-none">
+                            {item.word}
+                          </h4>
+                          {isRecentlyAdded && (
+                            <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase text-emerald-700 bg-emerald-50 border border-emerald-200/80 px-2 py-0.5 rounded-full animate-in fade-in">
+                              <Sparkles size={10} className="text-emerald-500" /> Vừa thêm
+                            </span>
+                          )}
+                          {item.pos && (
+                            <span className="text-[10px] uppercase font-bold text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded">
+                              {item.pos}
+                            </span>
+                          )}
+                          {item.image && (
+                            <button
+                              type="button"
+                              onClick={() => setPreviewItem(item)}
+                              className={`inline-flex items-center gap-1 text-[11px] font-medium border px-2 py-0.5 rounded-full transition-all cursor-pointer shadow-2xs hover:scale-105 ${
+                                item.pendingFile
+                                  ? 'text-amber-700 bg-amber-50 hover:bg-amber-100 border-amber-200/80'
+                                  : 'text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border-emerald-200/80'
+                              }`}
+                              title={item.pendingFile ? 'Xem ảnh preview (Chờ lưu)' : 'Xem ảnh minh họa kích thước chuẩn'}
+                            >
+                              <ImageIcon size={11} />
+                              <span>{item.pendingFile ? 'Ảnh mới (chờ lưu)' : 'Xem ảnh'}</span>
+                            </button>
+                          )}
+                        </div>
+                        <p className="text-indigo-600 font-medium text-sm">{item.vi}</p>
+                        {item.ipa && (
+                          <p className="text-xs text-gray-400 mt-1 font-mono">{item.ipa}</p>
                         )}
                       </div>
-                      <p className="text-indigo-600 font-medium text-sm">{item.vi}</p>
-                      {item.ipa && (
-                        <p className="text-xs text-gray-400 mt-1 font-mono">{item.ipa}</p>
+                    </div>
+
+                    {/* Actions */}
+                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button
+                        onClick={() => handleEditWord(item)}
+                        className="p-2 text-gray-300 hover:text-[#6A5EEB] hover:bg-indigo-50 rounded-xl transition-all"
+                        title="Sửa thẻ này"
+                      >
+                        <Edit2 size={16} />
+                      </button>
+                      <button
+                        onClick={() => removeWord(item.id)}
+                        className="p-2 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"
+                        title="Xóa thẻ này"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Extra Details */}
+                  {(item.tip || item.example) && (
+                    <div className="pt-3 border-t border-gray-50 text-xs space-y-2">
+                      {item.tip && (
+                        <p className="text-amber-600 bg-amber-50 rounded px-2 py-1 flex items-start gap-1.5">
+                          <Lightbulb size={14} className="shrink-0 mt-0.5" />
+                          <span>{highlightKeyword(item.tip, item.word)}</span>
+                        </p>
+                      )}
+                      {item.example && (
+                        <div className="text-gray-500 pl-2 border-l-2 border-indigo-100">
+                          <p className="font-medium text-gray-700 italic">
+                            {highlightKeyword(item.example, item.word)}
+                          </p>
+                          {item.exampleVi && <p className="mt-0.5">{item.exampleVi}</p>}
+                        </div>
                       )}
                     </div>
-                  </div>
-
-                  {/* Actions */}
-                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button
-                      onClick={() => handleEditWord(item)}
-                      className="p-2 text-gray-300 hover:text-[#6A5EEB] hover:bg-indigo-50 rounded-xl transition-all"
-                      title="Sửa thẻ này"
-                    >
-                      <Edit2 size={16} />
-                    </button>
-                    <button
-                      onClick={() => removeWord(item.id)}
-                      className="p-2 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"
-                      title="Xóa thẻ này"
-                    >
-                      <Trash2 size={16} />
-                    </button>
-                  </div>
+                  )}
                 </div>
-
-                {/* Extra Details */}
-                {(item.tip || item.example) && (
-                  <div className="pt-3 border-t border-gray-50 text-xs space-y-2">
-                    {item.tip && (
-                      <p className="text-amber-600 bg-amber-50 rounded px-2 py-1 flex items-start gap-1.5">
-                        <Lightbulb size={14} className="shrink-0 mt-0.5" />
-                        <span>{highlightKeyword(item.tip, item.word)}</span>
-                      </p>
-                    )}
-                    {item.example && (
-                      <div className="text-gray-500 pl-2 border-l-2 border-indigo-100">
-                        <p className="font-medium text-gray-700 italic">
-                          {highlightKeyword(item.example, item.word)}
-                        </p>
-                        {item.exampleVi && <p className="mt-0.5">{item.exampleVi}</p>}
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            ))}
+              )
+            })}
           </div>
         </div>
       )}

@@ -12,6 +12,7 @@ import {
 } from 'lucide-react'
 import { TestQuestion, MatchingPair } from '../../types'
 import { sanitizeMultipleChoiceOptions } from '../../utils/questionUtils'
+import { ensureShuffledWords } from '../../utils/reorderUtils'
 import Portal from '@/components/common/Portal'
 
 interface ImportBlockJsonModalProps {
@@ -21,7 +22,11 @@ interface ImportBlockJsonModalProps {
   blockType: string
   currentCount: number
   onImport: (
-    parsedData: { questions?: TestQuestion[]; pairs?: MatchingPair[] },
+    parsedData: {
+      questions?: TestQuestion[]
+      pairs?: MatchingPair[]
+      text?: string
+    },
     mode: 'replace' | 'append',
   ) => void
 }
@@ -106,6 +111,37 @@ export const TEMPLATE_JSON_SAMPLES: Record<string, string> = {
     null,
     2,
   ),
+  reading: JSON.stringify(
+    {
+      title: 'Part 3: Reading Comprehension',
+      text: 'In many parts of the world, sustainable energy is rapidly expanding. Governments and private corporations are investing billions of dollars into renewable energy sources like wind, solar, and hydro power. The primary goal is to significantly reduce carbon emissions and combat climate change.',
+      questions: [
+        {
+          text: 'What is the main topic of the passage?',
+          options: [
+            'The decline of traditional agriculture',
+            'The rapid growth of sustainable energy',
+            'Challenges of space exploration',
+            'Ocean pollution causes',
+          ],
+          correctIndex: 1,
+          explanation: 'Đoạn văn nói về sự phát triển của năng lượng bền vững.',
+        },
+        {
+          text: 'The word "sustainable" is closest in meaning to:',
+          options: [
+            'renewable and eco-friendly',
+            'expensive and dangerous',
+            'temporary',
+            'harmful',
+          ],
+          correctIndex: 0,
+        },
+      ],
+    },
+    null,
+    2,
+  ),
 }
 
 export const TEMPLATE_LABELS: Record<string, { name: string; desc: string }> = {
@@ -125,6 +161,10 @@ export const TEMPLATE_LABELS: Record<string, { name: string; desc: string }> = {
     name: 'Sắp xếp câu (Sentence Reordering)',
     desc: 'Mỗi câu gồm gợi ý đề bài và câu tiếng Anh hoàn chỉnh (sentence).',
   },
+  reading: {
+    name: 'Đọc hiểu (Reading Comprehension)',
+    desc: 'Gồm nội dung đoạn văn (text) và mảng các câu hỏi trắc nghiệm / điền từ / đúng-sai.',
+  },
 }
 
 interface ValidationOutput {
@@ -132,6 +172,7 @@ interface ValidationOutput {
   error: string | null
   itemsCount: number
   data: {
+    text?: string
     questions?: Array<{
       id?: string
       text?: string
@@ -139,6 +180,8 @@ interface ValidationOutput {
       correctIndex?: number
       answer?: string
       sentence?: string
+      kind?: string
+      explanation?: string
     }>
     pairs?: Array<{
       id?: string
@@ -156,6 +199,7 @@ function validateBlockJson(raw: string, blockType: string): ValidationOutput {
 
   try {
     let parsed: unknown = JSON.parse(trimmed)
+    let extractedText: string | undefined
 
     if (
       !Array.isArray(parsed) &&
@@ -163,6 +207,9 @@ function validateBlockJson(raw: string, blockType: string): ValidationOutput {
       parsed !== null
     ) {
       const obj = parsed as Record<string, unknown>
+      if (typeof obj.text === 'string') extractedText = obj.text
+      else if (typeof obj.passage === 'string') extractedText = obj.passage
+
       if (Array.isArray(obj.questions)) parsed = obj.questions
       else if (Array.isArray(obj.pairs)) parsed = obj.pairs
       else if (Array.isArray(obj.data)) parsed = obj.data
@@ -368,6 +415,7 @@ function validateBlockJson(raw: string, blockType: string): ValidationOutput {
         id?: string
         text: string
         sentence: string
+        words?: string[]
       }> = []
 
       for (let i = 0; i < parsed.length; i++) {
@@ -390,12 +438,19 @@ function validateBlockJson(raw: string, blockType: string): ValidationOutput {
           }
         }
 
+        const cleanSentence = String(sentence).trim()
+        const importedWords =
+          Array.isArray(item.words) && item.words.every((w) => typeof w === 'string')
+            ? (item.words as string[])
+            : undefined
+
         questions.push({
           id: typeof item.id === 'string' ? item.id : undefined,
           text: item.text
             ? String(item.text).trim()
             : 'Sắp xếp các từ sau thành câu hoàn chỉnh:',
-          sentence: String(sentence).trim(),
+          sentence: cleanSentence,
+          words: ensureShuffledWords(cleanSentence, importedWords),
         })
       }
 
@@ -404,6 +459,103 @@ function validateBlockJson(raw: string, blockType: string): ValidationOutput {
         error: null,
         itemsCount: questions.length,
         data: { questions },
+      }
+    }
+
+    if (blockType === 'reading') {
+      const questions: Array<{
+        id?: string
+        text?: string
+        options?: string[]
+        correctIndex?: number
+        answer?: string
+        sentence?: string
+        kind?: string
+        explanation?: string
+      }> = []
+
+      for (let i = 0; i < parsed.length; i++) {
+        const item = parsed[i] as Record<string, unknown> | null
+        if (!item || typeof item !== 'object') {
+          return {
+            isValid: false,
+            error: `Câu số ${i + 1} không đúng định dạng object.`,
+            itemsCount: 0,
+            data: null,
+          }
+        }
+
+        const qText = item.text ? String(item.text).trim() : `Câu hỏi ${i + 1}:`
+        const qKind = typeof item.kind === 'string' ? item.kind : undefined
+        const qExplanation = typeof item.explanation === 'string' ? item.explanation : undefined
+        const qSentence = typeof item.sentence === 'string' ? item.sentence : undefined
+
+        // Nếu có options (multiple choice, true/false, cloze choice, sentence insertion)
+        if (Array.isArray(item.options) && item.options.length > 0) {
+          let correctIdx = 0
+          if (
+            typeof item.correctIndex === 'number' &&
+            item.correctIndex >= 0 &&
+            item.correctIndex < item.options.length
+          ) {
+            correctIdx = item.correctIndex
+          } else if (typeof item.correctAnswer === 'string') {
+            const letterMatch = item.correctAnswer.trim().toUpperCase()
+            if (['A', 'B', 'C', 'D'].includes(letterMatch)) {
+              correctIdx = letterMatch.charCodeAt(0) - 65
+            } else {
+              const foundIdx = item.options.findIndex(
+                (opt: unknown) =>
+                  String(opt).trim().toLowerCase() === letterMatch.toLowerCase(),
+              )
+              if (foundIdx !== -1) correctIdx = foundIdx
+            }
+          }
+
+          const rawOpts = item.options.map((opt: unknown) => String(opt ?? '').trim())
+          const cleanedOpts = sanitizeMultipleChoiceOptions(rawOpts)
+
+          questions.push({
+            id: typeof item.id === 'string' ? item.id : undefined,
+            text: qText,
+            options: cleanedOpts,
+            correctIndex: correctIdx,
+            kind: qKind || (cleanedOpts.length === 3 && cleanedOpts[0] === 'True' ? 'true_false' : 'multiple_choice'),
+            explanation: qExplanation,
+            sentence: qSentence,
+          })
+        } else if (typeof item.answer === 'string' || typeof item.correctAnswer === 'string') {
+          // Dạng tự gõ / short answer / cloze text
+          const ans = String(item.answer ?? item.correctAnswer).trim()
+          questions.push({
+            id: typeof item.id === 'string' ? item.id : undefined,
+            text: qText,
+            answer: ans,
+            kind: qKind || 'short_answer',
+            explanation: qExplanation,
+          })
+        } else {
+          // Mặc định tạo trắc nghiệm trống
+          questions.push({
+            id: typeof item.id === 'string' ? item.id : undefined,
+            text: qText,
+            options: ['', '', '', ''],
+            correctIndex: 0,
+            kind: qKind || 'multiple_choice',
+            explanation: qExplanation,
+            sentence: qSentence,
+          })
+        }
+      }
+
+      return {
+        isValid: true,
+        error: null,
+        itemsCount: questions.length,
+        data: {
+          text: extractedText,
+          questions,
+        },
       }
     }
 
@@ -463,7 +615,12 @@ export default function ImportBlockJsonModal({
     const finalizedData: {
       questions?: TestQuestion[]
       pairs?: MatchingPair[]
+      text?: string
     } = {}
+
+    if (validationResult.data.text !== undefined) {
+      finalizedData.text = validationResult.data.text
+    }
 
     if (validationResult.data.questions) {
       finalizedData.questions = validationResult.data.questions.map((q) => ({
