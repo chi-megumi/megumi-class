@@ -68,6 +68,19 @@ export type StartTestInput = {
   forceRetake?: boolean
 }
 
+export type ExamAttemptHistoryEntry = {
+  attempt: number
+  score: number
+  correctAnswers?: number | null
+  totalQuestions?: number | null
+  durationSeconds?: number | null
+  startedAt: string
+  completedAt: string
+  isInterrupted?: boolean
+  answers?: Record<string, unknown>
+  correctAnswersDetail?: Record<string, string | number>
+}
+
 export type TestResultPayload = {
   score?: number | null
   correctAnswers?: number
@@ -76,9 +89,12 @@ export type TestResultPayload = {
   correctAnswersDetail?: Record<string, string | number>
   startedAt?: string
   completedAt?: string | Date | null
+  submittedAt?: string | Date | null
+  durationSeconds?: number | null
   attemptCount?: number
   bestScore?: number
   isInterrupted?: boolean
+  history?: ExamAttemptHistoryEntry[]
 }
 
 export type QuestionMistake = {
@@ -136,6 +152,10 @@ export type StudentExamHistoryItem = {
   totalQuestions: number | null
   startedAt: Date | null
   completedAt: Date | null
+  durationSeconds?: number | null
+  attemptCount?: number
+  bestScore?: number | null
+  history?: ExamAttemptHistoryEntry[]
   answers: Record<string, unknown>
   correctAnswersDetail: Record<string, string | number>
   content: unknown

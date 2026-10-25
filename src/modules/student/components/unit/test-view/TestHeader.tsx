@@ -8,6 +8,7 @@ type TestHeaderProps = {
   isReviewMode: boolean
   initialDurationSeconds?: number
   timeLeft?: number
+  targetEndTime?: number | null
   onTimeUp?: () => void
 }
 
@@ -17,11 +18,16 @@ function TestHeader({
   isReviewMode,
   initialDurationSeconds = 0,
   timeLeft: controlledTimeLeft,
+  targetEndTime,
   onTimeUp,
 }: TestHeaderProps) {
-  const [internalTimeLeft, setInternalTimeLeft] = useState(
-    controlledTimeLeft !== undefined ? controlledTimeLeft : initialDurationSeconds
-  )
+  const [timeLeft, setTimeLeft] = useState<number>(() => {
+    if (controlledTimeLeft !== undefined) return controlledTimeLeft
+    if (targetEndTime) {
+      return Math.max(0, Math.floor((targetEndTime - Date.now()) / 1000))
+    }
+    return initialDurationSeconds
+  })
 
   const onTimeUpRef = useRef(onTimeUp)
   useEffect(() => {
@@ -30,23 +36,24 @@ function TestHeader({
 
   useEffect(() => {
     if (isReviewMode || controlledTimeLeft !== undefined) return
-    if (initialDurationSeconds <= 0) return
 
     const timer = setInterval(() => {
-      setInternalTimeLeft((prev) => {
-        if (prev <= 1) {
-          clearInterval(timer)
-          onTimeUpRef.current?.()
-          return 0
-        }
-        return prev - 1
-      })
+      const remaining = targetEndTime
+        ? Math.max(0, Math.floor((targetEndTime - Date.now()) / 1000))
+        : Math.max(0, timeLeft - 1)
+
+      setTimeLeft(remaining)
+
+      if (remaining <= 0) {
+        clearInterval(timer)
+        onTimeUpRef.current?.()
+      }
     }, 1000)
 
     return () => clearInterval(timer)
-  }, [isReviewMode, controlledTimeLeft, initialDurationSeconds])
+  }, [isReviewMode, controlledTimeLeft, targetEndTime, timeLeft])
 
-  const displayTime = controlledTimeLeft !== undefined ? controlledTimeLeft : internalTimeLeft
+  const displayTime = controlledTimeLeft !== undefined ? controlledTimeLeft : timeLeft
 
   return (
     <div

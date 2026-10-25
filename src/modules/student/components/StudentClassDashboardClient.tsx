@@ -20,7 +20,9 @@ import type { ClassData, ExamData } from '@/modules/teacher/types'
 import { sortUnits } from '@/modules/teacher/utils/unitSort'
 import { startTest } from '@/actions/analytics/exam-session'
 import type { TestResultPayload } from '@/actions/analytics/types'
+import { normalizeExamHistory, calculateExamDuration } from '@/actions/analytics/history-utils'
 import TestConfirmModal from './exam/TestConfirmModal'
+import { clearStoredExamSession } from './unit/test-view/examSessionStorage'
 
 type StudentClassDashboardClientProps = {
   classData: ClassData
@@ -45,6 +47,9 @@ export default function StudentClassDashboardClient({
         testId: test.id,
         forceRetake,
       })
+      if (forceRetake) {
+        clearStoredExamSession(classId, test.id)
+      }
       router.push(
         `/student/classes/${classId}/exams/${test.id}${forceRetake ? '?retake=1' : ''}`,
       )
@@ -90,6 +95,10 @@ export default function StudentClassDashboardClient({
       if (isBogusAutoSubmit) {
         return undefined
       }
+      const history = normalizeExamHistory(payload, r)
+      const durationSeconds = history[history.length - 1]?.durationSeconds || (
+        r.startedAt && r.completedAt ? calculateExamDuration(r.startedAt, r.completedAt) : null
+      )
       return {
         score: r.score ?? payload.score,
         startedAt: r.startedAt ? new Date(r.startedAt).toISOString() : undefined,
@@ -98,6 +107,10 @@ export default function StudentClassDashboardClient({
         correctAnswersDetail: payload.correctAnswersDetail,
         correctAnswers: payload.correctAnswers,
         totalQuestions: payload.totalQuestions,
+        durationSeconds,
+        attemptCount: Math.max(payload.attemptCount || 0, history.length),
+        bestScore: (payload.bestScore ?? r.score) ?? undefined,
+        history,
       }
     }
     return undefined
@@ -245,10 +258,17 @@ export default function StudentClassDashboardClient({
                   <div className="pt-4 border-t border-gray-100 flex items-center justify-between mt-auto">
                     {isCompleted ? (
                       <>
-                        <span className="text-emerald-700 font-extrabold text-sm bg-emerald-100/70 px-3 py-1.5 rounded-xl border border-emerald-200 flex items-center gap-1.5">
-                          <CheckCircle2 size={16} />
-                          {Math.round(testResult.score || 0)}/100 điểm
-                        </span>
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="text-emerald-700 font-extrabold text-sm bg-emerald-100/70 px-3 py-1.5 rounded-xl border border-emerald-200 flex items-center gap-1.5">
+                            <CheckCircle2 size={16} />
+                            {Math.round(testResult.score || 0)}/100 điểm
+                          </span>
+                          {((testResult.history && testResult.history.length > 1) || (testResult.attemptCount && testResult.attemptCount > 1)) && (
+                            <span className="text-indigo-700 font-bold text-xs bg-indigo-50 px-2 py-1 rounded-lg border border-indigo-200">
+                              {testResult.history?.length || testResult.attemptCount} lượt làm
+                            </span>
+                          )}
+                        </div>
                         <div className="flex items-center gap-2">
                           {test.isRetakable && (
                             <button
@@ -266,7 +286,7 @@ export default function StudentClassDashboardClient({
                             </button>
                           )}
                           <span className="text-indigo-600 font-bold text-xs flex items-center gap-1 group-hover:translate-x-1 transition-transform">
-                            Xem đáp án <ChevronRight size={14} />
+                            Xem lại bài <ChevronRight size={14} />
                           </span>
                         </div>
                       </>

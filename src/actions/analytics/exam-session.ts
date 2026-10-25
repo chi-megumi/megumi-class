@@ -5,24 +5,16 @@ import { getMe } from '../auth'
 import { prisma } from '~/common/libs/prisma'
 import { TestBlock } from '@/modules/teacher/types'
 import { gradeExamBlocks } from './grading'
-import type { StartTestInput, SubmitTestResultInput } from './types'
-
-type AttemptHistoryEntry = {
-  attempt: number
-  score: number
-  correctAnswers: number
-  totalQuestions: number
-  startedAt: string
-  completedAt: string
-}
+import type { StartTestInput, SubmitTestResultInput, ExamAttemptHistoryEntry } from './types'
 
 type StoredAnswersPayload = {
   score?: number | null
   attemptCount?: number
   bestScore?: number
-  history?: AttemptHistoryEntry[]
+  history?: ExamAttemptHistoryEntry[]
   startedAt?: string
   completedAt?: string | null
+  durationSeconds?: number | null
   answers?: Record<string, string | number>
   correctAnswersDetail?: Record<string, string | number>
   totalQuestions?: number
@@ -349,26 +341,69 @@ export async function submitTestResult({
     }
   }
 
+  // Sanitize answers input into a plain object of primitive string/number values
+  const safeAnswers: Record<string, string | number> = {}
+  if (answers && typeof answers === 'object') {
+    try {
+      for (const [k, v] of Object.entries(answers)) {
+        if (typeof v === 'string' || typeof v === 'number') {
+          safeAnswers[k] = v
+        }
+      }
+    } catch {
+      // In case of uniterable object
+    }
+  }
+
   const blocks = (test.content as unknown as TestBlock[]) || []
-  const { totalQuestions, correctAnswers, correctAnswersDetail, score } = gradeExamBlocks(blocks, answers)
+  const { totalQuestions, correctAnswers, correctAnswersDetail, score } = gradeExamBlocks(blocks, safeAnswers)
   const isFinalSubmission = !isInterrupted
   const completedAt = isFinalSubmission ? new Date() : null
 
-  // Build attempt history for retakable exams
+  const startedAtDate = existingExamResult?.startedAt ? new Date(existingExamResult.startedAt) : new Date()
+  const completedAtDate = completedAt ? new Date(completedAt) : new Date()
+  const currentDurationSeconds = Math.max(1, Math.round((completedAtDate.getTime() - startedAtDate.getTime()) / 1000))
+
+  // Build attempt history
   const prevPayload = (existingExamResult?.answers as StoredAnswersPayload | null) || {}
-  const prevHistory = Array.isArray(prevPayload.history) ? prevPayload.history : []
+  const rawPrevHistory = Array.isArray(prevPayload.history) ? prevPayload.history : []
+
+  const prevHistory: ExamAttemptHistoryEntry[] = [...rawPrevHistory]
+  // If prevHistory was empty but existingExamResult was completed in the past, seed attempt 1 from existingExamResult
+  if (prevHistory.length === 0 && existingExamResult?.completedAt) {
+    const prevStarted = existingExamResult.startedAt ? new Date(existingExamResult.startedAt) : new Date()
+    const prevCompleted = new Date(existingExamResult.completedAt)
+    const prevDuration = Math.max(1, Math.round((prevCompleted.getTime() - prevStarted.getTime()) / 1000))
+    prevHistory.push({
+      attempt: 1,
+      score: existingExamResult.score ?? prevPayload.score ?? 0,
+      correctAnswers: prevPayload.correctAnswers ?? null,
+      totalQuestions: prevPayload.totalQuestions ?? null,
+      durationSeconds: prevDuration,
+      startedAt: prevStarted.toISOString(),
+      completedAt: prevCompleted.toISOString(),
+      isInterrupted: !!prevPayload.isInterrupted,
+      answers: prevPayload.answers || {},
+      correctAnswersDetail: prevPayload.correctAnswersDetail || {},
+    })
+  }
+
   const prevAttemptCount = typeof prevPayload.attemptCount === 'number'
     ? prevPayload.attemptCount
-    : (existingExamResult?.completedAt ? 1 : 0)
+    : prevHistory.length
   const attemptCount = isFinalSubmission ? prevAttemptCount + 1 : prevAttemptCount
 
-  const newHistoryEntry: AttemptHistoryEntry = {
+  const newHistoryEntry: ExamAttemptHistoryEntry = {
     attempt: attemptCount,
     score,
     correctAnswers,
     totalQuestions,
-    startedAt: existingExamResult?.startedAt?.toISOString() || new Date().toISOString(),
-    completedAt: completedAt ? completedAt.toISOString() : new Date().toISOString(),
+    durationSeconds: currentDurationSeconds,
+    startedAt: startedAtDate.toISOString(),
+    completedAt: completedAtDate.toISOString(),
+    isInterrupted: !!isInterrupted,
+    answers: safeAnswers,
+    correctAnswersDetail,
   }
 
   const bestScore = Math.max(score, prevPayload.bestScore ?? (existingExamResult?.score ?? score))
@@ -377,14 +412,15 @@ export async function submitTestResult({
     score,
     correctAnswers,
     totalQuestions,
-    answers,
+    answers: safeAnswers,
     correctAnswersDetail,
-    startedAt: existingExamResult?.startedAt?.toISOString() || new Date().toISOString(),
+    startedAt: startedAtDate.toISOString(),
     completedAt: completedAt ? completedAt.toISOString() : null,
     attemptCount,
     bestScore,
+    durationSeconds: currentDurationSeconds,
     isInterrupted: !!isInterrupted,
-    history: isFinalSubmission && test.isRetakable ? [...prevHistory, newHistoryEntry] : prevHistory,
+    history: isFinalSubmission ? [...prevHistory, newHistoryEntry] : prevHistory,
   }
 
   // 1. Primary storage: Upsert into ExamResult table

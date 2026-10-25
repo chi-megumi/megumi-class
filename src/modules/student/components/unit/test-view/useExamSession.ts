@@ -1,11 +1,19 @@
 'use client'
 
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef, useCallback, useSyncExternalStore } from 'react'
 import { useRouter } from 'next/navigation'
 import { submitTestResult, startTest } from '@/actions/analytics/exam-session'
 import { shuffleRetakableExam } from '@/modules/student/utils/examShuffler'
+import {
+  loadStoredExamSession,
+  saveStoredExamSession,
+  clearStoredExamSession,
+  type StoredActiveExamSession,
+} from './examSessionStorage'
 import type { TestResultPayload } from '@/actions/analytics/types'
 import type { ExamData, TestContent, TestBlock } from '~/modules/teacher/types'
+
+const emptySubscribe = () => () => {}
 
 type UseExamSessionOptions = {
   testData: ExamData | TestContent
@@ -29,49 +37,89 @@ export function useExamSession({
   const rawBlocks: TestBlock[] =
     ('content' in testData ? testData.content : testData.blocks) || []
 
-  const [isReviewMode, setIsReviewMode] = useState<boolean>(
-    !isRetake && !!initialResult && !!initialResult.completedAt,
-  )
-  const [isRetaking, setIsRetaking] = useState(false)
-  const [retakeKey, setRetakeKey] = useState(0)
-
-  const [currentBlocks, setCurrentBlocks] = useState<TestBlock[]>(() => {
-    if (testData.isRetakable && (isRetake || !(initialResult && initialResult.completedAt))) {
-      return shuffleRetakableExam(rawBlocks)
-    }
-    return rawBlocks
-  })
-
-  const [answers, setAnswers] = useState<Record<string, string | number>>(() => {
-    if (isRetake) {
-      return {}
-    }
-    return initialResult?.answers || {}
-  })
+  const isMounted = useSyncExternalStore(emptySubscribe, () => true, () => false)
 
   const safeDuration =
     (testData.duration && testData.duration > 0 ? testData.duration : 15) * 60
 
-  const [initialDurationSeconds, setInitialDurationSeconds] = useState(() => {
-    if (isRetake) return safeDuration
-    if (initialResult && initialResult.completedAt) return safeDuration
+  // Helper to synchronously read valid active session on client
+  const getInitialActiveSession = (): StoredActiveExamSession | null => {
+    if (typeof window === 'undefined') return null
+    if (!isRetake && initialResult?.completedAt) return null
+    const stored = loadStoredExamSession(classId, testData.id)
+    if (!stored) return null
 
-    if (initialResult?.startedAt) {
-      const elapsed = Math.floor(
-        (Date.now() - new Date(initialResult.startedAt).getTime()) / 1000,
-      )
-      const remaining = safeDuration - elapsed
-      if (remaining > 0) return remaining
-
-      const hasAnswers =
-        initialResult.answers && Object.keys(initialResult.answers).length > 0
-      if (testData.isRetakable || !hasAnswers) {
-        return safeDuration
+    // If server start time is significantly newer than stored session, stored is obsolete
+    if (initialResult?.startedAt && stored.startedAt) {
+      const serverStart = new Date(initialResult.startedAt).getTime()
+      const localStart = new Date(stored.startedAt).getTime()
+      if (serverStart - localStart > 30000) {
+        clearStoredExamSession(classId, testData.id)
+        return null
       }
-      return 0
     }
 
+    return stored
+  }
+
+  const [isReviewMode, setIsReviewMode] = useState<boolean>(() => {
+    if (isRetake) return false
+    return !!initialResult && !!initialResult.completedAt
+  })
+  const [isRetaking, setIsRetaking] = useState(false)
+  const [retakeKey, setRetakeKey] = useState(0)
+
+  // Initialize currentBlocks with stored blocks if available, else rawBlocks
+  const [currentBlocks, setCurrentBlocks] = useState<TestBlock[]>(() => {
+    const session = getInitialActiveSession()
+    if (session?.blocks && session.blocks.length > 0) {
+      return session.blocks
+    }
+    return rawBlocks
+  })
+
+  // Initialize answers from storedSession if available
+  const [answers, setAnswers] = useState<Record<string, string | number>>(() => {
+    const session = getInitialActiveSession()
+    if (session?.answers) {
+      return session.answers
+    }
+    if (isRetake) return {}
+    return initialResult?.answers || {}
+  })
+
+  // Initialize targetEndTime and initialDurationSeconds from storedSession or server startedAt
+  const [targetEndTime, setTargetEndTime] = useState<number | null>(() => {
+    const session = getInitialActiveSession()
+    if (session?.targetEndTime) {
+      return session.targetEndTime
+    }
+    if (initialResult?.startedAt && (!initialResult?.completedAt || isRetake)) {
+      const startMs = new Date(initialResult.startedAt).getTime()
+      const endMs = startMs + safeDuration * 1000
+      if (Date.now() - endMs < 24 * 60 * 60 * 1000) {
+        return endMs
+      }
+    }
+    return null
+  })
+
+  const [initialDurationSeconds, setInitialDurationSeconds] = useState<number>(() => {
+    const session = getInitialActiveSession()
+    if (session?.targetEndTime) {
+      return Math.max(0, Math.floor((session.targetEndTime - Date.now()) / 1000))
+    }
+    if (initialResult?.startedAt && (!initialResult?.completedAt || isRetake)) {
+      const startMs = new Date(initialResult.startedAt).getTime()
+      const endMs = startMs + safeDuration * 1000
+      return Math.max(0, Math.floor((endMs - Date.now()) / 1000))
+    }
     return safeDuration
+  })
+
+  const [lastSavedAt, setLastSavedAt] = useState<string | null>(() => {
+    const session = getInitialActiveSession()
+    return session?.lastSavedAt || null
   })
 
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -84,38 +132,194 @@ export function useExamSession({
 
   const hasSubmittedRef = useRef(false)
   const answersRef = useRef(answers)
-  const sessionKey = `megumi_active_test_${testData.id}`
+  const blocksRef = useRef(currentBlocks)
+  const targetEndTimeRef = useRef(targetEndTime)
 
   useEffect(() => {
     answersRef.current = answers
   }, [answers])
 
-  // Clean up any stale session from F5
   useEffect(() => {
-    if (isReviewMode || result || isRetake) return
+    blocksRef.current = currentBlocks
+  }, [currentBlocks])
 
-    try {
-      sessionStorage.removeItem(sessionKey)
-    } catch {
-      // Ignore
-    }
-
-    try {
-      sessionStorage.setItem(sessionKey, JSON.stringify({ answers: {} }))
-    } catch {
-      // Ignore
-    }
-  }, [testData.id, isReviewMode, result, isRetake, sessionKey])
-
-  // Sync answers into sessionStorage
   useEffect(() => {
-    if (isReviewMode || result) return
-    try {
-      sessionStorage.setItem(sessionKey, JSON.stringify({ answers }))
-    } catch {
-      // Ignore
+    targetEndTimeRef.current = targetEndTime
+  }, [targetEndTime])
+
+  // --- SUBMIT CALLBACK ---
+  const handleSubmit = useCallback(
+    async (explicitAnswers?: unknown) => {
+      if (hasSubmittedRef.current || isSubmitting || result || isReviewMode) return
+      hasSubmittedRef.current = true
+      setIsSubmitting(true)
+
+      // Guard against React Synthetic Events (e.g. from onClick={handleSubmit})
+      const isPlainAnswers =
+        explicitAnswers &&
+        typeof explicitAnswers === 'object' &&
+        !('nativeEvent' in explicitAnswers) &&
+        !('target' in explicitAnswers) &&
+        !('currentTarget' in explicitAnswers)
+
+      const rawAnswers = (isPlainAnswers ? explicitAnswers : answersRef.current) as Record<string, unknown>
+
+      // Ensure answers are strictly serializable string/number primitives
+      const cleanAnswers: Record<string, string | number> = {}
+      if (rawAnswers && typeof rawAnswers === 'object') {
+        for (const [k, v] of Object.entries(rawAnswers)) {
+          if (typeof v === 'string' || typeof v === 'number') {
+            cleanAnswers[k] = v
+          }
+        }
+      }
+
+      try {
+        const res = await submitTestResult({
+          classId,
+          unitId,
+          testId: testData.id,
+          answers: cleanAnswers,
+        })
+
+        if (res.resultData) {
+          clearStoredExamSession(classId, testData.id)
+          setResult(res.resultData)
+          setShowSummary(true)
+          setIsReviewMode(true)
+          if (onTestComplete) {
+            onTestComplete(testData.id, res.resultData)
+          }
+        } else {
+          throw new Error('No result data returned')
+        }
+
+        router.refresh()
+      } catch (e) {
+        console.error(e)
+        alert('Có lỗi xảy ra khi nộp bài.')
+        hasSubmittedRef.current = false
+      } finally {
+        setIsSubmitting(false)
+      }
+    },
+    [isSubmitting, result, isReviewMode, onTestComplete, classId, unitId, testData.id, router],
+  )
+
+  // --- CLIENT MOUNT & SESSION RESTORATION FROM LOCALSTORAGE ---
+  useEffect(() => {
+    /* eslint-disable react-hooks/set-state-in-effect */
+    if (isReviewMode || (initialResult && initialResult.completedAt && !isRetake)) {
+      clearStoredExamSession(classId, testData.id)
+      return
     }
-  }, [answers, isReviewMode, result, sessionKey])
+
+    const storedSession = loadStoredExamSession(classId, testData.id)
+    const now = Date.now()
+
+    if (storedSession) {
+      // Restore from active localStorage session (whether first attempt or retake)
+      const restoredBlocks =
+        storedSession.blocks && storedSession.blocks.length > 0
+          ? storedSession.blocks
+          : rawBlocks
+      const restoredAnswers = storedSession.answers || {}
+      const restoredEndTime = storedSession.targetEndTime || (now + safeDuration * 1000)
+      const remaining = Math.max(0, Math.floor((restoredEndTime - now) / 1000))
+
+      setCurrentBlocks(restoredBlocks)
+      setAnswers(restoredAnswers)
+      setTargetEndTime(restoredEndTime)
+      setInitialDurationSeconds(remaining)
+      setLastSavedAt(storedSession.lastSavedAt || null)
+
+      // Keep localStorage freshly synced
+      saveStoredExamSession({
+        testId: testData.id,
+        classId,
+        unitId,
+        startedAt: storedSession.startedAt || new Date().toISOString(),
+        targetEndTime: restoredEndTime,
+        blocks: restoredBlocks,
+        answers: restoredAnswers,
+        lastSavedAt: storedSession.lastSavedAt || new Date().toISOString(),
+      })
+
+      // If time already expired while away, submit immediately
+      if (remaining <= 0) {
+        handleSubmit(restoredAnswers)
+      }
+    } else {
+      // Initialize fresh session or retake
+      const sessionBlocks = testData.isRetakable
+        ? shuffleRetakableExam(rawBlocks)
+        : rawBlocks
+
+      const startTimeStr =
+        initialResult?.startedAt && (!initialResult?.completedAt || isRetake)
+          ? initialResult.startedAt
+          : new Date().toISOString()
+      const startMs = new Date(startTimeStr).getTime()
+      const calculatedEndTime = startMs + safeDuration * 1000
+      const remaining = Math.max(0, Math.floor((calculatedEndTime - now) / 1000))
+      const initialAnswers = isRetake ? {} : (initialResult?.answers || {})
+
+      setCurrentBlocks(sessionBlocks)
+      setAnswers(initialAnswers)
+      setTargetEndTime(calculatedEndTime)
+      setInitialDurationSeconds(remaining)
+
+      const newSession: StoredActiveExamSession = {
+        testId: testData.id,
+        classId,
+        unitId,
+        startedAt: startTimeStr,
+        targetEndTime: calculatedEndTime,
+        blocks: sessionBlocks,
+        answers: initialAnswers,
+        lastSavedAt: new Date().toISOString(),
+      }
+      saveStoredExamSession(newSession)
+      setLastSavedAt(newSession.lastSavedAt)
+
+      if (remaining <= 0) {
+        handleSubmit(initialAnswers)
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // --- AUTO-SAVE ON ANSWER CHANGE TO LOCALSTORAGE (DEBOUNCED) ---
+  useEffect(() => {
+    if (!isMounted || isReviewMode || result || !targetEndTime) return
+
+    const timer = setTimeout(() => {
+      const nowIso = new Date().toISOString()
+      saveStoredExamSession({
+        testId: testData.id,
+        classId,
+        unitId,
+        startedAt: initialResult?.startedAt || nowIso,
+        targetEndTime,
+        blocks: blocksRef.current,
+        answers,
+        lastSavedAt: nowIso,
+      })
+      setLastSavedAt(nowIso)
+    }, 400)
+
+    return () => clearTimeout(timer)
+  }, [
+    answers,
+    isMounted,
+    isReviewMode,
+    result,
+    targetEndTime,
+    classId,
+    testData.id,
+    unitId,
+    initialResult?.startedAt,
+  ])
 
   // --- ANSWER HANDLER ---
   const handleAnswer = useCallback(
@@ -126,105 +330,42 @@ export function useExamSession({
     [isReviewMode],
   )
 
-  // --- SUBMIT ---
-  const handleSubmit = useCallback(async () => {
-    if (hasSubmittedRef.current || isSubmitting || result || isReviewMode) return
-    hasSubmittedRef.current = true
-    setIsSubmitting(true)
-
-    try {
-      sessionStorage.removeItem(sessionKey)
-    } catch {
-      // Ignore
-    }
-
-    try {
-      const res = await submitTestResult({
-        classId,
-        unitId,
-        testId: testData.id,
-        answers,
-      })
-
-      if (res.resultData) {
-        setResult(res.resultData)
-        setShowSummary(true)
-        setIsReviewMode(true)
-        if (onTestComplete) {
-          onTestComplete(testData.id, res.resultData)
-        }
-      } else {
-        throw new Error('No result data returned')
-      }
-
-      router.refresh()
-    } catch (e) {
-      console.error(e)
-      alert('Có lỗi xảy ra khi nộp bài.')
-    } finally {
-      setIsSubmitting(false)
-    }
-  }, [
-    isSubmitting,
-    result,
-    isReviewMode,
-    onTestComplete,
-    classId,
-    unitId,
-    testData.id,
-    answers,
-    router,
-    sessionKey,
-  ])
-
-  // --- BEFOREUNLOAD / PAGEHIDE BEACON ---
+  // --- BEFOREUNLOAD SAVE AND CONFIRMATION ---
   useEffect(() => {
-    if (isReviewMode) return
+    if (isReviewMode || !isMounted) return
 
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
       if (hasSubmittedRef.current || isReviewMode || result) return
       const currentAnswers = answersRef.current
       if (currentAnswers && Object.keys(currentAnswers).length > 0) {
+        if (targetEndTimeRef.current) {
+          saveStoredExamSession({
+            testId: testData.id,
+            classId,
+            unitId,
+            startedAt: initialResult?.startedAt || new Date().toISOString(),
+            targetEndTime: targetEndTimeRef.current,
+            blocks: blocksRef.current,
+            answers: currentAnswers,
+            lastSavedAt: new Date().toISOString(),
+          })
+        }
         e.preventDefault()
         e.returnValue = ''
       }
     }
 
-    const handlePageHide = () => {
-      if (hasSubmittedRef.current || isReviewMode || result) return
-      const currentAnswers = answersRef.current
-      if (!currentAnswers || Object.keys(currentAnswers).length === 0) {
-        return
-      }
-      hasSubmittedRef.current = true
-      try {
-        sessionStorage.removeItem(sessionKey)
-      } catch {
-        // Ignore
-      }
-      const payload = {
-        classId,
-        unitId,
-        testId: testData.id,
-        answers: currentAnswers,
-        isInterrupted: true,
-      }
-      try {
-        const blob = new Blob([JSON.stringify(payload)], { type: 'application/json' })
-        navigator.sendBeacon('/api/analytics/test-submit', blob)
-      } catch {
-        // Fallback
-      }
-    }
-
     window.addEventListener('beforeunload', handleBeforeUnload)
-    window.addEventListener('pagehide', handlePageHide)
-
-    return () => {
-      window.removeEventListener('beforeunload', handleBeforeUnload)
-      window.removeEventListener('pagehide', handlePageHide)
-    }
-  }, [isReviewMode, result, classId, unitId, testData.id, sessionKey])
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload)
+  }, [
+    isReviewMode,
+    isMounted,
+    result,
+    classId,
+    testData.id,
+    unitId,
+    initialResult?.startedAt,
+  ])
 
   // --- RETAKE ---
   const handleRetake = async (onRestartSuccess?: (shuffled: TestBlock[]) => void) => {
@@ -241,13 +382,34 @@ export function useExamSession({
         throw new Error('Failed to restart test')
       }
 
+      clearStoredExamSession(classId, testData.id)
+
       const sourceBlocks =
         ('content' in testData ? testData.content : testData.blocks) || []
       const shuffled = shuffleRetakableExam(sourceBlocks)
 
+      const now = Date.now()
+      const newTargetEndTime = now + safeDuration * 1000
+      const newStartedAt = res.startedAt || new Date().toISOString()
+      const nowIso = new Date().toISOString()
+
+      const newSession: StoredActiveExamSession = {
+        testId: testData.id,
+        classId,
+        unitId,
+        startedAt: newStartedAt,
+        targetEndTime: newTargetEndTime,
+        blocks: shuffled,
+        answers: {},
+        lastSavedAt: nowIso,
+      }
+      saveStoredExamSession(newSession)
+
       setCurrentBlocks(shuffled)
       setAnswers({})
-      setInitialDurationSeconds(testData.duration * 60)
+      setTargetEndTime(newTargetEndTime)
+      setInitialDurationSeconds(safeDuration)
+      setLastSavedAt(nowIso)
       setRetakeKey((prev) => prev + 1)
       setResult(null)
       setShowSummary(false)
@@ -270,6 +432,7 @@ export function useExamSession({
     isRetaking,
     retakeKey,
     initialDurationSeconds,
+    targetEndTime,
     answers,
     setAnswers,
     isSubmitting,
@@ -279,5 +442,7 @@ export function useExamSession({
     handleAnswer,
     handleSubmit,
     handleRetake,
+    lastSavedAt,
+    isMounted,
   }
 }

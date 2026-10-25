@@ -14,6 +14,8 @@ import type {
   StudentExamDetail,
 } from '@/modules/teacher/types'
 
+import { normalizeExamHistory, calculateExamDuration } from './history-utils'
+
 type StoredResultPayload = {
   score?: number | null
   correctAnswers?: number
@@ -22,6 +24,10 @@ type StoredResultPayload = {
   correctAnswersDetail?: Record<string, string | number>
   startedAt?: string
   completedAt?: string | null
+  durationSeconds?: number | null
+  attemptCount?: number | null
+  bestScore?: number | null
+  history?: Array<unknown> | null
   isInterrupted?: boolean
 }
 
@@ -179,6 +185,12 @@ export async function getUnitAnalytics(unitId: string): Promise<UnitAnalyticsRes
       const payload = (res?.answers as StoredResultPayload | null) || {}
       const isCompleted = !!res?.completedAt
       const score = res?.score ?? (isCompleted ? payload.score ?? 0 : null)
+      const history = normalizeExamHistory(payload, res)
+      const attemptCount = Math.max(payload.attemptCount || 0, history.length)
+      const bestScore = payload.bestScore ?? score
+      const durationSeconds = history[history.length - 1]?.durationSeconds || (
+        res?.startedAt && res?.completedAt ? calculateExamDuration(res.startedAt, res.completedAt) : null
+      )
 
       if (isCompleted && score !== null && score !== undefined) {
         examScores.push(score)
@@ -198,6 +210,10 @@ export async function getUnitAnalytics(unitId: string): Promise<UnitAnalyticsRes
         totalQuestions: payload.totalQuestions ?? null,
         completedAt: res?.completedAt || null,
         startedAt: res?.startedAt || null,
+        durationSeconds,
+        attemptCount,
+        bestScore,
+        history,
         answers: payload.answers || {},
         correctAnswersDetail: payload.correctAnswersDetail || {},
         content: exam.content,
@@ -211,6 +227,12 @@ export async function getUnitAnalytics(unitId: string): Promise<UnitAnalyticsRes
       const payload = (res?.answers as StoredResultPayload | null) || {}
       const isCompleted = !!res?.completedAt
       const score = res?.score ?? (isCompleted ? payload.score ?? 0 : null)
+      const history = normalizeExamHistory(payload, res)
+      const attemptCount = Math.max(payload.attemptCount || 0, history.length)
+      const bestScore = payload.bestScore ?? score
+      const durationSeconds = history[history.length - 1]?.durationSeconds || (
+        res?.startedAt && res?.completedAt ? calculateExamDuration(res.startedAt, res.completedAt) : null
+      )
 
       return {
         id: exam.id,
@@ -225,6 +247,10 @@ export async function getUnitAnalytics(unitId: string): Promise<UnitAnalyticsRes
         totalQuestions: payload.totalQuestions ?? null,
         completedAt: res?.completedAt || null,
         startedAt: res?.startedAt || null,
+        durationSeconds,
+        attemptCount,
+        bestScore,
+        history,
         answers: payload.answers || {},
         correctAnswersDetail: payload.correctAnswersDetail || {},
         content: exam.content,

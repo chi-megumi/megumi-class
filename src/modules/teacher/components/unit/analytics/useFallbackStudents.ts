@@ -8,6 +8,7 @@ import type {
   PracticeSessionEntry,
   ExamResultData,
 } from '@/modules/teacher/types'
+import { normalizeExamHistory, calculateExamDuration } from '@/actions/analytics/history-utils'
 
 export function useFallbackStudents(
   unit: UnitData,
@@ -55,6 +56,13 @@ export function useFallbackStudents(
           const res = exam.results?.find(
             (r: ExamResultData) => r.studentId === enrollment.student.id,
           )
+          const payload = (res?.answers as Record<string, unknown> | null) || {}
+          const examAttempts = normalizeExamHistory(payload, res)
+          const attemptCount = Math.max((payload.attemptCount as number) || 0, examAttempts.length)
+          const bestScore = (payload.bestScore as number) ?? res?.score ?? null
+          const durationSeconds = examAttempts[examAttempts.length - 1]?.durationSeconds || (
+            res?.startedAt && res?.completedAt ? calculateExamDuration(res.startedAt, res.completedAt) : null
+          )
           return {
             id: exam.id,
             title: exam.title,
@@ -66,13 +74,25 @@ export function useFallbackStudents(
             score: res?.score ?? null,
             completedAt: res?.completedAt || null,
             startedAt: res?.startedAt || null,
-            answers: {},
+            durationSeconds,
+            attemptCount,
+            bestScore,
+            history: examAttempts,
+            answers: (payload.answers as Record<string, unknown>) || {},
+            correctAnswersDetail: (payload.correctAnswersDetail as Record<string, string | number>) || {},
             content: exam.content,
           }
         }),
         ...publishedClassExams.map((exam: ExamData) => {
           const res = exam.results?.find(
             (r: ExamResultData) => r.studentId === enrollment.student.id,
+          )
+          const payload = (res?.answers as Record<string, unknown> | null) || {}
+          const examAttempts = normalizeExamHistory(payload, res)
+          const attemptCount = Math.max((payload.attemptCount as number) || 0, examAttempts.length)
+          const bestScore = (payload.bestScore as number) ?? res?.score ?? null
+          const durationSeconds = examAttempts[examAttempts.length - 1]?.durationSeconds || (
+            res?.startedAt && res?.completedAt ? calculateExamDuration(res.startedAt, res.completedAt) : null
           )
           return {
             id: exam.id,
@@ -85,7 +105,12 @@ export function useFallbackStudents(
             score: res?.score ?? null,
             completedAt: res?.completedAt || null,
             startedAt: res?.startedAt || null,
-            answers: {},
+            durationSeconds,
+            attemptCount,
+            bestScore,
+            history: examAttempts,
+            answers: (payload.answers as Record<string, unknown>) || {},
+            correctAnswersDetail: (payload.correctAnswersDetail as Record<string, string | number>) || {},
             content: exam.content,
           }
         }),

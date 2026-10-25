@@ -24,8 +24,9 @@ export type ExamGradingResult = {
  */
 export function gradeExamBlocks(
   blocks: TestBlock[],
-  answers: Record<string, string | number>
+  answers: Record<string, string | number> = {}
 ): ExamGradingResult {
+  const safeAnswers = answers && typeof answers === 'object' ? answers : {}
   let totalQuestions = 0
   let correctAnswers = 0
   const correctAnswersDetail: Record<string, string | number> = {}
@@ -35,7 +36,7 @@ export function gradeExamBlocks(
       block.content?.questions?.forEach((q: TestQuestion) => {
         totalQuestions++
         correctAnswersDetail[q.id] = q.correctIndex ?? 0
-        if (answers[q.id] === q.correctIndex) {
+        if (safeAnswers[q.id] === q.correctIndex) {
           correctAnswers++
         }
       })
@@ -49,7 +50,7 @@ export function gradeExamBlocks(
             .split('|')
             .map((s) => normalizeSentence(s))
             .filter(Boolean)
-          const studentAns = normalizeSentence(String(answers[q.id] || ''))
+          const studentAns = normalizeSentence(String(safeAnswers[q.id] || ''))
           if (acceptableAnswers.includes(studentAns)) {
             correctAnswers++
           }
@@ -62,7 +63,7 @@ export function gradeExamBlocks(
           .split('|')
           .map((s) => normalizeSentence(s))
           .filter(Boolean)
-        const studentAns = normalizeSentence(String(answers[block.id] || ''))
+        const studentAns = normalizeSentence(String(safeAnswers[block.id] || ''))
         if (acceptableAnswers.includes(studentAns)) {
           correctAnswers++
         }
@@ -74,7 +75,7 @@ export function gradeExamBlocks(
           totalQuestions++
           const key = `${block.id}_${p.id}`
           correctAnswersDetail[key] = p.right || p.id
-          const studentAns = answers[key]
+          const studentAns = safeAnswers[key]
           if (
             studentAns === p.id ||
             (p.right && String(studentAns).trim().toLowerCase() === String(p.right).trim().toLowerCase())
@@ -90,7 +91,7 @@ export function gradeExamBlocks(
           totalQuestions++
           const key = q.id
           correctAnswersDetail[key] = q.sentence || ''
-          const studentAns = (answers[key] || '').toString()
+          const studentAns = (safeAnswers[key] || '').toString()
           const correctSentence = (q.sentence || '').toString()
           if (normalizeSentence(studentAns) === normalizeSentence(correctSentence)) {
             correctAnswers++
@@ -113,7 +114,7 @@ export function gradeExamBlocks(
           // Trắc nghiệm (MC, True/False, Sentence Insertion, Cloze choice, Matching heading)
           const correctIdx = q.correctIndex ?? 0
           correctAnswersDetail[q.id] = correctIdx
-          if (answers[q.id] === correctIdx) {
+          if (safeAnswers[q.id] === correctIdx) {
             correctAnswers++
           }
         } else if (q.answer) {
@@ -123,7 +124,7 @@ export function gradeExamBlocks(
             .split('|')
             .map((s) => normalizeSentence(s))
             .filter(Boolean)
-          const studentAns = normalizeSentence(String(answers[q.id] || ''))
+          const studentAns = normalizeSentence(String(safeAnswers[q.id] || ''))
           if (acceptableAnswers.includes(studentAns)) {
             correctAnswers++
           }
@@ -131,7 +132,7 @@ export function gradeExamBlocks(
           // Fallback trắc nghiệm nếu không có answer
           const correctIdx = q.correctIndex ?? 0
           correctAnswersDetail[q.id] = correctIdx
-          if (answers[q.id] === correctIdx) {
+          if (safeAnswers[q.id] === correctIdx) {
             correctAnswers++
           }
         }

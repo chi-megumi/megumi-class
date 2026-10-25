@@ -13,7 +13,7 @@ import {
   AlertTriangle,
   CheckCircle2,
 } from 'lucide-react'
-import { StudentAnalyticsData, StudentExamDetail, PracticeSessionEntry } from '../../types'
+import { StudentAnalyticsData, StudentExamDetail, PracticeSessionEntry, ExamAttemptHistoryEntry } from '../../types'
 import { formatDateTime } from '../../utils/date'
 import ExamSubmissionReview from '../unit/ExamSubmissionReview'
 
@@ -268,15 +268,15 @@ function PracticeActivityCard({
 
 export default function UnitProgressStudentRow({ data }: UnitProgressStudentRowProps) {
   const [isExpanded, setIsExpanded] = useState(false)
-  const [expandedExamId, setExpandedExamId] = useState<string | null>(null)
+  const [expandedExamAttemptKey, setExpandedExamAttemptKey] = useState<string | null>(null)
 
   const toggleExpanded = () => {
     setIsExpanded((prev) => !prev)
   }
 
-  const toggleExamDetail = (examId: string, e: React.MouseEvent) => {
-    e.stopPropagation()
-    setExpandedExamId((prev) => (prev === examId ? null : examId))
+  const toggleAttemptDetail = (key: string, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation()
+    setExpandedExamAttemptKey((prev) => (prev === key ? null : key))
   }
 
   const flashcardSessions = getSessionList(
@@ -296,6 +296,11 @@ export default function UnitProgressStudentRow({ data }: UnitProgressStudentRowP
   const matchTimes = Math.max(data.games.match.timesPlayed, matchSessions.length)
 
   const totalPracticeCount = flashcardTimes + quizTimes + matchTimes
+
+  const totalExamAttemptsCount = (data.exams || []).reduce((acc, ex) => {
+    const attempts = ex.history && ex.history.length > 0 ? ex.history.length : (ex.isCompleted ? 1 : 0)
+    return acc + attempts
+  }, 0)
 
   return (
     <>
@@ -405,7 +410,13 @@ export default function UnitProgressStudentRow({ data }: UnitProgressStudentRowP
                   title={exam.title}
                 >
                   <span className="truncate max-w-[120px]">{exam.title}:</span>
-                  <span>{exam.isCompleted ? `${exam.score}đ` : exam.isInProgress ? 'Đang làm' : 'Chưa làm'}</span>
+                  <span>
+                    {exam.isCompleted
+                      ? `${exam.score}đ${exam.history && exam.history.length > 1 ? ` (${exam.history.length} lượt)` : ''}`
+                      : exam.isInProgress
+                      ? 'Đang làm'
+                      : 'Chưa làm'}
+                  </span>
                 </div>
               ))
             ) : (
@@ -509,11 +520,21 @@ export default function UnitProgressStudentRow({ data }: UnitProgressStudentRowP
 
               {/* Right Column: Danh sách Bài kiểm tra đầy đủ (7 cols) */}
               <div className="lg:col-span-7 space-y-4">
-                <div className="flex items-center justify-between border-b border-gray-200 pb-2">
-                  <h4 className="text-sm font-bold text-gray-800 flex items-center gap-2">
-                    <FileText size={16} className="text-indigo-600" /> Danh sách bài kiểm tra đầy đủ (
-                    {data.exams?.length || 0})
-                  </h4>
+                <div className="flex items-center justify-between border-b border-gray-200/80 pb-2.5">
+                  <div className="flex items-center gap-2">
+                    <div className="p-1 rounded-lg bg-indigo-100 text-indigo-600">
+                      <FileText size={16} />
+                    </div>
+                    <h4 className="text-sm font-bold text-gray-900">
+                      Danh sách bài kiểm tra đầy đủ
+                    </h4>
+                    <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
+                      {totalExamAttemptsCount} lượt làm
+                    </span>
+                  </div>
+                  <span className="text-[11px] text-gray-400 font-medium">
+                    {data.exams?.length || 0} bài thi
+                  </span>
                 </div>
 
                 {!data.exams || data.exams.length === 0 ? (
@@ -521,21 +542,51 @@ export default function UnitProgressStudentRow({ data }: UnitProgressStudentRowP
                     Chưa có bài kiểm tra nào được gán cho nội dung này.
                   </div>
                 ) : (
-                  <div className="space-y-3">
+                  <div className="space-y-3.5">
                     {data.exams.map((exam: StudentExamDetail) => {
-                      const isReviewOpen = expandedExamId === exam.id
+                      const attempts: ExamAttemptHistoryEntry[] =
+                        exam.history && exam.history.length > 0
+                          ? exam.history
+                          : exam.isCompleted
+                          ? [
+                              {
+                                attempt: 1,
+                                score: exam.score ?? 0,
+                                correctAnswers: exam.correctAnswers ?? null,
+                                totalQuestions: exam.totalQuestions ?? null,
+                                durationSeconds: exam.durationSeconds ?? null,
+                                startedAt: (exam.startedAt ? new Date(exam.startedAt).toISOString() : '') as string,
+                                completedAt: (exam.completedAt ? new Date(exam.completedAt).toISOString() : '') as string,
+                                isInterrupted: !!exam.isInterrupted,
+                                answers: (exam.answers as Record<string, unknown>) || {},
+                                correctAnswersDetail: exam.correctAnswersDetail || {},
+                              },
+                            ]
+                          : []
+
+                      const totalExamSeconds = attempts.reduce(
+                        (acc, a) => acc + (a.durationSeconds || 0),
+                        0,
+                      )
+                      const bestScore =
+                        exam.bestScore ??
+                        (attempts.length > 0
+                          ? Math.max(...attempts.map((a) => a.score ?? 0))
+                          : exam.score ?? null)
+
                       return (
                         <div
                           key={exam.id}
                           className={`rounded-2xl border transition-all overflow-hidden ${
                             exam.isCompleted
-                              ? 'bg-white border-gray-200/90 shadow-xs'
+                              ? 'bg-white border-indigo-100/90 shadow-xs'
                               : exam.isInProgress
                               ? 'bg-amber-50/40 border-amber-200'
                               : 'bg-white border-gray-200/60 opacity-80'
                           }`}
                         >
-                          <div className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                          {/* Exam Card Header */}
+                          <div className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white">
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2 flex-wrap mb-1">
                                 <span
@@ -550,9 +601,9 @@ export default function UnitProgressStudentRow({ data }: UnitProgressStudentRowP
                                     : exam.unitTitle || 'Đề Unit'}
                                 </span>
                                 <span className="text-xs text-gray-400 flex items-center gap-1">
-                                  <Clock size={12} /> {exam.duration || 45} phút
+                                  <Clock size={12} /> Thời gian đề: {exam.duration || 45} phút
                                 </span>
-                                {exam.isInterrupted && (
+                                {exam.isInterrupted && attempts.length <= 1 && (
                                   <span className="px-2 py-0.5 rounded bg-rose-50 text-rose-600 text-[10px] font-bold border border-rose-200 flex items-center gap-1">
                                     <AlertTriangle size={11} /> Nộp do tải lại trang / F5
                                   </span>
@@ -560,89 +611,173 @@ export default function UnitProgressStudentRow({ data }: UnitProgressStudentRowP
                               </div>
                               <h5 className="font-bold text-gray-900 text-sm">{exam.title}</h5>
 
-                              {exam.isCompleted && exam.completedAt && (() => {
-                                const dt = formatDateTime(exam.completedAt)
-                                return (
-                                  <div className="text-[11px] text-gray-500 mt-1.5 flex items-center gap-1.5 flex-wrap">
-                                    <span className="flex items-center gap-1 font-medium text-gray-700">
-                                      <Clock size={12} className="text-indigo-500 shrink-0" />
-                                      Đã nộp: <strong>{dt ? dt.timeWithSeconds : ''}</strong>
-                                    </span>
-                                    {dt && (
-                                      <>
-                                        <span className="text-gray-300">•</span>
-                                        <span className="flex items-center gap-1 font-medium text-gray-600">
-                                          <Calendar size={12} className="text-indigo-400 shrink-0" />
-                                          <strong>{dt.date}</strong>
-                                        </span>
-                                      </>
-                                    )}
-                                  </div>
-                                )
-                              })()}
+                              {totalExamSeconds > 0 && (
+                                <span className="text-[11px] text-gray-500 font-medium flex items-center gap-1 mt-1">
+                                  <Clock size={11} className="text-gray-400 shrink-0" />
+                                  Tổng thời gian đã làm:{' '}
+                                  <strong className="text-gray-700 font-semibold">
+                                    {formatDuration(totalExamSeconds)}
+                                  </strong>
+                                </span>
+                              )}
                             </div>
 
-                            <div className="flex items-center gap-3 shrink-0">
-                              {exam.isCompleted ? (
-                                <div className="text-right">
-                                  <div
-                                    className={`font-black text-xl ${
-                                      (exam.score ?? 0) >= 80
-                                        ? 'text-emerald-600'
-                                        : (exam.score ?? 0) >= 50
-                                        ? 'text-indigo-600'
-                                        : 'text-rose-600'
-                                    }`}
-                                  >
-                                    {exam.score}đ
-                                  </div>
-                                  <div className="text-[11px] text-gray-400 font-medium">
-                                    {exam.correctAnswers !== null && exam.correctAnswers !== undefined
-                                      ? `Đúng ${exam.correctAnswers}/${exam.totalQuestions ?? 0} câu`
-                                      : 'Hoàn thành'}
-                                  </div>
-                                </div>
-                              ) : exam.isInProgress ? (
-                                <span className="px-3 py-1 rounded-full bg-amber-100 text-amber-800 text-xs font-bold border border-amber-200">
-                                  Đang làm dở
-                                </span>
-                              ) : (
-                                <span className="px-3 py-1 rounded-full bg-gray-100 text-gray-500 text-xs font-bold">
-                                  Chưa làm
+                            <div className="flex items-center gap-2 shrink-0">
+                              {attempts.length > 1 && bestScore !== null && (
+                                <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                                  Cao nhất: {bestScore}đ
                                 </span>
                               )}
-
-                              {exam.isCompleted && (
-                                <button
-                                  onClick={(e) => toggleExamDetail(exam.id, e)}
-                                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-colors flex items-center gap-1 shrink-0 ${
-                                    isReviewOpen
-                                      ? 'bg-indigo-600 text-white'
-                                      : 'bg-indigo-50 text-indigo-600 hover:bg-indigo-100'
-                                  }`}
-                                >
-                                  {isReviewOpen ? (
-                                    <>
-                                      Thu gọn <ChevronUp size={14} />
-                                    </>
-                                  ) : (
-                                    <>
-                                      Xem bài làm <ChevronDown size={14} />
-                                    </>
-                                  )}
-                                </button>
-                              )}
+                              <span
+                                className={`text-xs font-bold px-2.5 py-1 rounded-full border ${
+                                  attempts.length > 0
+                                    ? 'text-indigo-700 bg-indigo-50 border-indigo-200'
+                                    : exam.isInProgress
+                                    ? 'text-amber-800 bg-amber-100 border-amber-200'
+                                    : 'text-gray-400 bg-gray-50 border-gray-200'
+                                }`}
+                              >
+                                {attempts.length > 0
+                                  ? `${attempts.length} lượt`
+                                  : exam.isInProgress
+                                  ? 'Đang làm dở'
+                                  : 'Chưa làm'}
+                              </span>
                             </div>
                           </div>
 
-                          {/* Nested Exam Submission Review */}
-                          {isReviewOpen && exam.isCompleted && (
-                            <div className="p-4 border-t border-gray-100 bg-gray-50/70 animate-in slide-in-from-top-2 duration-200">
-                              <ExamSubmissionReview
-                                content={exam.content}
-                                answers={(exam.answers as Record<string, unknown>) || {}}
-                                correctAnswersDetail={exam.correctAnswersDetail}
-                              />
+                          {/* Attempt Sessions List (like PracticeActivityCard) */}
+                          {attempts.length > 0 ? (
+                            <div className="space-y-2 p-3.5 bg-slate-50/50 border-t border-gray-100">
+                              {attempts.map((att) => {
+                                const attemptKey = `${exam.id}_${att.attempt}`
+                                const isAttemptOpen = expandedExamAttemptKey === attemptKey
+                                const dt = formatDateTime(att.completedAt)
+
+                                return (
+                                  <div
+                                    key={att.attempt}
+                                    className="p-3 rounded-xl border bg-white hover:border-indigo-200 border-slate-200/80 text-slate-800 shadow-2xs transition-all space-y-2"
+                                  >
+                                    {/* Top line: Attempt # + Status badge + Score + Duration + Action */}
+                                    <div className="flex items-center justify-between gap-2 flex-wrap">
+                                      <div className="flex items-center gap-1.5 flex-wrap">
+                                        <span className="font-bold text-gray-900 bg-slate-50 px-2 py-0.5 rounded-md border border-gray-200/80 shadow-2xs text-xs">
+                                          Lượt #{att.attempt}
+                                        </span>
+                                        {att.isInterrupted ? (
+                                          <span className="text-[10px] font-bold text-rose-700 bg-rose-50 px-2 py-0.5 rounded-full border border-rose-300 flex items-center gap-1">
+                                            <AlertTriangle size={10} /> Thoát giữa chừng / F5
+                                          </span>
+                                        ) : (
+                                          <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1">
+                                            <CheckCircle2 size={11} className="text-emerald-500" /> Hoàn thành
+                                          </span>
+                                        )}
+                                      </div>
+
+                                      <div className="flex items-center gap-2 shrink-0">
+                                        <div className="flex items-center gap-1 bg-indigo-50 px-2 py-0.5 rounded-md border border-indigo-200 shadow-2xs">
+                                          <span
+                                            className={`font-black text-xs ${
+                                              (att.score ?? 0) >= 80
+                                                ? 'text-emerald-700'
+                                                : (att.score ?? 0) >= 50
+                                                ? 'text-indigo-700'
+                                                : 'text-rose-700'
+                                            }`}
+                                          >
+                                            {att.score}đ
+                                          </span>
+                                          {att.correctAnswers !== null &&
+                                            att.correctAnswers !== undefined && (
+                                              <span className="text-indigo-600 text-[10px] font-medium">
+                                                ({att.correctAnswers}/{att.totalQuestions ?? 0} câu)
+                                              </span>
+                                            )}
+                                        </div>
+
+                                        <span className="font-bold text-xs flex items-center gap-1 px-2 py-0.5 rounded-md border shadow-2xs bg-white text-gray-700 border-gray-200/80">
+                                          <Clock size={11} className="text-gray-400" />
+                                          {formatDuration(att.durationSeconds)}
+                                        </span>
+
+                                        <button
+                                          onClick={(e) => toggleAttemptDetail(attemptKey, e)}
+                                          className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-colors flex items-center gap-1 shrink-0 ${
+                                            isAttemptOpen
+                                              ? 'bg-indigo-600 text-white'
+                                              : 'bg-indigo-50 text-indigo-600 hover:bg-indigo-100 border border-indigo-200'
+                                          }`}
+                                        >
+                                          {isAttemptOpen ? (
+                                            <>
+                                              Thu gọn <ChevronUp size={13} />
+                                            </>
+                                          ) : (
+                                            <>
+                                              Xem bài làm <ChevronDown size={13} />
+                                            </>
+                                          )}
+                                        </button>
+                                      </div>
+                                    </div>
+
+                                    {/* Bottom line: Ngày làm & Giờ hoàn thành */}
+                                    {dt && (
+                                      <div className="pt-2 border-t border-slate-100 flex items-center justify-between gap-2 text-[11px] text-gray-500 flex-wrap">
+                                        <div className="flex items-center gap-1.5 font-medium text-gray-600">
+                                          <Calendar size={12} className="text-indigo-500 shrink-0" />
+                                          <span>
+                                            Ngày làm: <strong className="text-gray-800">{dt.date}</strong>
+                                          </span>
+                                        </div>
+                                        <div className="flex items-center gap-1.5 text-gray-500">
+                                          <Clock size={12} className="text-gray-400 shrink-0" />
+                                          <span>
+                                            Giờ hoàn thành:{' '}
+                                            <strong className="text-gray-800">{dt.timeWithSeconds}</strong>
+                                          </span>
+                                        </div>
+                                      </div>
+                                    )}
+
+                                    {/* Nested Exam Submission Review for this specific attempt */}
+                                    {isAttemptOpen && (
+                                      <div className="mt-3 p-3.5 border-t border-indigo-100 bg-slate-50/70 rounded-xl shadow-xs animate-in slide-in-from-top-2 duration-200">
+                                        <ExamSubmissionReview
+                                          content={exam.content}
+                                          answers={
+                                            (att.answers as Record<string, unknown>) ||
+                                            (exam.answers as Record<string, unknown>) ||
+                                            {}
+                                          }
+                                          correctAnswersDetail={
+                                            att.correctAnswersDetail || exam.correctAnswersDetail
+                                          }
+                                        />
+                                      </div>
+                                    )}
+                                  </div>
+                                )
+                              })}
+                            </div>
+                          ) : exam.isInProgress ? (
+                            <div className="p-3.5 bg-amber-50/50 border-t border-amber-100 text-xs text-amber-800 flex items-center justify-between gap-2">
+                              <div className="flex items-center gap-1.5">
+                                <Clock size={13} className="text-amber-600 animate-pulse" />
+                                <span className="font-semibold">Học sinh đang làm dở bài thi này</span>
+                              </div>
+                              {exam.startedAt && (
+                                <span className="text-[11px] text-amber-700">
+                                  Bắt đầu lúc: {formatDateTime(exam.startedAt)?.fullWithSeconds || ''}
+                                </span>
+                              )}
+                            </div>
+                          ) : (
+                            <div className="p-4 bg-slate-50/50 border-t border-gray-100 text-xs text-slate-400 flex items-center justify-center gap-2">
+                              <Clock size={13} className="text-slate-300" />
+                              <span>Chưa làm bài kiểm tra này</span>
                             </div>
                           )}
                         </div>

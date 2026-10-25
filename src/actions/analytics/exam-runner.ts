@@ -5,6 +5,7 @@ import { prisma } from '~/common/libs/prisma'
 import { sanitizeExams } from '../class/exam-utils'
 import type { ExamData } from '@/modules/teacher/types'
 import type { TestResultPayload } from './types'
+import { normalizeExamHistory, calculateExamDuration } from './history-utils'
 
 export type ExamRunnerData = {
   exam: ExamData
@@ -96,6 +97,11 @@ export async function getStudentExamRunnerData(
       r.startedAt = new Date()
     }
 
+    const history = normalizeExamHistory(payload, r)
+    const durationSeconds = history[history.length - 1]?.durationSeconds || (
+      r.startedAt && r.completedAt ? calculateExamDuration(r.startedAt, r.completedAt) : null
+    )
+
     initialResult = {
       score: r.score ?? payload.score,
       startedAt: r.startedAt ? new Date(r.startedAt).toISOString() : undefined,
@@ -104,12 +110,22 @@ export async function getStudentExamRunnerData(
       correctAnswersDetail: payload.correctAnswersDetail,
       correctAnswers: payload.correctAnswers,
       totalQuestions: payload.totalQuestions,
+      durationSeconds,
+      attemptCount: Math.max(payload.attemptCount || 0, history.length),
+      bestScore: (payload.bestScore ?? r.score) ?? undefined,
+      history,
     }
   } else if (unitId && exam.unit?.studentProgress?.[0]?.testResults) {
     const legacy =
       (exam.unit.studentProgress[0].testResults as Record<string, TestResultPayload> | null) || {}
     if (legacy[examId]) {
-      initialResult = legacy[examId]
+      const legPayload = legacy[examId]
+      const legHistory = normalizeExamHistory(legPayload, null)
+      initialResult = {
+        ...legPayload,
+        history: legHistory,
+        attemptCount: Math.max(legPayload.attemptCount || 0, legHistory.length),
+      }
     }
   }
 

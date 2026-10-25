@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import type { TestBlock } from '~/modules/teacher/types'
 import { ensureShuffledWords } from '@/modules/teacher/utils/reorderUtils'
 import type { DraggedReorderWord } from './types'
@@ -62,6 +62,19 @@ export function useReorderState({
   const [reorderSelections, setReorderSelections] = useState<Record<string, number[]>>(() => {
     return initializeReorderState(currentBlocks, initialAnswers).initSelections
   })
+
+  const prevBlocksRef = useRef(currentBlocks)
+  const prevAnswersRef = useRef(initialAnswers)
+  useEffect(() => {
+    if (prevBlocksRef.current !== currentBlocks || prevAnswersRef.current !== initialAnswers) {
+      prevBlocksRef.current = currentBlocks
+      prevAnswersRef.current = initialAnswers
+      const { wordsMap, initSelections } = initializeReorderState(currentBlocks, initialAnswers)
+      setShuffledWordsMap(wordsMap)
+      setReorderSelections(initSelections)
+    }
+  }, [currentBlocks, initialAnswers])
+
   const [draggedReorderWord, setDraggedReorderWord] = useState<DraggedReorderWord | null>(null)
   const [dragOverReorderZone, setDragOverReorderZone] = useState<string | null>(null)
   const [dragOverReorderPos, setDragOverReorderPos] = useState<number | null>(null)

@@ -104,10 +104,17 @@ export default function StudentUnitExamsSection({
 
               <div className="flex items-center justify-between mt-auto">
                 {isCompleted ? (
-                  <div className="flex items-center justify-between w-full">
-                    <span className="text-green-600 font-bold text-xs bg-green-50 px-3 py-1.5 rounded-lg border border-green-100">
-                      Điểm: {Math.round(testResult.score || 0)}/100
-                    </span>
+                  <div className="flex items-center justify-between w-full gap-2 flex-wrap">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className="text-green-600 font-bold text-xs bg-green-50 px-2.5 py-1 rounded-lg border border-green-100">
+                        Điểm: {Math.round(testResult.score || 0)}/100
+                      </span>
+                      {((testResult.history && testResult.history.length > 1) || (testResult.attemptCount && testResult.attemptCount > 1)) && (
+                        <span className="text-indigo-700 font-bold text-[11px] bg-indigo-50 px-2 py-0.5 rounded-full border border-indigo-200">
+                          {testResult.history?.length || testResult.attemptCount} lượt làm
+                        </span>
+                      )}
+                    </div>
                     <div className="flex items-center gap-2">
                       {test.isRetakable && (
                         <button
@@ -125,7 +132,7 @@ export default function StudentUnitExamsSection({
                         </button>
                       )}
                       <span className="text-indigo-600 font-bold text-xs flex items-center gap-1 group-hover:translate-x-1 transition-transform">
-                        Xem đáp án <ChevronRight size={16} />
+                        Xem lại bài <ChevronRight size={16} />
                       </span>
                     </div>
                   </div>

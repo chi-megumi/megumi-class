@@ -34,35 +34,7 @@ export default function StudentExamPageClient({
     ? `/student/classes/${classId}/units/${unitId}`
     : `/student/classes/${classId}`
 
-  const saveInterruptedIfActive = () => {
-    try {
-      const sessionKey = `megumi_active_test_${exam.id}`
-      const raw = sessionStorage.getItem(sessionKey)
-      if (raw) {
-        const parsed = JSON.parse(raw)
-        const currentAnswers = parsed.answers
-        if (currentAnswers && Object.keys(currentAnswers).length > 0) {
-          const payload = {
-            classId,
-            unitId,
-            testId: exam.id,
-            answers: currentAnswers,
-            isInterrupted: true,
-          }
-          const blob = new Blob([JSON.stringify(payload)], { type: 'application/json' })
-          if (typeof navigator !== 'undefined' && navigator.sendBeacon) {
-            navigator.sendBeacon('/api/analytics/test-submit', blob)
-          }
-        }
-        sessionStorage.removeItem(sessionKey)
-      }
-    } catch {
-      // Ignore
-    }
-  }
-
   const handleClose = () => {
-    saveInterruptedIfActive()
     router.push(backUrl)
   }
 
@@ -79,7 +51,6 @@ export default function StudentExamPageClient({
         <div className="flex items-center gap-3 min-w-0">
           <Link
             href={backUrl}
-            onClick={saveInterruptedIfActive}
             className="p-1.5 text-gray-500 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors duration-150 shrink-0"
             title="Quay lại"
           >
@@ -114,7 +85,7 @@ export default function StudentExamPageClient({
       </header>
 
       {/* Main Runner Container */}
-      <main className="flex-1 min-h-0 py-2 sm:py-4 px-2 sm:px-4 flex justify-center">
+      <main className="flex-1 min-h-0 py-2 sm:py-4 px-2 sm:px-4 flex justify-center overflow-hidden">
         <div
           className={`w-full h-full flex flex-col transition-all duration-300 ${
             hasReadingBlock ? 'max-w-6xl' : 'max-w-2xl'
@@ -123,7 +94,7 @@ export default function StudentExamPageClient({
           <TestView
             testData={exam}
             unitId={unitId}
-            initialResult={retakeActive ? undefined : initialResult}
+            initialResult={initialResult}
             isRetake={retakeActive}
             onClose={handleClose}
             onTestComplete={handleTestComplete}

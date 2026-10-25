@@ -21,9 +21,11 @@ import GamePlayerModal from './unit/GamePlayerModal'
 import { startTest } from '@/actions/analytics/exam-session'
 import { syncMasteryProgress } from '@/actions/analytics/game-progress'
 import type { TestResultPayload } from '@/actions/analytics/types'
+import { normalizeExamHistory, calculateExamDuration } from '@/actions/analytics/history-utils'
 import VocabVault from './vocabulary/VocabVault'
 import TestConfirmModal from './exam/TestConfirmModal'
 import StudentUnitExamsSection from './unit/StudentUnitExamsSection'
+import { clearStoredExamSession } from './unit/test-view/examSessionStorage'
 
 const StudentUnitDashboard = ({
   unitData,
@@ -99,6 +101,10 @@ const StudentUnitDashboard = ({
       if (isBogusAutoSubmit) {
         return undefined
       }
+      const history = normalizeExamHistory(payload, r)
+      const durationSeconds = history[history.length - 1]?.durationSeconds || (
+        r.startedAt && r.completedAt ? calculateExamDuration(r.startedAt, r.completedAt) : null
+      )
       return {
         score: r.score ?? payload.score,
         startedAt: r.startedAt ? new Date(r.startedAt).toISOString() : undefined,
@@ -107,6 +113,10 @@ const StudentUnitDashboard = ({
         correctAnswersDetail: payload.correctAnswersDetail,
         correctAnswers: payload.correctAnswers,
         totalQuestions: payload.totalQuestions,
+        durationSeconds,
+        attemptCount: Math.max(payload.attemptCount || 0, history.length),
+        bestScore: (payload.bestScore ?? r.score) ?? undefined,
+        history,
       }
     }
     const legacy =
@@ -114,7 +124,16 @@ const StudentUnitDashboard = ({
         string,
         TestResultPayload
       >) || {}
-    return legacy[test.id]
+    const leg = legacy[test.id]
+    if (leg) {
+      const legHistory = normalizeExamHistory(leg, null)
+      return {
+        ...leg,
+        attemptCount: Math.max(leg.attemptCount || 0, legHistory.length),
+        history: legHistory,
+      }
+    }
+    return undefined
   }
 
   const handleStartDirectTest = async (test: ExamData, forceRetake = false) => {
@@ -127,6 +146,9 @@ const StudentUnitDashboard = ({
         testId: test.id,
         forceRetake,
       })
+      if (forceRetake) {
+        clearStoredExamSession(classId, test.id)
+      }
       router.push(
         `/student/classes/${classId}/exams/${test.id}?unitId=${unitData.id}${forceRetake ? '&retake=1' : ''}`,
       )

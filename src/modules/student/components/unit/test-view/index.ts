@@ -1,2 +1,6 @@
 export { default } from './TestView'
 export type { TestViewProps } from './types'
+export { default as SubmitConfirmModal } from './SubmitConfirmModal'
+export { default as TestViewSkeleton } from './TestViewSkeleton'
+export * from './examStats'
+export * from './examSessionStorage'

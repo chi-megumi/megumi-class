@@ -152,6 +152,19 @@ export type PracticeSessionEntry = {
   masteryProgress?: number | null
 }
 
+export type ExamAttemptHistoryEntry = {
+  attempt: number
+  score: number
+  correctAnswers?: number | null
+  totalQuestions?: number | null
+  durationSeconds?: number | null
+  startedAt: string | Date
+  completedAt: string | Date
+  isInterrupted?: boolean
+  answers?: Record<string, unknown>
+  correctAnswersDetail?: Record<string, string | number>
+}
+
 export type StudentExamDetail = {
   id: string
   title: string
@@ -165,6 +178,10 @@ export type StudentExamDetail = {
   totalQuestions?: number | null
   completedAt?: Date | string | null
   startedAt?: Date | string | null
+  durationSeconds?: number | null
+  attemptCount?: number
+  bestScore?: number | null
+  history?: ExamAttemptHistoryEntry[]
   answers?: Record<string, unknown> | null
   correctAnswersDetail?: Record<string, string | number> | null
   content?: unknown

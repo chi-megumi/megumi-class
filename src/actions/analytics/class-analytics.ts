@@ -6,7 +6,9 @@ import type {
   ClassLeaderboardResult,
   StudentExamHistoryItem,
   StudentExamHistoryResult,
+  ExamAttemptHistoryEntry,
 } from './types'
+import { normalizeExamHistory, calculateExamDuration } from './history-utils'
 
 /**
  * Returns class-wide leaderboard aggregating exam performances and vocab progress
@@ -195,6 +197,13 @@ export async function getStudentExamHistory(
     totalQuestions?: number
     answers?: Record<string, unknown>
     correctAnswersDetail?: Record<string, string | number>
+    startedAt?: string
+    completedAt?: string | null
+    durationSeconds?: number | null
+    attemptCount?: number | null
+    bestScore?: number | null
+    history?: Array<ExamAttemptHistoryEntry> | null
+    isInterrupted?: boolean
   }
 
   const examsList: Array<{
@@ -222,6 +231,12 @@ export async function getStudentExamHistory(
   const history: StudentExamHistoryItem[] = examsList.map(({ exam, type, unitTitle }) => {
     const res = resultMap.get(exam.id)
     const answersData = (res?.answers as ExamAnswersPayload | null) || {}
+    const examAttempts = normalizeExamHistory(answersData, res)
+    const attemptCount = Math.max(answersData.attemptCount || 0, examAttempts.length)
+    const bestScore = answersData.bestScore ?? res?.score ?? (answersData.score ?? null)
+    const durationSeconds = examAttempts[examAttempts.length - 1]?.durationSeconds || (
+      res?.startedAt && res?.completedAt ? calculateExamDuration(res.startedAt, res.completedAt) : null
+    )
 
     let status: 'completed' | 'in_progress' | 'not_started' = 'not_started'
     if (res?.completedAt) {
@@ -242,6 +257,10 @@ export async function getStudentExamHistory(
       totalQuestions: answersData.totalQuestions ?? null,
       startedAt: res?.startedAt || null,
       completedAt: res?.completedAt || null,
+      durationSeconds,
+      attemptCount,
+      bestScore,
+      history: examAttempts,
       answers: answersData.answers || {},
       correctAnswersDetail: answersData.correctAnswersDetail || {},
       content: exam.content,

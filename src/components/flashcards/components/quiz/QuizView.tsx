@@ -51,9 +51,15 @@ export function QuizView({ onClose, onGameComplete }: QuizViewProps = {}) {
 
   const handleFinishEarly = () => {
     const state = useQuizStore.getState()
-    const durationMs = state.sessionStartMs > 0 ? Date.now() - state.sessionStartMs : 0
     const total = state.sessionAnswers.length
     if (total === 0) return
+    if (
+      typeof window !== 'undefined' &&
+      !window.confirm(`Bạn có chắc chắn muốn kết thúc bài làm và nộp kết quả (${total} câu) không?`)
+    ) {
+      return
+    }
+    const durationMs = state.sessionStartMs > 0 ? Date.now() - state.sessionStartMs : 0
     const score = Math.round((state.sessionCorrect / total) * 100)
     const entry: QuizHistoryEntry = {
       id: `${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
