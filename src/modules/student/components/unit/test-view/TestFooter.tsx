@@ -69,7 +69,7 @@ export default function TestFooter({
                 <span>{isRetaking ? 'Đang chuẩn bị...' : 'Luyện tập lại (Đề xáo trộn)'}</span>
               </button>
             )}
-            <button 
+            <button
               type="button"
               onClick={onClose}
               className="px-4 py-2 bg-gray-900 hover:bg-gray-800 text-white font-bold rounded-lg shadow-sm transition-all hover:-translate-y-0.5 text-xs"
@@ -79,7 +79,7 @@ export default function TestFooter({
           </div>
         </div>
       ) : (
-        <>
+        <div className="flex flex-col md:flex-row items-center justify-between gap-2 w-full">
           <div className="flex items-center gap-2 min-w-0">
             <p className="text-gray-500 font-medium text-[11px] hidden md:block">
               Hệ thống sẽ tự động nộp bài khi hết thời gian.
@@ -93,22 +93,26 @@ export default function TestFooter({
           </div>
 
           <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
-            <button 
+            <button
               type="button"
               onClick={onSubmit}
               disabled={isSubmitting}
               className={`flex-1 sm:flex-none px-4 py-2 font-bold rounded-lg shadow-sm flex items-center justify-center gap-1.5 transition-transform hover:-translate-y-0.5 text-xs sm:text-sm ${
-                isMiniChallenge ? 'bg-gradient-to-r from-orange-500 to-pink-500 text-white' : 'bg-indigo-600 hover:bg-indigo-700 text-white'
+                isMiniChallenge
+                  ? 'bg-gradient-to-r from-orange-500 to-pink-500 text-white'
+                  : 'bg-indigo-600 hover:bg-indigo-700 text-white'
               } disabled:opacity-50 disabled:hover:translate-y-0`}
             >
-              {isSubmitting ? 'Đang nộp bài...' : (
+              {isSubmitting ? (
+                'Đang nộp bài...'
+              ) : (
                 <>
                   Nộp bài ngay <Send size={14} />
                 </>
               )}
             </button>
           </div>
-        </>
+        </div>
       )}
     </div>
   )

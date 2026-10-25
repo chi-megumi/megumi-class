@@ -50,9 +50,7 @@ export default function StudentClassDashboardClient({
       if (forceRetake) {
         clearStoredExamSession(classId, test.id)
       }
-      router.push(
-        `/student/classes/${classId}/exams/${test.id}${forceRetake ? '?retake=1' : ''}`,
-      )
+      router.push(`/student/classes/${classId}/exams/${test.id}${forceRetake ? '?retake=1' : ''}`)
     } catch (e) {
       console.error(e)
       alert('Lỗi khởi tạo bài thi. Vui lòng thử lại.')
@@ -96,9 +94,9 @@ export default function StudentClassDashboardClient({
         return undefined
       }
       const history = normalizeExamHistory(payload, r)
-      const durationSeconds = history[history.length - 1]?.durationSeconds || (
-        r.startedAt && r.completedAt ? calculateExamDuration(r.startedAt, r.completedAt) : null
-      )
+      const durationSeconds =
+        history[history.length - 1]?.durationSeconds ||
+        (r.startedAt && r.completedAt ? calculateExamDuration(r.startedAt, r.completedAt) : null)
       return {
         score: r.score ?? payload.score,
         startedAt: r.startedAt ? new Date(r.startedAt).toISOString() : undefined,
@@ -109,7 +107,7 @@ export default function StudentClassDashboardClient({
         totalQuestions: payload.totalQuestions,
         durationSeconds,
         attemptCount: Math.max(payload.attemptCount || 0, history.length),
-        bestScore: (payload.bestScore ?? r.score) ?? undefined,
+        bestScore: payload.bestScore ?? r.score ?? undefined,
         history,
       }
     }
@@ -133,9 +131,7 @@ export default function StudentClassDashboardClient({
             <Sparkles size={14} className="text-amber-300" />
             Lớp học trực tuyến
           </div>
-          <h1 className="text-3xl md:text-5xl font-black mb-4 tracking-tight">
-            {classData.name}
-          </h1>
+          <h1 className="text-3xl md:text-5xl font-black mb-4 tracking-tight">{classData.name}</h1>
           {classData.description && (
             <p className="text-indigo-100/90 text-sm md:text-base leading-relaxed mb-6 font-normal">
               {classData.description}
@@ -258,18 +254,19 @@ export default function StudentClassDashboardClient({
                   <div className="pt-4 border-t border-gray-100 flex items-center justify-between mt-auto">
                     {isCompleted ? (
                       <>
-                        <div className="flex items-center gap-1.5 flex-wrap">
+                        <div className="flex flex-col md:flex-row items-center gap-1.5 flex-wrap">
                           <span className="text-emerald-700 font-extrabold text-sm bg-emerald-100/70 px-3 py-1.5 rounded-xl border border-emerald-200 flex items-center gap-1.5">
                             <CheckCircle2 size={16} />
                             {Math.round(testResult.score || 0)}/100 điểm
                           </span>
-                          {((testResult.history && testResult.history.length > 1) || (testResult.attemptCount && testResult.attemptCount > 1)) && (
+                          {((testResult.history && testResult.history.length > 1) ||
+                            (testResult.attemptCount && testResult.attemptCount > 1)) && (
                             <span className="text-indigo-700 font-bold text-xs bg-indigo-50 px-2 py-1 rounded-lg border border-indigo-200">
                               {testResult.history?.length || testResult.attemptCount} lượt làm
                             </span>
                           )}
                         </div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex flex-col md:flex-row items-center gap-2">
                           {test.isRetakable && (
                             <button
                               type="button"
