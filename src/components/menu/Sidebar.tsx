@@ -5,9 +5,10 @@ import { Button } from '~/components/button/Button'
 import '~/common/styles/components/Sidebar.scss'
 import { logout } from '~/actions/auth'
 import MenuTabs from '~/components/menu/MenuTabs'
-import { ArrowRight, KeyRound, Loader2 } from 'lucide-react'
+import { ArrowRight, KeyRound, Loader2, LogOut } from 'lucide-react'
 import { useUserStore } from '~/providers/UserProvider'
 import { requestJoinClass } from '~/actions/class'
+import LogoutConfirmModal from '~/components/menu/LogoutConfirmModal'
 
 import { getTeacherClasses } from '~/actions/class'
 
@@ -27,13 +28,25 @@ const SideBar: React.FC<SideBarProps> = ({ position = 'left', initialClasses }) 
   const [inviteCode, setInviteCode] = useState('')
   const [loadingJoin, setLoadingJoin] = useState(false)
   const [message, setMessage] = useState({ text: '', type: '' })
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false)
+  const [isLoggingOut, setIsLoggingOut] = useState(false)
 
   const toggleSidebar = () => setIsSidebarOpen((prev) => !prev)
   const closeSidebar = () => setIsSidebarOpen(false)
 
-  const onLogout = async () => {
-    await logout()
-    window.location.reload()
+  const handleConfirmLogout = async () => {
+    setIsLoggingOut(true)
+    try {
+      await logout()
+      window.location.reload()
+    } catch {
+      setIsLoggingOut(false)
+    }
+  }
+
+  const handleOpenLogoutConfirm = () => {
+    closeSidebar()
+    setShowLogoutConfirm(true)
   }
 
   const handleJoinClass = async () => {
@@ -131,12 +144,26 @@ const SideBar: React.FC<SideBarProps> = ({ position = 'left', initialClasses }) 
               </div>
             )}
 
-            <Button variant="primary" size="sm" onClick={onLogout} fullWidth>
-              Đăng xuất
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={handleOpenLogoutConfirm}
+              fullWidth
+              className="flex items-center justify-center gap-2"
+            >
+              <LogOut size={16} />
+              <span>Đăng xuất</span>
             </Button>
           </div>
         </div>
       </div>
+
+      <LogoutConfirmModal
+        isOpen={showLogoutConfirm}
+        isLoading={isLoggingOut}
+        onClose={() => setShowLogoutConfirm(false)}
+        onConfirm={handleConfirmLogout}
+      />
     </div>
   )
 }
